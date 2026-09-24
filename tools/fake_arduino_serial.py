@@ -3,7 +3,8 @@
 over a PTY, so the real bridge (hardware/bridge/udprxtx.py) can run with no board.
 
 Usage: python3 tools/fake_arduino_serial.py [--time-scale 1.0]
-           [--fault none|never_done|silent|disconnect] [--assigned 1,2,3,4] [--link PATH]
+           [--fault none|never_done|silent|disconnect|homing_timeout|homing_flaky]
+           [--assigned 1,2,3,4] [--link PATH]
 Prints "SERIAL <pty path>" first; point the bridge at it (or at --link):
     python3 hardware/bridge/udprxtx.py --serial /tmp/fuelbot-arduino
 Stdlib only. No socat needed: the fake owns the PTY pair.
@@ -25,8 +26,12 @@ STEP_Z = 147e-6   # Z axis: 2 x delayMicroseconds(70) + overhead
 POSITIONS = {1: 0, 2: 18000, 3: 36000, 4: 54000, 5: 72000, 6: 72000}   # 5-6: placeholders
 DISPENSE_SEC = {1: 1.5, 2: 7.5, 3: 0.5, 4: 6.0, 5: 1.0, 6: 1.0}
 BOOT_SEC = 1.0    # bootloader + setup() before the banner after a watchdog reset
-BOOT_BANNER = [" ", "Reset!", "Homing", "Home reached"]
-FAULTS = ("none", "never_done", "silent", "disconnect")
+BOOT_BANNER = ["STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"]
+# Homing limits, mirroring the firmware #defines (TEL-02).
+HOMING_TIMEOUT_SEC = 20.0      # HOMING_TIMEOUT_MS
+HOMING_RETRY_SEC = 60.0        # HOMING_RETRY_MS (doubles per failure)
+HOMING_RETRY_MAX_SEC = 600.0   # HOMING_RETRY_MAX_MS
+FAULTS = ("none", "never_done", "silent", "disconnect", "homing_timeout", "homing_flaky")
 
 
 def cycle_script(hopper: int) -> List[Tuple[float, str]]:
@@ -41,19 +46,31 @@ def cycle_script(hopper: int) -> List[Tuple[float, str]]:
             out.append((t, line))
 
     pos = POSITIONS[hopper]
-    at(26000 * STEP_X)                                    # moveTo(26000)
-    at(4.0 + 1.0, "Water Filled in Cup")                  # pump 4 s + 1 s
-    at(abs(26000 - pos) * STEP_X)                         # moveTo(hopper)
-    at(DISPENSE_SEC[hopper], "Protein %d Dispensed" % hopper)
+    at(26000 * STEP_X)                                              # moveTo(26000)
+    at(4.0 + 1.0, "STATUS:WATER_FILL_1_DONE")                       # pump 4 s + 1 s
+    at(abs(26000 - pos) * STEP_X)                                   # moveTo(hopper)
+    at(DISPENSE_SEC[hopper], "STATUS:PROTEIN_DISPENSED %d" % hopper)
     at(1.0)
-    at(abs(26000 - pos) * STEP_X)                         # moveTo(26000)
-    at(5.0 + 1.0, "Water Filled in Cup")                  # pump 5 s + 1 s
-    at(51000 * STEP_X + 0.5 + 30000 * STEP_Z + 0.5)       # moveTo(77000), frother down
-    at(256 * 0.04 + 15.0, "Shake Frothing Done")          # ramp + mix
-    at(30000 * STEP_Z + 1.0 + 77000 * STEP_X, "Homing")   # frother up, moveTo(0)
-    at(0.0, "Home reached")
-    at(0.5, "Mix Done")
-    at(0.0, "STATUS:DONE")
+    at(abs(26000 - pos) * STEP_X)                                   # moveTo(26000)
+    at(5.0 + 1.0, "STATUS:WATER_FILL_2_DONE")                       # pump 5 s + 1 s
+    at(51000 * STEP_X + 0.5 + 30000 * STEP_Z + 0.5)                 # moveTo(77000), frother down
+    at(256 * 0.04 + 15.0, "STATUS:MIX_DONE")                        # ramp + mix
+    at(30000 * STEP_Z + 1.0 + 77000 * STEP_X, "STATUS:HOMING_START")  # frother up, moveTo(0)
+    at(0.0, "STATUS:HOMING_DONE")
+    at(0.5, "STATUS:DONE")
+    return out
+
+
+def failed_homing_script(start: float, attempts: int = 12) -> List[Tuple[float, str]]:
+    """A broken limit switch from `start`: each attempt fails after HOMING_TIMEOUT_SEC,
+    retried with the firmware's back-off (1, 2, 4, 8 min, then every 10 min)."""
+    out, t, gap = [], start, HOMING_RETRY_SEC
+    for _ in range(attempts):
+        out.append((t, "STATUS:HOMING_START"))
+        t += HOMING_TIMEOUT_SEC
+        out.append((t, "FAULT:HOMING_TIMEOUT"))
+        t += gap
+        gap = min(gap * 2, HOMING_RETRY_MAX_SEC)
     return out
 
 
@@ -77,9 +94,14 @@ class FakeArduino:
         self._rx = b""
         self._out: List[Tuple[float, str]] = []
         self._busy_until = 0.0            # inf while stuck
+        self._homed = fault != "homing_timeout"   # a permanently broken limit switch never homes
+        self._flaky_used = False
 
     def boot(self, now: float) -> None:
-        self._schedule(now, [(0.0, line) for line in BOOT_BANNER])
+        if self.fault == "homing_timeout":
+            self._schedule(now, [(0.0, "STATUS:BOOT")] + failed_homing_script(0.0))
+        else:
+            self._schedule(now, [(0.0, line) for line in BOOT_BANNER])
 
     def feed(self, data: bytes, now: float) -> None:
         self._rx += data
@@ -89,6 +111,9 @@ class FakeArduino:
             self.commands.append(text)
             if now < self._busy_until:
                 self._log("fake: dropped %r (board busy)" % text)
+                continue
+            if not self._homed and text:
+                self._schedule(now, [(0.0, "FAULT:NOT_HOMED")])
                 continue
             self._handle(text, now)
 
@@ -115,10 +140,18 @@ class FakeArduino:
             return
         script = cycle_script(hopper)
         if self.fault == "never_done":
-            cut = [i for i, (_, line) in enumerate(script) if line == "Homing"][0]
-            self._schedule(now, script[:cut + 1])   # stuck in homeAxis(): no Home reached, no DONE
+            cut = [i for i, (_, line) in enumerate(script) if line == "STATUS:MIX_DONE"][0]
+            self._schedule(now, script[:cut + 1])   # hangs after mixing: no DONE, ever
             self._busy_until = float("inf")
             return
+        if self.fault == "homing_flaky" and not self._flaky_used:
+            # The final homing fails once; the drink is kept (TEL-02 decision 3) and the
+            # boot homing after the reset succeeds.
+            self._flaky_used = True
+            start = [t for t, line in script if line == "STATUS:HOMING_START"][0]
+            script = [(t, line) for t, line in script if t < start]
+            fail = start + HOMING_TIMEOUT_SEC
+            script += [(start, "STATUS:HOMING_START"), (fail, "FAULT:HOMING_TIMEOUT"), (fail, "STATUS:DONE")]
         if self.fault == "disconnect":
             half = script[len(script) // 2][0]
             self._schedule(now, [(t, line) for t, line in script if t < half])
