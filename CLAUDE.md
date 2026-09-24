@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 Guidance for working on this repo. The facts below were verified while
-building the idle, details, payment and dispensing story sets (IDLE-01…10,
-DET-01…03, PAY-01…06, DSP-01…06; Sept 2026, Godot 4.7.2).
+building the idle, details, payment, dispensing and telemetry story sets
+(IDLE-01…10, DET-01…03, PAY-01…06, DSP-01…06, TEL-01…07; Sept 2026, Godot 4.7.2).
 Read [README.md](README.md) for how to run things. This file covers how to
 change things without re-learning the same lessons.
 
@@ -23,7 +23,8 @@ eventual target.
 
 ```
 autoload/      ConfigManager (first!), OrderState, Nav, OrderCounter, RazorpayManager, Bridge,
-               DevCapture (always last)
+               TelemetryReporter, DevCapture (always last)
+core/          report_queue.gd (ReportQueue: durable outbound POST queue; telemetry now, sales in M6)
 scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing,
                maintenance);
                scene_paths.gd = ScenePaths constants
@@ -44,13 +45,19 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
 
 - `tools/run_tests.sh [--filter=x]`: all GDScript tests. Starts its own mock on
   **:8788**, and fails on any `SCRIPT ERROR`, not just on failed asserts.
-- `python3 -m unittest mockserver/test_server.py hardware/bridge/test_udprxtx.py tools/test_fakes.py`:
-  all Python tests (mock server, bridge, fakes + automated Level 1).
-- `tools/check_firmware.sh`: `clang++ -fsyntax-only` of the sketch against
-  stub headers. Not an AVR compile (`arduino-cli` isn't installed).
-- `python3 tools/fake_dispense_bridge.py --mode done|timeout|reject|silent --delay N`:
-  Level 0 stand-in for the bridge. `python3 tools/fake_arduino_serial.py
-  --time-scale 0.1 --link <path> [--fault never_done|silent|disconnect]` +
+- `python3 -m unittest mockserver/test_server.py hardware/bridge/test_udprxtx.py tools/test_fakes.py hardware/firmware/test_firmware.py`:
+  all Python tests (mock server, bridge, fakes + automated Level 1, and the
+  **firmware on the host simulator**).
+- `tools/check_firmware.sh`: `clang++ -fsyntax-only` of the sketch and a build
+  of the simulator (`hardware/firmware/host_sim/`). Not an AVR compile
+  (`arduino-cli` isn't installed).
+- Firmware simulator by hand: build `hardware/firmware/host_sim/sim.cpp` (see
+  `test_firmware.py`), then `sim [--start-pos N] [--broken-limit FROM:TO]
+  [--at T:LINE] [--until S]` prints `<t>\t<serial line>`.
+- `python3 tools/fake_dispense_bridge.py --mode done|timeout|reject|silent --delay N
+  [--homing-fault-sec N]`: Level 0 stand-in for the bridge (also sends 4246
+  telemetry and heartbeats). `python3 tools/fake_arduino_serial.py
+  --time-scale 0.1 --link <path> [--fault never_done|silent|disconnect|homing_timeout|homing_flaky]` +
   `python3 hardware/bridge/udprxtx.py --serial <path> --recover-sec 3`: Level 1.
 - `tools/check_boot.sh`: 5 s headless boot, fails on script or parse errors.
 - `tools/screenshot.sh <res://Scene.tscn|main> [out.png] [delay] [flavor id]`:
@@ -143,11 +150,35 @@ overflow were both found this way. Story work is one commit per story
     app cap 130. Keep cap > deadline if you retune.
   - The bridge is stdlib-only Python 3.9 (no `match`, no `X | Y` hints). All
     policy lives in `BridgeCore` (no I/O, fake clock in tests). It rejects
-    orders while dispensing or recovering (after each cycle until `Home
-    reached`, max `--recover-sec`), and never blocks without a deadline.
-  - Firmware changes are minimal and marked `// M4:`. Keep `Home reached`,
-    `STATUS:DONE` and the `FAULT:` texts exact: the bridge matches them.
-    Hoppers 5–6 are `-1` placeholders that fail safe.
+    orders while dispensing, recovering (after each cycle until
+    `STATUS:HOMING_DONE`, max `--recover-sec`) or faulted, and never blocks
+    without a deadline.
+  - Firmware changes are minimal and marked `// M4:` / `// M5:`. Every serial
+    line is `STATUS:<STAGE>` or `FAULT:<CODE>` (table in the telemetry
+    README); keep them exact, since the bridge and fakes match them. Hoppers
+    5–6 are `-1` placeholders that fail safe. **Change firmware only with a
+    simulator test** (`hardware/firmware/test_firmware.py`).
+- **Telemetry & machine-fault rules (Milestone 5, `devdocs/stories/telemetry/README.md`):**
+  - The bridge sends JSON events on 4246: `dispense_cycle`, `machine_fault`,
+    `machine_ok` (all posted to `api.base_url + api.telemetry_path`) and a
+    10 s `bridge_status` heartbeat (state only, never posted).
+    `TelemetryReporter` owns that socket, stamps `event_id`, `tenant_id`, a
+    UTC `timestamp` + `Z`, `source`, and the order context from
+    `Bridge.get_order_context()`, then queues.
+  - Anything that must reach a backend goes through `ReportQueue`
+    (`core/`): written to disk before the network, one POST in flight, retry
+    timer, flush on boot, 4xx (not 408/429) dropped, capped. Don't write a
+    second queue for sales in M6: reuse it.
+  - `HOMING_TIMEOUT` is the only local maintenance fault. `TelemetryReporter`
+    sets `ConfigManager.set_local_hardware_fault(true, code)` and clears it
+    on `machine_ok` or a healthy heartbeat: **auto-clear, always** (product
+    owner). Idle stays the only enforcement point; an order in progress
+    finishes first.
+  - The board never resets in a loop on a homing fault: it retries after 1,
+    2, 4 and 8 min, then every 10 min, and refuses commands (`FAULT:NOT_HOMED`).
+    The bridge also refuses orders while faulted (`REJECTED machine_fault`).
+    A homing failure after mixing still ends in `STATUS:DONE` (the drink
+    counts).
 - **Allergens:** the banner is hidden when the list is empty. Never render
   "allergen-free"; the data only says nothing was declared. The nutrition
   section hides when absent (the bundled config has none), and missing keys
@@ -230,6 +261,17 @@ any change to `RazorpayManager` or the create payload.
    `dev_setup.gd -- --clear` *does* delete it.
 
 ## Godot 4.7 gotchas (all hit or verified here)
+
+- **A new `class_name` needs `godot --headless --path . --import`** before
+  `tools/check_boot.sh`. Otherwise an autoload that uses it fails with
+  "script does not inherit from 'Node'". `run_tests.sh` imports first;
+  `check_boot.sh` doesn't.
+- **`Time.get_datetime_string_from_system(true)` has no `Z`** (it returns
+  `2026-09-24T11:51:11`). Append it for UTC timestamps in payloads.
+- **Firmware simulator:** the sketch is compiled as `struct Board { #include
+  VM_code.ino }`, with a fresh `Board` per boot, because re-running `setup()`
+  keeps RAM and a cycle repeats. The stop time (`--until`) is enforced inside
+  `delay()`, since a busy-wait never returns to the driver.
 
 - **Variable fonts:** `FontVariation.variation_opentype` keys must be integer
   tags: `TextServerManager.get_primary_interface().name_to_tag("wght")`. String
@@ -413,9 +455,17 @@ any change to `RazorpayManager` or the create payload.
   chain from measured cycles.
 - **Refund policy** for paid-but-failed dispenses: undecided (support
   message only).
-- **Stuck board (Milestone 5):** after a `TIMEOUT` the bridge accepts the
-  next order after `--recover-sec`, even if the board is stuck in
-  `homeAxis()`. Needs `FAULT:HOMING_TIMEOUT` and a maintenance flip.
+- ~~Stuck board~~: resolved in Milestone 5 (bounded homing, machine fault,
+  maintenance, orders refused while faulted).
+- **Milestone 5 Levels 2/3 pending hardware** (steps in the telemetry
+  SIGNOFF): unplug the limit switch, watch the fault, retries and auto-clear.
+- **Dead bridge:** heartbeats make it detectable, but no maintenance flip yet
+  (a product decision).
+- **Maintenance footer** says "EXIT VIA REMOTE CONSOLE ONLY", which is wrong
+  for a local fault that clears itself.
+- **Homing past the switch:** after a broken-switch fault the carriage can sit
+  beyond home, and the next successful homing zeroes there (M4 homing
+  behaviour). Check at Level 2.
 - `hardware/pos/pinelabs.py` (inert port, plan §5 M4) not done.
 - The plan doc quotes the old Razorpay key ID. Rotate the key as the plan
   says.
@@ -425,8 +475,7 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- Next: Milestone 5 (telemetry, `STATUS:*` stages, bounded homing) and
-  Milestone 6 (sale reporting with `order_id`, fired on DONE/TIMEOUT from the
-  dispensing screen).
+- Next: Milestone 6 (sale reporting with `order_id`, fired on DONE/TIMEOUT from
+  the dispensing screen, via `ReportQueue`).
 - Flavor PNGs from the old build have heavy padding and render small; crop
   them.
