@@ -59,6 +59,7 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-24 | **`ReportQueue`** (`core/`): durable, one in flight, retry timer, flush on boot, drop 4xx (not 408/429), cap 5 000 records; reused by M6 sales | An unbounded queue on an SD card, or a poison record, is worse than a bounded loss | §3.8, §3.12 |
 | 2026-09-24 | Telemetry endpoint = `api.base_url` + `api.telemetry_path`; the app stamps `event_id` (ULID), `tenant_id`, UTC `timestamp` (+`Z`; Godot omits it) and order context from `Bridge`; the app posts `NO_RESPONSE` itself at the safety cap | Settings, not consts (M1 rule); the bridge can't know Razorpay or tenant data | §3.8 |
 | 2026-09-24 | **Firmware host simulator** (`hardware/firmware/host_sim/`): the real sketch runs against a simulated board in tests | Behavioural firmware checks before any board exists | §6 |
+| 2026-09-24 | **Dead bridge → out of service** (product owner; to build in the Milestone 6 set): no `bridge_status` heartbeat for **30 s** → local fault `BRIDGE_DOWN` → maintenance after any order in progress; **auto-clears** when heartbeats resume; `bridge_down`/`bridge_up` events posted. **60 s grace after app start**; a setting disables it for development. `ConfigManager`'s local fault becomes a **set** of codes (homing and bridge faults can overlap) | With the bridge dead, every paying customer is charged and gets the failure screen after the 130 s cap, and the machine looks healthy meanwhile | §3.10, §5 M6 |
 
 ## 1. Context
 
@@ -897,6 +898,14 @@ flag:**
   cycle's re-homing step; either way, the carriage position for the *next*
   order is unreliable, so it sets the local fault flag rather than only
   being logged.
+- **`BRIDGE_DOWN`** *(decided 2026-09-24, built in the Milestone 6 set)*: no
+  `bridge_status` heartbeat for 30 s (after a 60 s grace from app start).
+  Without the bridge nothing can dispense, so taking payment would only
+  charge customers for drinks the machine can't make. It auto-clears when
+  heartbeats resume, and can be disabled by a setting for development
+  without a bridge. With two local sources, `ConfigManager` tracks a set of
+  active local fault codes; the machine is out of service while any is set,
+  and the maintenance screen lists them all.
 - **Leak detected**: sets the flag; deliberately **does not auto-clear** on
   `FAULT:LEAK_CLEARED` — a leak that stops on its own can restart, so this
   one stays down until a technician acknowledges it (mechanism TBD when the
@@ -1291,7 +1300,10 @@ existing external reference (docs, muscle memory) to preserve.
 
 **Milestone 6 — Maintenance mode + sale reporting**
 - `scenes/maintenance/` per Section 3.11; `autoload/SalesReporter.gd` per
-  Section 3.12.
+  Section 3.12 (reusing `core/report_queue.gd`).
+- *(Added 2026-09-24)* **Dead bridge → out of service** (`BRIDGE_DOWN`, §3.10):
+  heartbeat timeout 30 s, 60 s startup grace, auto-clear, dev setting, and
+  local faults as a set.
 - Verify (Section 7, steps 9, 10): one sale POST fires per completed order
   (success or timeout) with `charged_price`/`dispensing_result` matching
   reality; kill the mock server mid-order, confirm the record persists in

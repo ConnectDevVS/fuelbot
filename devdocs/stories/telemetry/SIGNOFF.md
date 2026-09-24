@@ -115,7 +115,9 @@ with the simulator and fake timings. Retune `dispense_expected_sec`,
 
 ## Open items
 
-- **Dead bridge:** a missing heartbeat is now detectable, but it doesn't put
+- **Dead bridge:** *decided afterwards: out of service after 30 s without a
+  heartbeat, auto-clear, built in the Milestone 6 set (plan §0).* A missing
+  heartbeat is now detectable, but in this milestone it doesn't put
   the machine into maintenance (a product decision).
 - **Maintenance footer copy** for local faults.
 - **Telemetry backend:** the real endpoint (`api.telemetry_path` on

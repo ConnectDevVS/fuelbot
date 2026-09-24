@@ -169,7 +169,8 @@ overflow were both found this way. Story work is one commit per story
     (`core/`): written to disk before the network, one POST in flight, retry
     timer, flush on boot, 4xx (not 408/429) dropped, capped. Don't write a
     second queue for sales in M6: reuse it.
-  - `HOMING_TIMEOUT` is the only local maintenance fault. `TelemetryReporter`
+  - `HOMING_TIMEOUT` is the only local maintenance fault built so far
+    (`BRIDGE_DOWN` is decided, see Open items). `TelemetryReporter`
     sets `ConfigManager.set_local_hardware_fault(true, code)` and clears it
     on `machine_ok` or a healthy heartbeat: **auto-clear, always** (product
     owner). Idle stays the only enforcement point; an order in progress
@@ -459,8 +460,14 @@ any change to `RazorpayManager` or the create payload.
   maintenance, orders refused while faulted).
 - **Milestone 5 Levels 2/3 pending hardware** (steps in the telemetry
   SIGNOFF): unplug the limit switch, watch the fault, retries and auto-clear.
-- **Dead bridge:** heartbeats make it detectable, but no maintenance flip yet
-  (a product decision).
+- **Dead bridge → out of service: decided, not built yet** (Milestone 6 set;
+  plan §0 and §3.10). No heartbeat for 30 s → local fault `BRIDGE_DOWN` →
+  maintenance after any order in progress; auto-clears when heartbeats
+  resume; `bridge_down`/`bridge_up` posted; 60 s grace after app start; a
+  setting turns it off for development without a bridge. `ConfigManager`'s
+  single local fault must become a set of codes first (homing + bridge can
+  overlap). Until it's built, a dead bridge means every paying customer is
+  charged and gets the failure screen after the 130 s cap.
 - **Maintenance footer** says "EXIT VIA REMOTE CONSOLE ONLY", which is wrong
   for a local fault that clears itself.
 - **Homing past the switch:** after a broken-switch fault the carriage can sit

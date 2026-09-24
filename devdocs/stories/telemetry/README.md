@@ -153,7 +153,8 @@ payload is in TEL-05.
 - Sensor-based faults (§3.9: cup, leak, door, stall, weight) and a
   watchdog-loop detector.
 - Sale reporting (**Milestone 6**, which reuses `ReportQueue`).
-- Detecting a **dead bridge** (no heartbeat) and putting the machine into
+- *(Decided after this set: build it in the Milestone 6 set; see plan §0.)*
+  Detecting a **dead bridge** (no heartbeat) and putting the machine into
   maintenance for it. This set makes it detectable (heartbeat) but doesn't
   act on it; that's an open product question.
 - A telemetry backend and dashboard. The mock server stands in, and the real
