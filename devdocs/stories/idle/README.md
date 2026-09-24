@@ -168,8 +168,8 @@ Values below are scaled back to 1080-wide pixels. Colours are sampled from a
 | Display XL | Archivo wght 900, 128 px, line pitch ≈ 118 px | "FRESH BLENDED PROTEIN", "OUT OF SERVICE" |
 | Display L | Archivo wght 900, 100 px, line pitch ≈ 96 px | "FUEL UP", stub title |
 | Screen top padding | 60 px | header row starts here |
-| Product card | 424 px tall, image area 176 px, grid gap 28 px | six cards (2×3) fit with header, title and footer |
-| Heading | Archivo wght 800, 46 px | card names, tenant name |
+| Product card | 424 px tall, padding 32, image area 160 px, grid gap 28 px | six cards (2×3) fit with header, title and footer |
+| Heading | Archivo wght 800, 42 px | card names, tenant name |
 | Body | Archivo wght 400, 34 px, muted | sublines |
 | Mono | JetBrains Mono wght 500, 24 px, glyph spacing +2, dim | labels, footers |
 | Price | Archivo wght 900, 60 px, accent | card prices |

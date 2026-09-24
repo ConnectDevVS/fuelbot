@@ -1,7 +1,7 @@
 extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
-##     [--tenant=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10] [--clear]
+##     [--tenant=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10] [--clear] [--print-dir]
 
 const TENANT_PATH := "user://tenant_id.txt"
 const OVERRIDE_PATH := "user://local_settings.override.json"
@@ -22,6 +22,10 @@ func _initialize() -> void:
 			poll = float(arg.trim_prefix("--poll="))
 		elif arg == "--clear":
 			clear = true
+		elif arg == "--print-dir":
+			print("user data dir: ", OS.get_user_data_dir())
+			quit(0)
+			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
 		for path in [TENANT_PATH, OVERRIDE_PATH, CACHE_PATH]:
