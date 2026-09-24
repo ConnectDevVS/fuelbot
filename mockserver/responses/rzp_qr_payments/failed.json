@@ -1,0 +1,7 @@
+{
+  "description": "Payment attempt failed",
+  "status": 200,
+  "body": {"entity": "collection", "count": 1, "items": [
+    {"id": "pay_MockPay0000002", "entity": "payment", "amount": 7500, "currency": "INR", "status": "failed", "method": "upi"}
+  ]}
+}

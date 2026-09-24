@@ -1,0 +1,7 @@
+{
+  "description": "Captured immediately (7500 paise = guava ₹75)",
+  "status": 200,
+  "body": {"entity": "collection", "count": 1, "items": [
+    {"id": "pay_MockPay0000001", "entity": "payment", "amount": 7500, "currency": "INR", "status": "captured", "method": "upi"}
+  ]}
+}

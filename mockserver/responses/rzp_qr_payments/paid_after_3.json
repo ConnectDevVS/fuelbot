@@ -1,0 +1,10 @@
+{
+  "description": "Pending, pending, then captured (repeats)",
+  "sequence": [
+    {"status": 200, "body": {"entity": "collection", "count": 0, "items": []}},
+    {"status": 200, "body": {"entity": "collection", "count": 0, "items": []}},
+    {"status": 200, "body": {"entity": "collection", "count": 1, "items": [
+      {"id": "pay_MockPay0000001", "entity": "payment", "amount": 7500, "currency": "INR", "status": "captured", "method": "upi"}
+    ]}}
+  ]
+}

@@ -5,15 +5,20 @@ Usage: python3 mockserver/server.py [--host 127.0.0.1] [--port 8787] [--scenario
 See mockserver/README.md for the scenario envelope format and admin endpoints.
 """
 import argparse
+import base64
 import copy
 import json
+import mimetypes
 import os
+import re
 import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+ASSETS = os.path.join(ROOT, "assets")
+PLACEHOLDER = re.compile(r"\{\{([a-zA-Z0-9_.]+)\}\}")
 
 
 class ScenarioError(Exception):
@@ -81,10 +86,63 @@ def list_scenarios(scenarios_dir):
     return out
 
 
+def render(value, context):
+    """Replaces {{origin}}, {{now}} and {{request.<key>}} in string leaves.
+    A string that is exactly one placeholder takes the placeholder's JSON value."""
+    if isinstance(value, dict):
+        return {k: render(v, context) for k, v in value.items()}
+    if isinstance(value, list):
+        return [render(v, context) for v in value]
+    if not isinstance(value, str):
+        return value
+    whole = PLACEHOLDER.fullmatch(value)
+    if whole:
+        return _lookup(whole.group(1), context)
+    return PLACEHOLDER.sub(lambda m: _as_text(_lookup(m.group(1), context)), value)
+
+
+def _lookup(key, context):
+    if key == "origin":
+        return context["origin"]
+    if key == "now":
+        return int(time.time())
+    if key.startswith("request."):
+        body = context.get("request") or {}
+        return body.get(key[len("request."):]) if isinstance(body, dict) else None
+    return None
+
+
+def _as_text(value):
+    if value is None:
+        return ""
+    return value if isinstance(value, str) else json.dumps(value)
+
+
+def _pattern(path):
+    parts = []
+    for segment in path.strip("/").split("/"):
+        m = re.fullmatch(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", segment)
+        parts.append("(?P<%s>[^/]+)" % m.group(1) if m else re.escape(segment))
+    return re.compile("^/" + "/".join(parts) + "$")
+
+
+def _basic_auth_ok(header):
+    if not header or not header.startswith("Basic "):
+        return False
+    try:
+        user, _, secret = base64.b64decode(header[6:].strip()).decode("utf-8").partition(":")
+    except (ValueError, UnicodeDecodeError):
+        return False
+    return bool(user) and bool(secret)
+
+
 class MockState:
     def __init__(self, overrides):
         with open(os.path.join(ROOT, "routes.json"), encoding="utf-8") as f:
             self.routes = json.load(f)["routes"]
+        for r in self.routes:
+            r["_regex"] = _pattern(r["path"])
+            r["_is_pattern"] = "{" in r["path"]
         self.overrides = dict(overrides)
         self.lock = threading.Lock()
         self.reset()
@@ -95,12 +153,19 @@ class MockState:
             self.active.update(self.overrides)
             self.request_counts = {r["path"]: 0 for r in self.routes}
             self.last_tenant = {r["path"]: None for r in self.routes}
+            self.last_body = {r["path"]: None for r in self.routes}
+            self.sequence_pos = {r["path"]: 0 for r in self.routes}
 
-    def route(self, method, path):
-        for r in self.routes:
-            if r["method"] == method and r["path"] == path:
-                return r
-        return None
+    def match(self, method, path):
+        """Exact routes win over pattern routes. Returns (route, params) or (None, None)."""
+        for want_pattern in (False, True):
+            for r in self.routes:
+                if r["method"] != method or r["_is_pattern"] != want_pattern:
+                    continue
+                m = r["_regex"].match(path)
+                if m:
+                    return r, m.groupdict()
+        return None, None
 
     def snapshot(self):
         with self.lock:
@@ -109,6 +174,7 @@ class MockState:
                 "scenarios": {r["path"]: list_scenarios(r["scenarios_dir"]) for r in self.routes},
                 "request_counts": dict(self.request_counts),
                 "last_tenant": dict(self.last_tenant),
+                "last_body": copy.deepcopy(self.last_body),
             }
 
 
@@ -119,22 +185,24 @@ def make_handler(state):
         def log_message(self, fmt, *args):  # silence default access log
             pass
 
-        def _send(self, status, body=None, raw=None, headers=None):
-            data = raw.encode("utf-8") if raw is not None else json.dumps(body).encode("utf-8")
+        def _send(self, status, body=None, raw=None, headers=None, content_type="application/json"):
+            if isinstance(raw, bytes):
+                data = raw
+            elif raw is not None:
+                data = raw.encode("utf-8")
+            else:
+                data = json.dumps(body).encode("utf-8")
             self.send_response(status)
-            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(data)))
             for key, value in (headers or {}).items():
                 self.send_header(key, value)
             self.end_headers()
             self.wfile.write(data)
 
-        def _read_json(self):
+        def _read_body(self):
             length = int(self.headers.get("Content-Length") or 0)
-            try:
-                return json.loads(self.rfile.read(length) or b"{}")
-            except ValueError:
-                return None
+            return self.rfile.read(length) if length else b""
 
         def do_GET(self):
             self._dispatch("GET")
@@ -144,36 +212,66 @@ def make_handler(state):
 
         def _dispatch(self, method):
             path = self.path.split("?", 1)[0]
+            raw_body = self._read_body()
             if path.startswith("/__mock/"):
-                return self._admin(method, path)
-            route = state.route(method, path)
+                return self._admin(method, path, raw_body)
+            route, params = state.match(method, path)
             if route is None:
                 return self._send(404, {"error": "no route"})
+            try:
+                request_json = json.loads(raw_body) if raw_body else None
+            except ValueError:
+                request_json = None
             started = time.monotonic()
+            key = route["path"]
             tenant = (self.headers.get("X-Tenant-Id") or "").strip()
             with state.lock:
-                state.request_counts[path] += 1
-                state.last_tenant[path] = tenant or None
-                scenario = state.active[path]
+                state.request_counts[key] += 1
+                state.last_tenant[key] = tenant or None
+                state.last_body[key] = request_json
+                scenario = state.active[key]
+            auth = "-"
+            if route.get("require_basic_auth"):
+                auth = "basic" if _basic_auth_ok(self.headers.get("Authorization")) else "missing"
             if route.get("require_tenant_header") and not tenant:
                 status = 400
                 self._send(status, {"error": "missing X-Tenant-Id header"})
+            elif auth == "missing":
+                status = 401
+                self._send(status, {"error": {"code": "BAD_REQUEST_ERROR",
+                                              "description": "The api key provided is invalid"}})
             else:
-                try:
-                    env = load_scenario(route["scenarios_dir"], scenario)
-                except (ScenarioError, ValueError) as e:
-                    env = {"status": 500, "body": {"error": str(e)}}
+                env = self._envelope(route, key, scenario)
                 time.sleep(env.get("delay_ms", 0) / 1000.0)
                 status = env.get("status", 200)
+                context = {"origin": "http://" + (self.headers.get("Host") or "127.0.0.1"),
+                           "request": request_json}
                 try:
-                    self._send(status, env.get("body"), env.get("raw_body"), env.get("headers"))
+                    self._send(status, render(env.get("body"), context), env.get("raw_body"), env.get("headers"))
                 except (BrokenPipeError, ConnectionResetError):
                     status = "client-gone"
             elapsed = int((time.monotonic() - started) * 1000)
-            print("[mock] %s %s tenant=%s scenario=%s -> %s (%d ms)"
-                  % (method, path, tenant or "-", scenario, status, elapsed), flush=True)
+            print("[mock] %s %s tenant=%s auth=%s%s scenario=%s -> %s (%d ms)"
+                  % (method, path, tenant or "-", auth,
+                     (" params=%s" % json.dumps(params)) if params else "",
+                     scenario, status, elapsed), flush=True)
 
-        def _admin(self, method, path):
+        def _envelope(self, route, key, scenario):
+            try:
+                env = load_scenario(route["scenarios_dir"], scenario)
+            except (ScenarioError, ValueError) as e:
+                return {"status": 500, "body": {"error": str(e)}}
+            sequence = env.get("sequence")
+            if not sequence:
+                return env
+            with state.lock:
+                pos = state.sequence_pos[key]
+                state.sequence_pos[key] = pos + 1
+            return sequence[min(pos, len(sequence) - 1)]
+
+        def _admin(self, method, path, raw_body):
+            if method == "GET" and path.startswith("/__mock/assets/"):
+                return self._asset(path[len("/__mock/assets/"):])
             if method == "GET" and path == "/__mock/state":
                 return self._send(200, state.snapshot())
             if method == "POST" and path == "/__mock/reset":
@@ -181,7 +279,10 @@ def make_handler(state):
                 print("[mock] reset", flush=True)
                 return self._send(200, state.snapshot())
             if method == "POST" and path == "/__mock/scenario":
-                req = self._read_json() or {}
+                try:
+                    req = json.loads(raw_body or b"{}")
+                except ValueError:
+                    req = {}
                 route_path, name = req.get("path"), req.get("scenario")
                 route = next((r for r in state.routes if r["path"] == route_path), None)
                 if route is None:
@@ -190,9 +291,19 @@ def make_handler(state):
                     return self._send(400, {"error": "unknown scenario %s" % name})
                 with state.lock:
                     state.active[route_path] = name
+                    state.sequence_pos[route_path] = 0
                 print("[mock] scenario %s = %s" % (route_path, name), flush=True)
                 return self._send(200, state.snapshot())
             return self._send(404, {"error": "no admin route"})
+
+        def _asset(self, name):
+            full = os.path.realpath(os.path.join(ASSETS, name))
+            if not name or ".." in name.split("/") or not full.startswith(ASSETS + os.sep) or not os.path.isfile(full):
+                return self._send(404, {"error": "no asset"})
+            with open(full, "rb") as f:
+                data = f.read()
+            ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
+            return self._send(200, raw=data, content_type=ctype)
 
     return Handler
 
