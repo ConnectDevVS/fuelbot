@@ -96,8 +96,15 @@ to the Mega, then `python3 hardware/bridge/udprxtx.py --serial /dev/tty.usbmodem
 Step-by-step Level 2/3 checks are in the
 [dispensing SIGNOFF](devdocs/stories/dispensing/SIGNOFF.md).
 
-Only one process can bind 4242: run the real bridge, the fake bridge or
-`tools/udp_monitor.py`, not two at once. The app itself binds 4245.
+**Run exactly one app and one bridge.**
+- **One app:** use either `tools/dev_run.sh` or F5 in the Godot editor, never
+  both. The app listens for the bridge's replies on 4245, and only one
+  process can. A second copy can't hear `DONE`, so after the safety cap
+  (130 s) it shows "Something went wrong". `tools/dev_run.sh` refuses to
+  start while another copy holds 4245 (`--skip-port-check` overrides it).
+  The banner's `Bridge` line says whether a bridge is listening on 4242.
+- **One bridge:** only one process can bind 4242. Run the real bridge, the
+  fake bridge or `tools/udp_monitor.py`, not two at once.
 
 ## Local machine state (`user://`)
 

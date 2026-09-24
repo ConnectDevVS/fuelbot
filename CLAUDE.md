@@ -57,9 +57,16 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
   real-time capture (540×960) into `.screenshots/`. The 4th arg passes
   `--select=<id>` to `DevCapture` so details/payment can be launched directly.
 - `tools/dev_run.sh [--scenario=x] [--payments=mock|razorpay-test] [--editor]
-  [--fullscreen] [--no-mock] [-- godot args]`: dev launch with the mock on
+  [--fullscreen] [--no-mock] [--skip-port-check] [-- godot args]`: dev launch with the mock on
   **:8787**. `--scenario` switches the *config* route only; switch payment
   outcomes with `mockserver/scenario.sh <name> '/v1/payments/qr_codes/{qr_id}/payments'`.
+- **One app, one bridge.** Only one process can listen on 4245 (bridge
+  results) or 4242 (orders). A second app copy (typically the editor's F5
+  game plus a `dev_run` window) never gets `DONE` and shows the failure
+  screen at the safety cap. Its only sign is the log line `can't listen on
+  127.0.0.1:4245`. `dev_run.sh` refuses to start in that case
+  (`--skip-port-check` overrides), and its banner warns when no bridge is on
+  4242. Test runs and screenshots start their own copies, which only warn.
 - `python3 tools/udp_monitor.py`: see exactly what the app sends the bridge
   (4242). It can't run alongside the real or fake bridge (port conflict), and
   it can't watch 4245 while the app runs (the app binds it).
