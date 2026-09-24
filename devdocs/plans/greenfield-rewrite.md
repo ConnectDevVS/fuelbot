@@ -5,6 +5,34 @@ greenfield-rewrite decision to start from a fresh project. It is meant to be
 the single source of truth — nothing here should require flipping to another
 document.
 
+## 0. Status & decision log
+
+**Status (2026-09-24).** Milestones 0, 1 and 3 are done: the idle screens
+(attract, listing, maintenance) and the details page (Ingredients &
+Allergens) run against a local mock backend. **Next: Milestone 2, payment.**
+Per-milestone status is in Section 5. Work is executed as story sets under
+`devdocs/stories/`. Each set's README lists its detailed decisions, and its
+`SIGNOFF.md` records the verification evidence.
+
+**Decision log.** Decisions made after this plan was written. The sections
+they touch have been edited in place; this list is the index. Newest last.
+
+| Date | Decision | Why | Where |
+|------|----------|-----|-------|
+| 2026-09-24 | Project lives at the repo root (`Sourcegit/fuelbot`), not a `fuelbotsource-v2/` sibling | The repo was already the fresh, git-initialised project | idle README §1 |
+| 2026-09-24 | **Six hoppers / six drinks** (`MAX_HOPPER = 6`); previously 4 | Confirmed hardware direction. Firmware and wiring for motors 5–6 still to do (Milestone 4) | §2.1.3, §3.2, §3.3 |
+| 2026-09-24 | `sold_out` flag: sold-out drinks are **shown greyed, not tappable**; `enabled:false` still **hides** | Matches the on-device design | §3.1, §3.3 |
+| 2026-09-24 | Optional schema additions: `tenant` block (branding), per-flavor `sold_out`/`badge`/`description`/`volume_ml`/`nutrition`, `maintenance.flagged_by/flagged_at/faults` | Needed by the designed screens | §3.1 |
+| 2026-09-24 | API URL lives in `local_settings.json` → `api` (plus an untracked `user://local_settings.override.json`), replacing `const CONFIG_URL` | Point dev/Pi at a mock without code edits; the URL is build-level, not tenant-level | §3.1, §3.3 |
+| 2026-09-24 | New **Ingredients & Allergens** screen (`scenes/flavor_detail/`) between listing and payment. The allergen banner is hidden when none are declared (never "allergen-free"); nutrition hides when absent | On-device design, page 3 | §3.6 |
+| 2026-09-24 | **Proceed to Pay is the order commitment point.** It sets `charged_price` and `selected_base_id` (first enabled base, since the design has no base step) and creates the order ID | Design goes details → payment directly | §3.4, §3.6 |
+| 2026-09-24 | **Hopper command (`P<hopper>`) is sent after payment succeeds**, not on flavor selection | An abandoned payment must never start the hardware; with the details step, a tap is no longer a commitment | §3.2, §3.6 |
+| 2026-09-24 | **Order ID = ULID generated on the machine at Proceed**, carried in the Razorpay QR `notes`, the sale report and telemetry; plus a **display-only per-machine order number** ("ORDER #4821") | Fleet-unique and offline-safe without coordination. It also identifies abandoned/failed payments, which have no Razorpay ID, so the full funnel is measurable. A plain counter would collide across machines and repeat after a re-image | §3.4, §3.5, §3.8, §3.12 |
+| 2026-09-24 | Razorpay **test-mode keys** for Milestone 2 (from `user://razorpay_credentials.cfg`); automated tests use the mock server | Real integration without live money; tests stay offline | §3.5 |
+| 2026-09-24 | QR expiry **180 s** (`timing.qr_expiry_sec`) | Confirmed | §3.1, §3.5 |
+| 2026-09-24 | `Nav` autoload owns all scene changes; `DevCapture` autoload (dev-only screenshots); headless test harness | Testable navigation, verifiable UI | §3.3, §4, §7 |
+| 2026-09-24 | Maintenance screen shows technician diagnostics and **re-checks the flag on entry** | Design page 6; fixes a race where the flag clears mid-redirect | §3.11 |
+
 ## 1. Context
 
 FuelBot is a Godot 4 vending-machine kiosk app. The current build
@@ -65,9 +93,10 @@ real hardware dispensing-confirmation signal, maintenance mode, sale
 reporting, and fault/telemetry reporting are all part of the initial
 architecture, not follow-up work.
 
-New directory: `/Volumes/Professional/Professional/FuelBot/Source/fuelbotsource-v2`
-(a fresh sibling — the old tree stays untouched as reference, not modified
-in place).
+New project: the repo root of `Sourcegit/fuelbot` (git-initialised, fresh). The
+old tree stays untouched as reference at
+`/Volumes/Professional/Professional/FuelBot/Source/fuelbotsource_og`. *(Updated
+2026-09-24: originally planned as a `fuelbotsource-v2` sibling.)*
 
 ## 2. Decisions locked in
 
@@ -77,9 +106,11 @@ in place).
    placeholder URL constant.
 2. Fallback chain: fresh fetch → last successfully cached copy on `user://`
    → baked-in default config, so the machine is never fully unusable.
-3. Each flavor entry includes an explicit `"hopper": 1-4` field (physical
-   wiring is fixed to 4 motors — the JSON decouples *which* flavor maps to
-   *which* hopper from array order).
+3. Each flavor entry includes an explicit `"hopper": 1-6` field (the machine
+   has **six** hoppers, `ConfigManager.MAX_HOPPER = 6`; the JSON decouples
+   *which* flavor maps to *which* hopper from array order). *(Updated
+   2026-09-24: was 4. The firmware (`VM_code.ino`, pins `M1–M4`) still needs
+   motors 5–6, tracked in Milestone 4.)*
 4. The config API is multi-tenant: each machine identifies itself via a
    **tenant ID**, read from a local provisioning file at boot and sent as an
    `X-Tenant-Id` HTTP header (not a query param, so the URL itself stays
@@ -159,6 +190,13 @@ Two separate JSON documents, sourced differently — this split matters (see
 ```json
 {
   "version": 1,
+  "tenant": {
+    "display_name": "PowerFuel Gym",
+    "logo_text": "PF",
+    "location_label": "FUELBOT · BAY 02",
+    "site": "PowerFuel Gym / Bay 02",
+    "support_phone": "1800 419 0142"
+  },
   "flavors": [
     {
       "id": "guava",
@@ -166,9 +204,14 @@ Two separate JSON documents, sourced differently — this split matters (see
       "hopper": 1,
       "actual_price": 90,
       "offer_price": 75,
-      "image": "res://assets/images/flavors/PrymorGuava.png",
-      "ingredients": ["Whey Isolate", "Guava Flavor", "Electrolytes"],
+      "image": "res://assets/images/flavors/prymor_guava.png",
+      "description": "Cold-blended whey isolate with real guava and electrolytes.",
+      "volume_ml": 400,
+      "nutrition": {"kcal": 210, "protein_g": 24, "carbs_g": 12, "fat_g": 2},
+      "ingredients": ["Whey protein isolate", "Guava pulp", "Electrolyte blend"],
       "allergens": ["Milk", "Soy"],
+      "badge": "POPULAR",
+      "sold_out": false,
       "enabled": true
     },
     {
@@ -189,30 +232,42 @@ Two separate JSON documents, sourced differently — this split matters (see
   ],
   "maintenance": {
     "enabled": false,
-    "message": ""
+    "message": "",
+    "flagged_by": null,
+    "flagged_at": null,
+    "faults": []
   },
   "idle_video_url": null
 }
 ```
 
-(`image` paths above assume Milestone 7's asset migration lands flavor
-images at `assets/images/flavors/` — the exact retained filenames, e.g.
-whether the `(1)` duplicate or the plain name survives, get resolved during
-that milestone's audit, not decided here.)
+**Optional fields** (added 2026-09-24; `ConfigManager.normalise()` fills
+defaults, so older payloads stay valid):
+- `tenant`: header branding. Missing keys fall back to the bundled default
+  tenant (`FuelBot` / `FB`).
+- per flavor: `description`, `volume_ml`, `nutrition`
+  (`kcal`/`protein_g`/`carbs_g`/`fat_g`), `badge` (string or null, e.g.
+  `"POPULAR"`), and `sold_out` (bool). **`enabled: false` hides a flavor;
+  `sold_out: true` shows it greyed and not tappable.**
+- `maintenance.flagged_by`, `flagged_at` (ISO-8601 UTC) and `faults`
+  (`[{code, description}]`), shown on the maintenance diagnostics panel.
+
+(Flavor images live at `assets/images/flavors/` with snake_case names, ported
+from the old tree's plain, non-`(1)` files. Provenance is in
+`assets/ASSETS.md`.)
 
 `maintenance.enabled` is the tenant-wide kill switch; `maintenance.message`
 is shown on the maintenance screen when set, falling back to a local default
 (Section 3.11) when empty.
 
-`allergens` is a plain string list per flavor, same shape as `ingredients` —
-no allergen-to-icon mapping or display work is in scope, just the data
-flowing through `ConfigManager` and available on the flavor dict for
-whenever UI work picks it up. There's currently no price or ingredient
-display anywhere in the UI, so this plan only wires the *data* — both price
-fields flow through and are available on the flavor dict returned to
-`flavor_select.gd`. Showing "actual price struck through, offer price
-highlighted" would need a new Label pair on `FlavorSelect.tscn` — a natural
-follow-up, not included here.
+`allergens` is a plain string list per flavor, same shape as `ingredients`.
+No allergen-to-icon mapping is in scope. *(Updated 2026-09-24:)* The listing
+shows the charge price, protein and kcal per card. The Ingredients &
+Allergens screen shows ingredients as chips, allergens in a warning banner
+(hidden when the list is empty, never rendered as "allergen-free"), and
+nutrition tiles (the section hides when `nutrition` is absent). Showing
+"actual price struck through, offer price highlighted" is still a follow-up
+(Section 8).
 
 `idle_video_url` is the future-scope field for remotely-managed ad video —
 see Section 3.13. Optional/nullable; `null` (as shown here) or absent means
@@ -222,12 +277,18 @@ see Section 3.13. Optional/nullable; `null` (as shown here) or absent means
 serial command — decoupled from `id`/array order so reassigning a flavor to
 a different physical hopper is a config change, not a code change.
 
-**Local settings** (bundled with the app as `res://local_settings.json`,
+**Local settings** (bundled with the app as `res://config/local_settings.json`,
 read at machine start — never fetched over the network, never
-tenant-specific):
+tenant-specific; an untracked `user://local_settings.override.json` is
+deep-merged on top if present, for dev/Pi API URLs and poll intervals):
 
 ```json
 {
+  "api": {
+    "base_url": "https://example.invalid/fuelbot",
+    "config_path": "/config",
+    "request_timeout_sec": 10
+  },
   "messages": {
     "qr_generating": "QR Code Generation in Progress",
     "payment_failed": "Payment failed. Please try again.",
@@ -249,7 +310,12 @@ tenant-specific):
 }
 ```
 
-Rationale for the split: messages/timing are UI/behavior tuning that ship
+The shipped file holds **all** user-facing copy (no string literals in
+scenes) and more timing keys (`detail_screen_inactivity_sec`,
+`attract_tap_debounce_sec`, …); the block above is an excerpt.
+`qr_expiry_sec` is confirmed at **180 s**.
+
+Rationale for the split: messages/timing/API URL are UI/behavior tuning that ship
 with a given build and don't vary per tenant/location, whereas the flavor
 catalog is exactly the thing operators need to change centrally per machine
 without a rebuild. Keeping messages/timing local also means they're always
@@ -264,12 +330,15 @@ The **amount actually charged** is `offer_price` when non-null, otherwise
 implements this single resolution rule so no caller duplicates the
 null-check.
 
-**Hopper vs. carousel index**: `flavor_select.gd`'s carousel position `N`
-and a flavor's physical `hopper` can differ — flavor order in the JSON might
-not match hopper wiring order. `_on_select_pressed()` must send
-`"P" + str(flavors[N-1]["hopper"])`, **not** `"P" + str(N)`, so the Arduino
-receives the correct physical hopper digit regardless of how flavors are
-ordered/filtered (e.g. by `enabled`) in the JSON. This is the one place the
+**Hopper vs. list position**: a flavor's position on the listing and its
+physical `hopper` can differ — flavor order in the JSON might not match
+hopper wiring order. The hopper command must send
+`"P" + str(OrderState.selected_flavor["hopper"])`, **never** a list position,
+so the Arduino receives the correct physical hopper digit regardless of how
+flavors are ordered/filtered (e.g. by `enabled`) in the JSON. *(Updated
+2026-09-24: the command is sent **after payment succeeds**, from the payment
+flow, not on flavor selection, so an abandoned payment never starts the
+hardware.)* This is the one place the
 hardware wire format and the config schema directly interact — everything
 else (price, ingredients, images, messages, timing) is UI-only.
 
@@ -298,8 +367,10 @@ comment in `project.godot` and at the top of each dependent autoload so this
 survives a future reshuffle.
 
 Responsibilities:
-- `const CONFIG_URL = "https://example.invalid/fuelbot/config"` — placeholder,
-  one fixed URL shared by every machine.
+- API URL = `local_settings.api.base_url + api.config_path` (placeholder
+  `https://example.invalid/fuelbot/config`, one fixed URL shared by every
+  machine). *(Updated 2026-09-24: replaces `const CONFIG_URL`; dev points it at
+  the mock server via `user://local_settings.override.json`.)*
 - `const TENANT_ID_PATH = "user://tenant_id.txt"` — plain-text file
   containing the tenant/machine identifier, written once during
   provisioning/imaging (not git-tracked — each physical unit gets its own
@@ -344,12 +415,12 @@ every `maintenance_poll_interval_sec`.
 4. If no usable cache was loaded in step 3, load bundled
    `res://config/default_config.json` as `current_config`.
 5. If a tenant ID was found in step 2, fire the HTTPRequest GET to
-   `CONFIG_URL` in the background with header `"X-Tenant-Id: " + tenant_id`,
+   the config URL (`get_api_url()`) in the background with header `"X-Tenant-Id: " + tenant_id`,
    and an explicit `timeout` (e.g. 10s) on the `HTTPRequest` node so a
    stalled connection can't hang indefinitely — the UI is already usable
    from step 3/4 regardless.
 6. On success (200 + valid JSON): run a validation pass before accepting it
-   — every flavor has `hopper` in 1-4, no two *enabled* flavors share the
+   — every flavor has `hopper` in 1-6 (`MAX_HOPPER`), no two *enabled* flavors share the
    same `hopper`, `actual_price` is a positive number, `image` is a
    non-empty string. If validation fails, discard the response entirely
    (keep whatever step 3/4 loaded) and log the failure. If it passes:
@@ -365,9 +436,14 @@ every `maintenance_poll_interval_sec`.
    the `messages.config_fetch_failed` text.
 
 **Helper accessors**:
-- `get_flavors() -> Array` — only `enabled == true` entries (also excludes
-  any locally hopper-faulted flavor once Section 3.9's future roadmap item 4
-  lands).
+- `get_flavors() -> Array` — only `enabled == true` entries, **including
+  sold-out ones** (they render greyed). Will also exclude any locally
+  hopper-faulted flavor once Section 3.9's future roadmap item 4 lands.
+- `is_orderable(flavor) -> bool` — `enabled and not sold_out`.
+- `get_min_charge_price() -> int` — over orderable flavors.
+- `get_tenant() -> Dictionary`, `get_api_url() -> String`.
+- `normalise(raw) -> Dictionary` — the one place JSON floats become ints and
+  optional fields get defaults; scenes trust its output.
 - `get_flavor_by_hopper(n: int) -> Dictionary`
 - `get_charge_price(flavor: Dictionary) -> int` — Section 3.2's rule.
 - `get_base(id: String) -> Dictionary`
@@ -382,14 +458,27 @@ every `maintenance_poll_interval_sec`.
 New autoload, `autoload/OrderState.gd`, replacing the old `static var
 protein_value` / `class_name protein` global-hack entirely. Fields:
 - `selected_flavor: Dictionary` — set by `flavor_select.gd` on selection.
-- `selected_base_id: String` — set by `payment.gd` on base selection.
-- `charged_price: int` — set by `payment.gd` via
+- `selected_base_id: String` — set on **Proceed to Pay** (details screen) to
+  the first enabled base; the design has no base-selection step.
+- `charged_price: int` — set on **Proceed to Pay** via
   `ConfigManager.get_charge_price(selected_flavor)`.
+- `order_id: String` — **ULID** generated on the machine on **Proceed to
+  Pay**. Fleet-unique without coordination, works offline, time-sortable. The
+  analytics key for every order, including abandoned/failed payments that
+  never get a Razorpay ID. Sent in the Razorpay QR `notes`, the sale report
+  and telemetry.
+- `order_number: int` — **display-only**, per-machine counter persisted in
+  `user://`, shown as "ORDER #4821". Never used as a key (it collides across
+  machines and restarts after a re-image).
 - `transaction_id: String` — set by `payment.gd`'s
   `RazorpayManager.payment_received` handler, right when payment succeeds.
   This is the single source `TelemetryReporter` (3.8) and `SalesReporter`
   (3.12) both read from, rather than each tracking their own copy.
-- `func reset() -> void` — called when flow returns to idle.
+- `func reset() -> void` — called when flow returns to idle (`Nav.go_idle()`
+  does this) and when the customer goes Back from details.
+
+*(Updated 2026-09-24: price/base now committed on Proceed instead of in
+`payment.gd`; `order_id`/`order_number` added.)*
 
 ### 3.5 `RazorpayManager.gd` — autoload
 
@@ -401,8 +490,11 @@ exposing:
 - `signal payment_received(payment_id, amount)`
 - `signal payment_failed(reason)`
 
-Public functions: `create_qr(amount_rupees: int) -> void`,
-`stop_polling() -> void`. Internally: builds/POSTs to
+Public functions: `create_qr(amount_rupees: int, order_id: String) -> void`
+(the order ID goes in the QR's `notes` so Razorpay payments join to orders),
+`stop_polling() -> void`. QR expiry: `timing.qr_expiry_sec` = **180 s**.
+Milestone 2 runs against **Razorpay test-mode keys**; automated tests run
+against the mock server's payment routes. Internally: builds/POSTs to
 `https://api.razorpay.com/v1/payments/qr_codes`, polls
 `qr_codes/<id>/payments` every few seconds up to a timeout, emits
 `payment_received`/`payment_failed` on `captured`/`failed`.
@@ -423,22 +515,27 @@ two, stashing `payment_id` into `OrderState.transaction_id`.
 `maintenance_changed`) — this is the *only* screen that checks maintenance
 mid-session (Section 3.11 explains why).
 
-**`scenes/flavor_select/` (`FlavorSelect.tscn`/`flavor_select.gd`)**:
-carousel reads `ConfigManager.get_flavors()` once in `_ready()` (not
-per-frame — the old `node_2d.gd` calls `load()` every single frame in
-`_process()` regardless of whether the selection changed; this is fixed as
-a low-cost perf win). Clamps the carousel index against `flavors.size()`
-instead of the literal `4`. On selection, writes into `OrderState` instead
-of a static var, and sends UDP `"P" + hopper` using the flavor's `hopper`
-field — not carousel position (Section 3.2's hopper-vs-index rule).
+**`scenes/flavor_select/` (`FlavorSelect.tscn`/`flavor_select.gd`)**: a
+2-column grid of product cards (design page 2) built from
+`ConfigManager.get_flavors()` in `_ready()` and rebuilt on `config_ready`
+(no per-frame `load()`, unlike the old `node_2d.gd`). Sold-out cards are greyed
+and not tappable. A tap writes `OrderState.selected_flavor` and goes to
+details. No UDP here (Section 3.2). Inactivity → idle.
 
-**`scenes/payment/` (`Payment.tscn`/`payment.gd`)**: bases read from
-`ConfigManager.get_base()`; both water and milk wired identically — milk
-simply doesn't render/is disabled when its config entry is `enabled: false`
-(no dead handler, unlike today's no-op `_on_milk_pressed()`). Price via
-`ConfigManager.get_charge_price(OrderState.selected_flavor)`, stashed into
-`OrderState.charged_price` — this replaces the
-`if protein_value==1: 75 / ==2: 180 / ...` chain entirely. Payment via
+**`scenes/flavor_detail/` (`FlavorDetail.tscn`/`flavor_detail.gd`)** *(added
+2026-09-24, design page 3)*: Ingredients & Allergens. Back clears the
+selection and returns to the listing. **Proceed to Pay** commits
+`charged_price`, `selected_base_id` and `order_id` (Section 3.4), then goes to
+payment. A catalog refresh while open re-resolves the flavor by id and bails
+to the listing if it's gone or sold out.
+
+**`scenes/payment/` (`Payment.tscn`/`payment.gd`)**: "Scan to pay" (design page
+4). Reads the already-committed `OrderState.charged_price` / `order_id`
+(Section 3.4); there is no base picker (milk stays config-disabled, and the
+first enabled base is used). This replaces the old
+`if protein_value==1: 75 / ==2: 180 / ...` chain entirely. On
+`payment_received` it stores the transaction ID and **then** sends the hopper
+command (Section 3.2). Payment via
 `RazorpayManager` (3.5). Real failure-path UI via
 `ConfigManager.get_message("payment_failed")` — the old `_finish(false)`
 sends `"X"` and dead-ends with no UI at all; this plan makes the label
@@ -551,6 +648,7 @@ adds more without changing this shape:
   "event_type": "dispense_cycle",
   "tenant_id": "machine-042",
   "cycle_id": "8f1c2a4e-9b3d-4a11-9c2e-7e6d5f4a3b2c",
+  "order_id": "01J8Z6Q4M9X3T7C2V5B8N1K4RD",
   "transaction_id": "pay_QqR8xYz3vN2Kw1",
   "flavor_id": "guava",
   "hopper": 1,
@@ -615,6 +713,7 @@ shapes:
   {
     "event_type": "payment_confirmed",
     "tenant_id": "machine-042",
+    "order_id": "01J8Z6Q4M9X3T7C2V5B8N1K4RD",
     "transaction_id": "pay_QqR8xYz3vN2Kw1",
     "timestamp": "2026-09-19T10:22:31Z"
   }
@@ -766,7 +865,7 @@ flag:**
 **Periodic poll**: `ConfigManager` gets a second `Timer`, interval from
 `local_settings.timing.maintenance_poll_interval_sec` (e.g. 120s),
 independent of the boot-time catalog fetch. Both the boot fetch and the
-poll hit the same `CONFIG_URL` with the same `X-Tenant-Id` header, but use
+poll hit the same config URL (`get_api_url()`) with the same `X-Tenant-Id` header, but use
 **separate `HTTPRequest` nodes** — a dedicated `_http_maintenance_poll`
 distinct from the boot-fetch request node. `HTTPRequest` only handles one
 in-flight request at a time; if the boot fetch is still pending (slow
@@ -789,9 +888,12 @@ when nothing changed. `is_in_maintenance() -> bool` is now
 `remote_maintenance_enabled or local_hardware_fault_active` (3.10) — the
 composition of the remote flag with the new local hardware-fault flag.
 
-**`scenes/maintenance/` (`Maintenance.tscn`/`maintenance.gd`)**: a simple
-full-screen message display — same minimal shape as `Payment.tscn` (Panel +
-a Label), no buttons, no interaction. Shows `maintenance.message` from the
+**`scenes/maintenance/` (`Maintenance.tscn`/`maintenance.gd`)**: an
+unbranded out-of-service screen (design page 6) with a technician
+diagnostics panel (machine ID, site, flagged by/at, app version, network,
+last heartbeat, payments disabled) and the active `faults` list. No buttons,
+no interaction. It **re-checks `is_in_maintenance()` on entry** and returns
+to idle if the flag already cleared (a race found in testing). Shows `maintenance.message` from the
 config if non-empty and remotely triggered, else
 `ConfigManager.get_message("maintenance_default")` (locally triggered, or
 remote message empty). Subscribes to `maintenance_changed`; when it flips to
@@ -827,6 +929,8 @@ Payload per sale, sourced entirely from `OrderState` (3.4) — not the old
 ```json
 {
   "tenant_id": "machine-042",
+  "order_id": "01J8Z6Q4M9X3T7C2V5B8N1K4RD",
+  "order_number": 4821,
   "transaction_id": "pay_QqR8xYz3vN2Kw1",
   "flavor_id": "guava",
   "hopper": 1,
@@ -839,7 +943,10 @@ Payload per sale, sourced entirely from `OrderState` (3.4) — not the old
 }
 ```
 
-`transaction_id` is the exact same value `TelemetryReporter`'s
+`order_id` (ULID, Section 3.4) is the primary join key across sale,
+telemetry and Razorpay records, present even for orders that never got
+paid; `order_number` is display-only. `transaction_id` is the exact same
+value `TelemetryReporter`'s
 `dispense_cycle` event carries for the same order (3.8) — deliberately
 shared via `OrderState.transaction_id`, so a backend can join a sale record
 to its telemetry record without extra plumbing on either side. `timestamp`
@@ -986,38 +1093,52 @@ Two things the spike did **not** cover, still open:
 
 ## 4. Target folder structure
 
+*(Updated 2026-09-24 to the as-built layout; ✓ = exists.)*
+
 ```
-fuelbotsource-v2/
-├── project.godot
-├── .gitignore
+fuelbot/ (repo root)
+├── project.godot                ✓
+├── CLAUDE.md, README.md         ✓ conventions, gotchas, how to run
 ├── autoload/
-│   ├── ConfigManager.gd
-│   ├── OrderState.gd          # new — replaces the static-var hack
-│   ├── RazorpayManager.gd     # rewritten clean, single implementation
+│   ├── ConfigManager.gd         ✓
+│   ├── OrderState.gd            ✓ replaces the static-var hack
+│   ├── Nav.gd                   ✓ all scene changes (testable)
+│   ├── DevCapture.gd            ✓ dev-only screenshots, always last
+│   ├── RazorpayManager.gd       # rewritten clean, single implementation
 │   ├── SalesReporter.gd
-│   └── TelemetryReporter.gd   # new — fault/stage-timing reports, own queue+retry
+│   └── TelemetryReporter.gd     # fault/stage-timing reports, own queue+retry
 ├── scenes/
-│   ├── idle/{Idle.tscn, idle.gd}
-│   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd}
-│   ├── payment/{Payment.tscn, payment.gd}
+│   ├── idle/{Idle.tscn, idle.gd}                          ✓
+│   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd} ✓
+│   ├── flavor_detail/{FlavorDetail.tscn, flavor_detail.gd} ✓ Ingredients & Allergens
+│   ├── payment/{Payment.tscn, payment.gd}                  ✓ stub until Milestone 2
 │   ├── dispensing/{Dispensing.tscn, dispensing.gd}
 │   ├── complete/{Complete.tscn, complete.gd}
-│   └── maintenance/{Maintenance.tscn, maintenance.gd}
+│   ├── maintenance/{Maintenance.tscn, maintenance.gd}      ✓
+│   └── scene_paths.gd                                      ✓
+├── ui/                          ✓ components/, theme/palette.gd, format.gd, gallery/
 ├── config/
-│   ├── default_config.json
-│   └── local_settings.json
+│   ├── default_config.json      ✓
+│   └── local_settings.json      ✓
 ├── assets/
-│   ├── images/{flavors/, branding/, ui/}
-│   └── video/
+│   ├── images/flavors/          ✓
+│   ├── fonts/                   ✓ Archivo + JetBrains Mono (OFL)
+│   ├── theme/                   ✓ generated by tools/build_theme.gd
+│   └── video/                   ✓ idle_ad_default.ogv
 ├── hardware/
 │   ├── firmware/VM_code.ino
 │   ├── bridge/udprxtx.py
 │   └── pos/{pinelabs.py, transactions.xlsx}   # ported, inert
+├── mockserver/                  ✓ replaces tools/mock_config_server.py: stdlib server + JSON scenarios
+├── tests/                       ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
 ├── tools/
-│   ├── mock_config_server.py
+│   ├── run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd  ✓
 │   ├── fake_arduino_serial.py   # Level 1 harness — full STATUS:* sequence + --fault mode
 │   └── fake_dispense_bridge.py  # Level 0 harness — fakes DONE/TIMEOUT + telemetry on 4246
-└── docs/plans/greenfield-rewrite.md   # this document, carried forward
+├── designs/GMRFuelBot-OnDevice-SsampleScreens.pdf   ✓
+└── devdocs/
+    ├── plans/greenfield-rewrite.md   # this document
+    └── stories/<set>/                # executable story sets + SIGNOFF.md
 ```
 
 Scene/script names are renamed off the old `One`/`node_2d`/`Second`/`Third`/
@@ -1027,6 +1148,20 @@ existing external reference (docs, muscle memory) to preserve.
 
 ## 5. Build order (each milestone independently buildable/testable)
 
+**Status (2026-09-24):**
+
+| Milestone | Status | Evidence |
+|-----------|--------|----------|
+| 0 — Skeleton | ✅ Done | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
+| 1 — Core data & state | ✅ Done (config, OrderState, mock server) | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
+| 2 — Payment layer | ⏭ **Next** (test-mode keys; order ID; hopper after payment) | — |
+| 3 — Idle, listing, details, payment screens | ✅ Idle, listing, details done; payment screen is a stub pending M2 | [idle](../stories/idle/SIGNOFF.md), [details](../stories/details/SIGNOFF.md) |
+| 4 — Hardware bridge + dispensing | Not started. Includes **motors 5–6** in firmware/wiring | — |
+| 5 — Telemetry | Not started | — |
+| 6 — Maintenance + sale reporting | Maintenance screen/poll ✅ done early (idle set); sale reporting not started | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
+| 7 — Asset migration | Partly done: flavor images, video, fonts ported. The flavor PNGs need padding trimmed | [assets/ASSETS.md](../../assets/ASSETS.md) |
+| 8 — Raspberry Pi | Not started | — |
+
 **Milestone 0 — Skeleton**
 - `git init` the new directory; `.gitignore` covering `.godot/`, `.import`
   cache noise, and the credential/provisioning files below by pattern
@@ -1035,8 +1170,8 @@ existing external reference (docs, muscle memory) to preserve.
 - `project.godot`: port the real settings confirmed by inventory — 1080×1920
   portrait viewport, fullscreen, `gl_compatibility` renderer, portrait
   orientation. Drop `text_to_speech=true` (only used by the dead TTS code).
-- Create the folder tree above; copy this document into the new
-  `docs/plans/`.
+- Create the folder tree above; this document lives at
+  `devdocs/plans/greenfield-rewrite.md`.
 
 **Milestone 1 — Core data & state (no UI yet)**
 - `autoload/ConfigManager.gd`: full boot sequence per Section 3.3.
@@ -1046,8 +1181,9 @@ existing external reference (docs, muscle memory) to preserve.
   vanilla; prices ₹75/180/35/140; `flavor_screen_inactivity_sec: 60`,
   `payment_screen_inactivity_sec: 180`, etc.).
 - `autoload/OrderState.gd` per Section 3.4.
-- `tools/mock_config_server.py` per Section 3.3/3.12/3.8 (serves config,
-  sales, and telemetry endpoints; asserts `X-Tenant-Id` present).
+- `mockserver/` (built instead of `tools/mock_config_server.py`): config route
+  done; sales and telemetry routes added by their milestones (asserts
+  `X-Tenant-Id` present).
 - Register `ConfigManager` then `OrderState` in `project.godot`'s
   `[autoload]` (ordering matters — later autoloads read `ConfigManager` at
   boot).
@@ -1181,17 +1317,20 @@ Only after Level 3 passes does it go in the actual enclosure.
 
 ## 7. Verification
 
-No test suite exists in this project (Godot GDScript, no CI). Verification
-is manual, in the Godot editor:
+*(Updated 2026-09-24:)* A headless test suite now exists (`tools/run_tests.sh`,
+`tests/unit/`, run against `mockserver/` on :8788), plus a boot check and
+real-time screenshots compared against the designs. See `CLAUDE.md`. There is
+still no CI. The manual steps below remain the acceptance checklist; steps
+1–4 and 10 were verified for the idle milestone (idle SIGNOFF):
 
 1. Write a test tenant ID to `user://tenant_id.txt` (Godot editor's
    `user://` maps to a real folder on disk — locate it via
    `OS.get_user_data_dir()` or the editor's "Open User Data Folder" menu
    item). Run the mock config server locally (have it assert the
    `X-Tenant-Id` header is present and log its value), point
-   `ConfigManager.CONFIG_URL` at it, launch the project (F5). Confirm the
-   flavor carousel shows images/prices sourced from the mock JSON, not a
-   hardcoded list.
+   `api.base_url` at it (`tools/dev_setup.gd` writes the override), launch the
+   project (F5). Confirm the listing shows images/prices sourced from the mock
+   JSON, not a hardcoded list.
 1b. Delete/empty `tenant_id.txt` and relaunch: confirm no fetch is
     attempted (mock server sees no request) and the app falls back to
     cache/bundled default per the fallback chain.
@@ -1205,9 +1344,9 @@ is manual, in the Godot editor:
    always-local `local_settings.json`.
 4. Change a price/ingredient/image in the mock JSON, restart the app,
    confirm the change is reflected with no code edits.
-5. Walk the full flow end-to-end (flavor select → base select → payment →
-   dispensing) and confirm the UDP `"P<hopper>"` message uses the config's
-   `hopper` field, not the carousel position, by temporarily setting a
+5. Walk the full flow end-to-end (listing → details → payment → dispensing)
+   and confirm the UDP `"P<hopper>"` message is sent only after payment
+   succeeds and uses the config's `hopper` field, not the listing position, by temporarily setting a
    flavor's `hopper` to a different value than its array position in the
    mock JSON and confirming the correct digit is sent.
 6. Trigger a payment failure (e.g. let the QR poll timeout) and confirm the
