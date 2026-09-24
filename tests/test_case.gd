@@ -156,3 +156,29 @@ func click(control: Control) -> void:
 		ev.pressed = pressed
 		ev.position = control.size / 2.0
 		control._gui_input(ev)
+
+
+# --- Autoload state isolation for scene tests --------------------------------
+
+## Snapshot of the real ConfigManager/Nav/OrderState state; restore in after_each.
+func snapshot_app_state() -> Dictionary:
+	return {
+		"config": ConfigManager.current_config.duplicate(true),
+		"settings": ConfigManager.local_settings.duplicate(true),
+		"remote": ConfigManager.remote_maintenance_enabled,
+		"local": ConfigManager.local_hardware_fault_active,
+		"emitted_active": ConfigManager._last_emitted_active,
+		"emitted_message": ConfigManager._last_emitted_message,
+	}
+
+
+func restore_app_state(snap: Dictionary) -> void:
+	ConfigManager.current_config = snap.config
+	ConfigManager.local_settings = snap.settings
+	ConfigManager.remote_maintenance_enabled = snap.remote
+	ConfigManager.local_hardware_fault_active = snap.local
+	ConfigManager._last_emitted_active = snap.emitted_active
+	ConfigManager._last_emitted_message = snap.emitted_message
+	Nav.dry_run = false
+	Nav.last_requested = ""
+	OrderState.reset()

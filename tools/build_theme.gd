@@ -40,7 +40,7 @@ func _initialize() -> void:
 	_label("MonoMuted", fonts.mono_500, 26, P.TEXT_MUTED)
 	_label("MonoAccent", fonts.mono_500, 26, P.ACCENT)
 	_label("MonoWarning", fonts.mono_500, 26, P.WARNING)
-	_label("MonoValue", fonts.mono_500, 30, P.TEXT)
+	_label("MonoValue", fonts.mono_500, 27, P.TEXT)
 	_label("Clock", fonts.mono_500, 32, P.TEXT)
 	_label("Price", fonts.display_900, 60, P.ACCENT)
 	_label("PriceSoldOut", fonts.display_900, 60, P.TEXT_DIM)

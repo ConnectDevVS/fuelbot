@@ -6,7 +6,7 @@
 [ext_resource type="FontVariation" path="res://assets/theme/fonts/display_900.tres" id="4_b3t5e"]
 [ext_resource type="FontVariation" path="res://assets/theme/fonts/heading_800.tres" id="5_m7oo3"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nht3e"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_v5ry5"]
 content_margin_left = 12.0
 content_margin_top = 6.0
 content_margin_right = 12.0
@@ -18,7 +18,7 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_t1i58"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lmra"]
 content_margin_left = 36.0
 content_margin_top = 36.0
 content_margin_right = 36.0
@@ -35,7 +35,7 @@ corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ork6n"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wom5f"]
 content_margin_left = 36.0
 content_margin_top = 36.0
 content_margin_right = 36.0
@@ -54,7 +54,7 @@ corner_detail = 12
 shadow_color = Color(0.78431374, 1, 0.24313726, 0.25)
 shadow_size = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3fynq"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_b3t5e"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
@@ -71,7 +71,7 @@ corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gucqf"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m7oo3"]
 content_margin_left = 28.0
 content_margin_top = 28.0
 content_margin_right = 28.0
@@ -88,7 +88,7 @@ corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selnp"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nht3e"]
 content_margin_left = 24.0
 content_margin_top = 24.0
 content_margin_right = 24.0
@@ -105,9 +105,9 @@ corner_radius_bottom_right = 24
 corner_radius_bottom_left = 24
 corner_detail = 12
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_u0iij"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_t1i58"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_meokl"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ork6n"]
 content_margin_left = 24.0
 content_margin_top = 24.0
 content_margin_right = 24.0
@@ -124,7 +124,7 @@ corner_radius_bottom_right = 24
 corner_radius_bottom_left = 24
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wkiau"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3fynq"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
@@ -136,7 +136,7 @@ corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c68cj"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gucqf"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
@@ -148,7 +148,7 @@ corner_radius_bottom_right = 22
 corner_radius_bottom_left = 22
 corner_detail = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_clagp"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selnp"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
@@ -160,9 +160,9 @@ corner_radius_bottom_right = 28
 corner_radius_bottom_left = 28
 corner_detail = 12
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_l0xxw"]
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_u0iij"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pw4hr"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_meokl"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
@@ -178,7 +178,7 @@ corner_detail = 12
 default_font = ExtResource("2_2lmra")
 default_font_size = 34
 BadgePanel/base_type = &"PanelContainer"
-BadgePanel/styles/panel = SubResource("StyleBoxFlat_nht3e")
+BadgePanel/styles/panel = SubResource("StyleBoxFlat_v5ry5")
 BadgeText/base_type = &"Label"
 BadgeText/colors/font_color = Color(0.06666667, 0.07058824, 0.08235294, 1)
 BadgeText/font_sizes/font_size = 20
@@ -196,15 +196,15 @@ ButtonText/colors/font_color = Color(0.06666667, 0.07058824, 0.08235294, 1)
 ButtonText/font_sizes/font_size = 52
 ButtonText/fonts/font = ExtResource("4_b3t5e")
 CardPanel/base_type = &"PanelContainer"
-CardPanel/styles/panel = SubResource("StyleBoxFlat_t1i58")
+CardPanel/styles/panel = SubResource("StyleBoxFlat_2lmra")
 CardPanelPopular/base_type = &"PanelContainer"
-CardPanelPopular/styles/panel = SubResource("StyleBoxFlat_ork6n")
+CardPanelPopular/styles/panel = SubResource("StyleBoxFlat_wom5f")
 Clock/base_type = &"Label"
 Clock/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
 Clock/font_sizes/font_size = 32
 Clock/fonts/font = ExtResource("1_v5ry5")
 DiagPanel/base_type = &"PanelContainer"
-DiagPanel/styles/panel = SubResource("StyleBoxFlat_3fynq")
+DiagPanel/styles/panel = SubResource("StyleBoxFlat_b3t5e")
 DisplayL/base_type = &"Label"
 DisplayL/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
 DisplayL/constants/line_spacing = -13
@@ -216,7 +216,7 @@ DisplayXL/constants/line_spacing = -22
 DisplayXL/font_sizes/font_size = 128
 DisplayXL/fonts/font = ExtResource("4_b3t5e")
 FaultPanel/base_type = &"PanelContainer"
-FaultPanel/styles/panel = SubResource("StyleBoxFlat_gucqf")
+FaultPanel/styles/panel = SubResource("StyleBoxFlat_m7oo3")
 GhostButton/base_type = &"Button"
 GhostButton/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
 GhostButton/colors/font_disabled_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
@@ -226,12 +226,12 @@ GhostButton/colors/font_hover_pressed_color = Color(0.95686275, 0.9607843, 0.949
 GhostButton/colors/font_pressed_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
 GhostButton/font_sizes/font_size = 40
 GhostButton/fonts/font = ExtResource("5_m7oo3")
-GhostButton/styles/disabled = SubResource("StyleBoxFlat_selnp")
-GhostButton/styles/focus = SubResource("StyleBoxEmpty_u0iij")
-GhostButton/styles/hover = SubResource("StyleBoxFlat_selnp")
-GhostButton/styles/hover_pressed = SubResource("StyleBoxFlat_meokl")
-GhostButton/styles/normal = SubResource("StyleBoxFlat_selnp")
-GhostButton/styles/pressed = SubResource("StyleBoxFlat_meokl")
+GhostButton/styles/disabled = SubResource("StyleBoxFlat_nht3e")
+GhostButton/styles/focus = SubResource("StyleBoxEmpty_t1i58")
+GhostButton/styles/hover = SubResource("StyleBoxFlat_nht3e")
+GhostButton/styles/hover_pressed = SubResource("StyleBoxFlat_ork6n")
+GhostButton/styles/normal = SubResource("StyleBoxFlat_nht3e")
+GhostButton/styles/pressed = SubResource("StyleBoxFlat_ork6n")
 Heading/base_type = &"Label"
 Heading/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
 Heading/font_sizes/font_size = 46
@@ -241,14 +241,14 @@ HeadingDim/colors/font_color = Color(0.41960785, 0.44313726, 0.47843137, 1)
 HeadingDim/font_sizes/font_size = 46
 HeadingDim/fonts/font = ExtResource("5_m7oo3")
 HeroPanel/base_type = &"PanelContainer"
-HeroPanel/styles/panel = SubResource("StyleBoxFlat_wkiau")
+HeroPanel/styles/panel = SubResource("StyleBoxFlat_3fynq")
 Label/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
 LogoText/base_type = &"Label"
 LogoText/colors/font_color = Color(0.06666667, 0.07058824, 0.08235294, 1)
 LogoText/font_sizes/font_size = 42
 LogoText/fonts/font = ExtResource("4_b3t5e")
 LogoTile/base_type = &"PanelContainer"
-LogoTile/styles/panel = SubResource("StyleBoxFlat_c68cj")
+LogoTile/styles/panel = SubResource("StyleBoxFlat_gucqf")
 Mono/base_type = &"Label"
 Mono/colors/font_color = Color(0.41960785, 0.44313726, 0.47843137, 1)
 Mono/font_sizes/font_size = 24
@@ -263,7 +263,7 @@ MonoMuted/font_sizes/font_size = 26
 MonoMuted/fonts/font = ExtResource("1_v5ry5")
 MonoValue/base_type = &"Label"
 MonoValue/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
-MonoValue/font_sizes/font_size = 30
+MonoValue/font_sizes/font_size = 27
 MonoValue/fonts/font = ExtResource("1_v5ry5")
 MonoWarning/base_type = &"Label"
 MonoWarning/colors/font_color = Color(0.9607843, 0.6901961, 0.078431375, 1)
@@ -286,9 +286,9 @@ PrimaryButton/colors/font_hover_pressed_color = Color(0.06666667, 0.07058824, 0.
 PrimaryButton/colors/font_pressed_color = Color(0.06666667, 0.07058824, 0.08235294, 1)
 PrimaryButton/font_sizes/font_size = 52
 PrimaryButton/fonts/font = ExtResource("4_b3t5e")
-PrimaryButton/styles/disabled = SubResource("StyleBoxFlat_clagp")
-PrimaryButton/styles/focus = SubResource("StyleBoxEmpty_l0xxw")
-PrimaryButton/styles/hover = SubResource("StyleBoxFlat_clagp")
-PrimaryButton/styles/hover_pressed = SubResource("StyleBoxFlat_pw4hr")
-PrimaryButton/styles/normal = SubResource("StyleBoxFlat_clagp")
-PrimaryButton/styles/pressed = SubResource("StyleBoxFlat_pw4hr")
+PrimaryButton/styles/disabled = SubResource("StyleBoxFlat_selnp")
+PrimaryButton/styles/focus = SubResource("StyleBoxEmpty_u0iij")
+PrimaryButton/styles/hover = SubResource("StyleBoxFlat_selnp")
+PrimaryButton/styles/hover_pressed = SubResource("StyleBoxFlat_meokl")
+PrimaryButton/styles/normal = SubResource("StyleBoxFlat_selnp")
+PrimaryButton/styles/pressed = SubResource("StyleBoxFlat_meokl")

@@ -48,5 +48,5 @@ func test_go_idle_in_dry_run() -> void:
 
 
 func test_scene_paths_exist() -> void:
-	for path in [ScenePaths.IDLE]:
+	for path in [ScenePaths.IDLE, ScenePaths.MAINTENANCE]:
 		assert_true(ResourceLoader.exists(path), "exists: " + path)
