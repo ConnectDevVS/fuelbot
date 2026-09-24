@@ -2,17 +2,22 @@
 #include <avr/wdt.h>
 
 // FuelBot dispenser, Arduino Mega. Ported from fuelbotsource_og/VM_code.ino;
-// Milestone 4 changes are marked "// M4:" (devdocs/stories/dispensing/DSP-03).
+// Milestone 4 changes are marked "// M4:" (devdocs/stories/dispensing/DSP-03),
+// Milestone 5 changes "// M5:" (devdocs/stories/telemetry/TEL-02).
 //
-// M4: serial protocol (9600 baud), used by hardware/bridge/udprxtx.py:
+// Serial protocol (9600 baud), used by hardware/bridge/udprxtx.py:
 //   in:  "<hopper><base>\n"   two digits, e.g. "12" = hopper 1, base 2 (water)
-//   out: free-text progress lines (unchanged), and machine-parseable:
+//   out (M5: every line is machine-parseable; the old free-text lines are gone):
+//        "STATUS:BOOT"                      setup() started (power-on or watchdog reset)
+//        "STATUS:HOMING_START" / "STATUS:HOMING_DONE"   homing began / limit switch reached
+//        "STATUS:WATER_FILL_1_DONE", "STATUS:PROTEIN_DISPENSED <h>",
+//        "STATUS:WATER_FILL_2_DONE", "STATUS:MIX_DONE"  cycle stages, in order
 //        "STATUS:DONE"                      end of a completed cycle, just before the reset
+//        "FAULT:HOMING_TIMEOUT"             no limit switch within HOMING_TIMEOUT_MS; motor stopped;
+//                                           not homed, retried with back-off
+//        "FAULT:NOT_HOMED"                  command received while not homed; nothing moves
 //        "FAULT:HOPPER_UNASSIGNED <hopper>" hopper 5/6 without a wired motor; nothing moves
 //        "FAULT:BAD_COMMAND"                anything else that isn't a valid command; nothing moves
-//        "Home reached"                     homing finished (boot and every cycle); the bridge's ready signal
-// TODO(M5): homeAxis() still waits forever if the limit switch never triggers
-//           (bounded wait + FAULT:HOMING_TIMEOUT is Milestone 5).
 
 void resetArduino()
 {
@@ -42,6 +47,13 @@ void resetArduino()
 
 #define LIMIT 22
 
+// M5: bounded homing. Worst full-travel homing is ~8.5 s (77000 steps); 20 s is generous.
+// On failure the board stays up, not homed, and retries after 1, 2, 4, 8, then every 10 min
+// (not a reset loop, which would drive into the hard stop every ~20 s).
+#define HOMING_TIMEOUT_MS 20000UL
+#define HOMING_RETRY_MS 60000UL
+#define HOMING_RETRY_MAX_MS 600000UL
+
 int protein = 0;
 int base = 0;
 
@@ -52,6 +64,10 @@ String last_received = "";
 
 long currentPos = 0;
 
+bool homed = false;                              // M5
+unsigned long lastHomingFailure = 0;             // M5: millis() at the end of the failed attempt
+unsigned long homingRetryMs = HOMING_RETRY_MS;   // M5: doubles per failure, capped
+
 // M4: hoppers with a motor wired to a real pin.
 bool hopperAssigned(int p)
 {
@@ -61,15 +77,26 @@ bool hopperAssigned(int p)
   return false;
 }
 
-void homeAxis()
+// M5: returns false (motor stopped, FAULT:HOMING_TIMEOUT, not homed) if the limit
+// switch isn't reached within HOMING_TIMEOUT_MS. Was an unbounded wait.
+bool homeAxis()
 {
-  Serial.println("Homing");
+  Serial.println("STATUS:HOMING_START");  // M5: was "Homing"
 
   digitalWrite(ENA, HIGH);
   digitalWrite(DIR, HIGH);  // Move towards 0 (decreasing direction)
 
+  unsigned long start = millis();  // M5
   while (digitalRead(LIMIT) == HIGH)  // Move until limit switch hit (active LOW)
   {
+    if (millis() - start > HOMING_TIMEOUT_MS)  // M5
+    {
+      digitalWrite(ENA, LOW);
+      homed = false;
+      lastHomingFailure = millis();
+      Serial.println("FAULT:HOMING_TIMEOUT");
+      return false;
+    }
     digitalWrite(X, HIGH);
     delayMicroseconds(50);
     digitalWrite(X, LOW);
@@ -78,8 +105,11 @@ void homeAxis()
 
   currentPos = 0;
   digitalWrite(ENA, LOW);
-  Serial.println("Home reached");
+  homed = true;                        // M5
+  homingRetryMs = HOMING_RETRY_MS;     // M5
+  Serial.println("STATUS:HOMING_DONE");  // M5: was "Home reached"
   delay(500);
+  return true;
 }
 
 void moveTo(long targetPos)
@@ -146,10 +176,9 @@ void setup()
   finished = false;
 
   Serial.begin(9600);
-  Serial.println(" ");
-  Serial.println("Reset!");
+  Serial.println("STATUS:BOOT");  // M5: was " " + "Reset!"
 
-  homeAxis();  // Home at startup
+  homeAxis();  // Home at startup (M5: on failure, loop() retries with back-off)
 //  for (int i = 0; i<=120; i++)
 //      {
 //        analogWrite(MIX, i);
@@ -162,6 +191,25 @@ void setup()
 void loop()
 {
   mix = false;
+
+  // M5: not homed -> no cycle. Refuse commands; retry homing with back-off.
+  if (!homed)
+  {
+    if (Serial.available() > 0)
+    {
+      String message = Serial.readStringUntil('\n');
+      message.trim();
+      if (message.length() > 0)
+      {
+        Serial.println("FAULT:NOT_HOMED");
+      }
+    }
+    if (millis() - lastHomingFailure >= homingRetryMs && !homeAxis())
+    {
+      homingRetryMs = homingRetryMs * 2 > HOMING_RETRY_MAX_MS ? HOMING_RETRY_MAX_MS : homingRetryMs * 2;
+    }
+    return;
+  }
 
   if (Serial.available() > 0)
   {
@@ -204,7 +252,7 @@ void loop()
     delay(4000);
     digitalWrite(PU, HIGH);
     delay(1000);
-    Serial.println("Water Filled in Cup");
+    Serial.println("STATUS:WATER_FILL_1_DONE");  // M5: was "Water Filled in Cup"
      
 //    moveTo(4000);
      
@@ -236,7 +284,7 @@ void loop()
 
       digitalWrite(M1, LOW);
       delay(1500);
-      Serial.println("Protein 1 Dispensed");
+      Serial.println("STATUS:PROTEIN_DISPENSED 1");  // M5: was "Protein 1 Dispensed"
       digitalWrite(M1, HIGH);
       delay(1000);
 
@@ -249,7 +297,7 @@ void loop()
 
       digitalWrite(M2, LOW);
       delay(7500);
-      Serial.println("Protein 2 Dispensed");
+      Serial.println("STATUS:PROTEIN_DISPENSED 2");  // M5: was "Protein 2 Dispensed"
       digitalWrite(M2, HIGH);
       delay(1000);
 
@@ -262,7 +310,7 @@ void loop()
 
       digitalWrite(M3, LOW);
       delay(500);
-      Serial.println("Protein 3 Dispensed");
+      Serial.println("STATUS:PROTEIN_DISPENSED 3");  // M5: was "Protein 3 Dispensed"
       digitalWrite(M3, HIGH);
       delay(1000);
 
@@ -275,7 +323,7 @@ void loop()
 
       digitalWrite(M4, LOW);
       delay(6000);
-      Serial.println("Protein 4 Dispensed");
+      Serial.println("STATUS:PROTEIN_DISPENSED 4");  // M5: was "Protein 4 Dispensed"
       digitalWrite(M4, HIGH);
       delay(1000);
 
@@ -289,7 +337,7 @@ void loop()
 
       digitalWrite(M5, LOW);
       delay(M5_MS);
-      Serial.println("Protein 5 Dispensed");
+      Serial.println("STATUS:PROTEIN_DISPENSED 5");  // M5: was "Protein 5 Dispensed"
       digitalWrite(M5, HIGH);
       delay(1000);
 
@@ -304,7 +352,7 @@ void loop()
 
       digitalWrite(M6, LOW);
       delay(M6_MS);
-      Serial.println("Protein 6 Dispensed");
+      Serial.println("STATUS:PROTEIN_DISPENSED 6");  // M5: was "Protein 6 Dispensed"
       digitalWrite(M6, HIGH);
       delay(1000);
 
@@ -319,7 +367,7 @@ void loop()
     delay(5000);
     digitalWrite(PU, HIGH);
     delay(1000);
-    Serial.println("Water Filled in Cup");
+    Serial.println("STATUS:WATER_FILL_2_DONE");  // M5: was "Water Filled in Cup"
      
     if (mix == true)
     {
@@ -351,7 +399,7 @@ void loop()
 //      delay(15000);
 //      digitalWrite(MIX, HIGH);
 //      delay(800);
-      Serial.println("Shake Frothing Done");
+      Serial.println("STATUS:MIX_DONE");  // M5: was "Shake Frothing Done"
 
       digitalWrite(DIR, LOW);
        
@@ -398,12 +446,12 @@ void loop()
 //      digitalWrite(ENA, LOW);
 
       moveTo(0);
-      homeAxis();  // Verify home after final move
+      homeAxis();  // Verify home after final move. M5: a failure here keeps the drink
+                   // (it's already mixed); STATUS:DONE still follows and setup() retries.
 
       mix = false;
       finished = true;
-      Serial.println("Mix Done");
-      Serial.println("STATUS:DONE");  // M4: machine-parseable end of cycle (plan §3.7)
+      Serial.println("STATUS:DONE");  // M4: end of cycle (plan §3.7). M5: "Mix Done" before it dropped
       Serial.flush();
       delay(100);
       resetArduino();

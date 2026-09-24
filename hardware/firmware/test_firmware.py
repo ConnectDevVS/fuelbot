@@ -69,27 +69,37 @@ def _with(**kw):
     return args
 
 
-class M4FirmwareTests(unittest.TestCase):
+CYCLE_STAGES = ["STATUS:WATER_FILL_1_DONE", "STATUS:PROTEIN_DISPENSED 1", "STATUS:WATER_FILL_2_DONE",
+                "STATUS:MIX_DONE", "STATUS:HOMING_START", "STATUS:HOMING_DONE", "STATUS:DONE"]
+
+
+class FirmwareTests(unittest.TestCase):
     def test_boot_homes(self):
         r = Run(*_with(start_pos=30000, until=10))
-        self.assertEqual(r.texts()[:4], [" ", "Reset!", "Homing", "Home reached"])
-        self.assertLess(r.first("Home reached"), 5.0)
+        self.assertEqual(r.texts()[:3], ["STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
+        self.assertLess(r.first("STATUS:HOMING_DONE"), 5.0)
         self.assertEqual(r.end["carriage"], 0)
 
-    def test_cycle_hopper1(self):
+    def test_cycle_stage_order(self):
         r = Run(*_with(start_pos=30000, at="5:12", until=200))
         t = r.texts()
         done = r.first("STATUS:DONE")
         self.assertIsNotNone(done)
         self.assertTrue(60 <= done - 5 <= 85, "cycle took %.1f s" % (done - 5))
+        i = t.index("STATUS:WATER_FILL_1_DONE")
+        self.assertEqual(t[i:i + len(CYCLE_STAGES)], CYCLE_STAGES)
+        times = [tt for tt, _ in r.lines]
+        self.assertEqual(times, sorted(times), "non-decreasing times")
+        self.assertEqual(t[i + len(CYCLE_STAGES)], "<watchdog reset>")
+        self.assertEqual(t[-3:], ["STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"], "clean boot")
         self.assertEqual(t.count("STATUS:DONE"), 1, "no second cycle after the reset")
-        self.assertEqual(t.count("<watchdog reset>"), 1)
-        self.assertEqual(t[-1], "Home reached", "clean boot after the reset")
-        self.assertEqual(t.index("Mix Done") + 1, t.index("STATUS:DONE"))
+        for line in t:
+            self.assertTrue(line.startswith(("STATUS:", "FAULT:", "<")), "free-text line %r" % line)
 
     def test_each_hopper_dispenses_its_motor(self):
         for hopper, pin in MOTOR_PINS.items():
             r = Run(*_with(at="1:%d2" % hopper, until=150))
+            self.assertIn("STATUS:PROTEIN_DISPENSED %d" % hopper, r.texts())
             self.assertIsNotNone(r.first("STATUS:DONE"), hopper)
             for other in MOTOR_PINS.values():
                 self.assertEqual(r.end["low_writes"][other], 1 if other == pin else 0, (hopper, other))
@@ -106,11 +116,49 @@ class M4FirmwareTests(unittest.TestCase):
             self.assertEqual(r.end["carriage"], 0, command)
             self.assertNotIn("STATUS:DONE", r.texts(), command)
 
-    def test_broken_limit_hangs_m4(self):
-        # Documents the M4 hang that TEL-02 fixes: homing waits forever.
-        r = Run(*_with(start_pos=30000, broken_limit="0:10000", until=120))
-        self.assertIn("Homing", r.texts())
-        self.assertNotIn("Home reached", r.texts())
+    def test_homing_timeout_at_boot(self):
+        r = Run(*_with(start_pos=30000, broken_limit="0:10000", until=60))
+        t = r.first("FAULT:HOMING_TIMEOUT")
+        self.assertIsNotNone(t, "bounded wait (M4 hung here forever)")
+        self.assertAlmostEqual(t, 20.0, delta=0.5)
+        self.assertEqual(r.end["ena"], 0, "motor stopped")
+        self.assertNotIn("<watchdog reset>", r.texts(), "no reset loop")
+        self.assertNotIn("STATUS:HOMING_DONE", r.texts())
+
+    def test_not_homed_refuses_commands(self):
+        r = Run(*_with(start_pos=0, broken_limit="0:10000", at="30:12", until=60))
+        self.assertIn("FAULT:NOT_HOMED", r.texts())
+        self.assertFalse(r.moved_anything(), "no motor or pump while not homed")
+        self.assertNotIn("STATUS:WATER_FILL_1_DONE", r.texts())
+
+    def test_retry_backoff(self):
+        r = Run(*_with(start_pos=0, broken_limit="0:100000", until=2400))
+        starts = [round(t) for t, s in r.lines if s == "STATUS:HOMING_START"]
+        faults = [round(t) for t, s in r.lines if s == "FAULT:HOMING_TIMEOUT"]
+        self.assertEqual(starts[:7], [0, 80, 220, 480, 980, 1600, 2220])
+        self.assertEqual([f - s for s, f in zip(starts, faults)], [20] * len(faults), "20 s per attempt")
+        gaps = [starts[i + 1] - faults[i] for i in range(len(starts) - 1)]
+        self.assertEqual(gaps[:6], [60, 120, 240, 480, 600, 600], "doubling, capped at 10 min")
+        self.assertNotIn("<watchdog reset>", r.texts())
+
+    def test_auto_recovery(self):
+        r = Run(*_with(start_pos=0, broken_limit="0:150", at=["150:12", "300:12"], until=450))
+        faults = [round(t) for t, s in r.lines if s == "FAULT:HOMING_TIMEOUT"]
+        self.assertEqual(faults, [20, 100])
+        self.assertAlmostEqual(r.first("FAULT:NOT_HOMED"), 150, delta=0.1)
+        self.assertAlmostEqual(r.first("STATUS:HOMING_DONE"), 220, delta=0.5)
+        self.assertIsNotNone(r.first("STATUS:DONE", after=300), "a full cycle after recovery")
+        self.assertEqual(r.texts().count("STATUS:DONE"), 1)
+
+    def test_end_of_cycle_homing_failure_keeps_drink(self):
+        # Cycle from 5 s; the final homing starts at ~74.7 s. Break the switch only then.
+        r = Run(*_with(start_pos=0, at="5:12", broken_limit="70:100", until=140))
+        t = r.texts()
+        i = t.index("STATUS:MIX_DONE")
+        self.assertEqual(t[i:i + 4], ["STATUS:MIX_DONE", "STATUS:HOMING_START", "FAULT:HOMING_TIMEOUT", "STATUS:DONE"])
+        self.assertEqual(t[i + 4], "<watchdog reset>")
+        self.assertIn("STATUS:HOMING_DONE", t[i + 5:], "boot homing after the reset succeeds")
+        self.assertEqual(r.end["low_writes"][MOTOR_PINS[1]], 1, "the drink was made")
 
 
 if __name__ == "__main__":
