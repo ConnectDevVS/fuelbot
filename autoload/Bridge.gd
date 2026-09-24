@@ -28,6 +28,7 @@ var _listening := false
 var _listen_warned := false
 var _next_listen_try_msec := 0
 var _sent_orders: Array[String] = []
+var _order_contexts: Dictionary = {}  # order_id -> context given at send (TelemetryReporter reads it)
 var _results: Dictionary = {}          # order_id -> {"kind", "reason"}
 var _result_order: Array[String] = []  # oldest first, for eviction
 var _result_re := RegEx.create_from_string(
@@ -91,7 +92,9 @@ func get_listen_port() -> int:
 ## Sends ORDER once per order id. An invalid order is a programmer error: it is
 ## refused, CANCEL goes out instead, and a local REJECTED result is recorded so
 ## the dispensing screen fails at once rather than waiting for its safety cap.
-func send_order_paid(order_id: String, hopper: int, base_code: String) -> bool:
+## context (transaction_id, flavor_id, ...) is kept for telemetry: the bridge can't
+## know it, and OrderState may be reset by the time the cycle's record arrives.
+func send_order_paid(order_id: String, hopper: int, base_code: String, context: Dictionary = {}) -> bool:
 	if order_id in _sent_orders:
 		push_warning("[Bridge] order %s already sent; ignored" % order_id)
 		return false
@@ -104,8 +107,9 @@ func send_order_paid(order_id: String, hopper: int, base_code: String) -> bool:
 			_record_result(order_id, "REJECTED", "bad_order")
 		return false
 	_sent_orders.append(order_id)
+	_order_contexts[order_id] = context.duplicate(true)
 	if _sent_orders.size() > RESULT_CACHE_SIZE:
-		_sent_orders.pop_front()
+		_order_contexts.erase(_sent_orders.pop_front())
 	_send("ORDER %s P%d %s" % [order_id, hopper, base_code])
 	return true
 
@@ -115,6 +119,11 @@ func send_order_cancelled(order_id: String) -> void:
 		push_warning("[Bridge] not sending CANCEL for invalid order id '%s'" % order_id)
 		return
 	_send("CANCEL %s" % order_id)
+
+
+## The context passed to send_order_paid for this order ({} if unknown).
+func get_order_context(order_id: String) -> Dictionary:
+	return _order_contexts.get(order_id, {})
 
 
 ## {} until a result for order_id has arrived, then {"kind", "reason"}.

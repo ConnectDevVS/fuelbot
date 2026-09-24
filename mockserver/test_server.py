@@ -188,6 +188,19 @@ class MockServerTest(unittest.TestCase):
         self.assertTrue(body.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertEqual(self._request("/__mock/assets/../server.py", raw=True)[0], 404)
 
+    def test_telemetry_route(self):
+        path = "/fuelbot/telemetry"
+        record = {"event_type": "dispense_cycle", "order_id": "01J8Z6Q4M9X3T7C2V5B8N1K4RD", "stages": []}
+        self.assertEqual(self._request(path, data=json.dumps(record).encode())[0], 400, "needs X-Tenant-Id")
+        status, text = self._request(path, data=json.dumps(record).encode(), tenant="t-1")
+        self.assertEqual((status, json.loads(text)), (201, {"ok": True}))
+        state = self._state()
+        self.assertEqual(state["last_body"][path], record)
+        self.assertEqual(state["request_counts"][path], 2, "the 400 without a tenant counts too")
+        for scenario, code in (("server_error", 500), ("bad_request", 400)):
+            self._scenario(scenario, path)
+            self.assertEqual(self._request(path, data=b"{}", tenant="t-1")[0], code, scenario)
+
     def test_config_route_unchanged_by_auth(self):
         self.assertEqual(self._request(CONFIG)[0], 400)
         self.assertEqual(self._config()[0], 200)

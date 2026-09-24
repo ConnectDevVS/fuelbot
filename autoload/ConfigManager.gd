@@ -151,6 +151,19 @@ func get_api_url() -> String:
 	return String(api.get("base_url", "")).rstrip("/") + String(api.get("config_path", ""))
 
 
+## base_url + api.<path_key> (e.g. "telemetry_path"); "" when either is unset.
+func get_api_endpoint(path_key: String) -> String:
+	var api: Dictionary = local_settings.get("api", {})
+	var base := String(api.get("base_url", "")).rstrip("/")
+	var path := String(api.get(path_key, ""))
+	return "" if base == "" or path == "" else base + path
+
+
+## Headers for our own backend; empty until a tenant is provisioned.
+func get_backend_headers() -> PackedStringArray:
+	return PackedStringArray() if tenant_id == "" else _headers()
+
+
 # --- Maintenance -------------------------------------------------------------
 
 func is_in_maintenance() -> bool:

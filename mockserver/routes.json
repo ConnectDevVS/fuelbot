@@ -27,6 +27,13 @@
       "scenarios_dir": "responses/rzp_qr_close",
       "default_scenario": "default",
       "require_basic_auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/fuelbot/telemetry",
+      "scenarios_dir": "responses/telemetry",
+      "default_scenario": "default",
+      "require_tenant_header": true
     }
   ]
 }
