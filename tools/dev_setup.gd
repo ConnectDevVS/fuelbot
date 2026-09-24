@@ -4,14 +4,16 @@ extends SceneTree
 ##     [--tenant=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
 ##     [--payments=mock|razorpay-test] [--clear] [--print-dir]
 ##
-## --payments=mock (default): mock Razorpay keys + razorpay_base_url -> mock server.
-## --payments=razorpay-test: real Razorpay (test mode). Keys are NEVER taken as
-##   arguments; write razorpay_credentials.cfg by hand (format printed on error).
+## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
+##   + razorpay_base_url -> mock server. Your real razorpay_credentials.cfg is never touched.
+## --payments=razorpay-test: real Razorpay (test mode) using razorpay_credentials.cfg.
+##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
 
 const TENANT_PATH := "user://tenant_id.txt"
 const OVERRIDE_PATH := "user://local_settings.override.json"
 const CACHE_PATH := "user://config_cache.json"
 const CREDS_PATH := "user://razorpay_credentials.cfg"
+const MOCK_CREDS_PATH := "user://razorpay_credentials.mock.cfg"
 const QR_PATH := "user://qr_current.png"
 
 
@@ -40,7 +42,7 @@ func _initialize() -> void:
 			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
-		for path in [TENANT_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, QR_PATH]:
+		for path in [TENANT_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
@@ -57,11 +59,12 @@ func _initialize() -> void:
 	}
 	if payments == "mock":
 		override.api["razorpay_base_url"] = _origin(api)
+		override["payments"] = {"credentials_path": MOCK_CREDS_PATH}
 		var cfg := ConfigFile.new()
 		cfg.set_value("razorpay", "key_id", "mock_key")
 		cfg.set_value("razorpay", "key_secret", "mock_secret")
-		cfg.save(CREDS_PATH)
-		print("wrote ", CREDS_PATH, " (mock keys)")
+		cfg.save(MOCK_CREDS_PATH)
+		print("wrote ", MOCK_CREDS_PATH, " (mock keys; real credentials file untouched)")
 	elif not _has_real_test_keys():
 		printerr("No Razorpay test keys found. Create this file by hand (never commit it):\n  %s\n\n[razorpay]\nkey_id=\"rzp_test_...\"\nkey_secret=\"...\"\n"
 			% ProjectSettings.globalize_path(CREDS_PATH))

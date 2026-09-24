@@ -92,8 +92,11 @@ overflow were both found this way. Story work is one commit per story
     hand. **Never log, print or commit keys** (`run_tests.sh` greps for it).
     Log `mode()` only. `rzp_live_` keys are refused unless
     `payments.allow_live_keys`.
-  - `dev_setup.gd` (default) = mock keys + `razorpay_base_url` → mock;
-    `-- --payments=razorpay-test` = real Razorpay with hand-written test keys.
+  - `dev_setup.gd` (default) = mock keys in a **separate**
+    `razorpay_credentials.mock.cfg` (selected via the override) +
+    `razorpay_base_url` → mock. `--payments=razorpay-test` (also on
+    `dev_run.sh`) = real Razorpay with the hand-written
+    `razorpay_credentials.cfg`. Mock mode never touches the real file.
     Mock Razorpay routes use the **same paths** as the real API.
 - **Allergens:** the banner is hidden when the list is empty. Never render
   "allergen-free"; the data only says nothing was declared. The nutrition

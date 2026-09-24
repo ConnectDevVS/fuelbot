@@ -49,9 +49,9 @@ hand; don't paste them into chat or a terminal command.
    key_id="rzp_test_…"
    key_secret="…"
    ```
-2. `godot --headless --path . --script res://tools/dev_setup.gd -- --payments=razorpay-test`
-   (keep the mock server running for the *config* route).
-3. `tools/dev_run.sh` and go through the flow to Scan to pay. Check and record:
+2. `tools/dev_run.sh --payments=razorpay-test` (the mock server still serves
+   the *config* route; payments go to the real Razorpay). Go through the flow
+   to Scan to pay. Check and record:
    - [ ] The chip reads `TEST MODE` and a **real, scannable** QR is shown.
    - [ ] Razorpay Dashboard (test mode) → QR Codes: the new QR is listed with
          amount ₹75, `usage single_use`, and **notes containing `order_id`**
@@ -67,10 +67,9 @@ hand; don't paste them into chat or a terminal command.
          If it doesn't, record that, and rely on Part A's mock for the
          capture path. Creation, polling, close and expiry are then verified
          for real.
-4. Put the machine back on mock payments:
-   `godot --headless --path . --script res://tools/dev_setup.gd`. Leaving the
-   real test-key file in place is fine; mock mode overwrites it, so keep your
-   own copy.
+4. Put the machine back on mock payments: `tools/dev_run.sh`. Mock mode
+   keeps its keys in a separate `razorpay_credentials.mock.cfg`, so your
+   test-key file is left untouched (fixed during execution).
 
 ## Part C — records
 

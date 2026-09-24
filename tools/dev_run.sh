@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # One-command dev launch: mock backend + dev provisioning + the kiosk app.
-# Usage: tools/dev_run.sh [--scenario=<name>] [--editor] [--fullscreen] [--no-mock] [-- <godot user args>]
+# Usage: tools/dev_run.sh [--scenario=<name>] [--payments=mock|razorpay-test] [--editor] [--fullscreen]
+#                         [--no-mock] [-- <godot user args>]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 GODOT="${GODOT:-godot}"
 MOCK_PORT=8787
 
-scenario="" editor=0 fullscreen=0 no_mock=0
+scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock"
 passthrough=()
 while [[ $# -gt 0 ]]; do
 	arg="$1"
@@ -14,6 +15,7 @@ while [[ $# -gt 0 ]]; do
 	case "$arg" in
 		--) passthrough=("$@"); break ;;
 		--scenario=*) scenario="${arg#--scenario=}" ;;
+		--payments=*) payments="${arg#--payments=}" ;;
 		--editor) editor=1 ;;
 		--fullscreen) fullscreen=1 ;;
 		--no-mock) no_mock=1 ;;
@@ -47,7 +49,10 @@ if [[ $no_mock -eq 0 ]]; then
 	if [[ -n "$scenario" ]]; then
 		MOCK_PORT=$MOCK_PORT mockserver/scenario.sh "$scenario" >/dev/null
 	fi
-	"$GODOT" --headless --path . --script res://tools/dev_setup.gd >/dev/null 2>&1
+	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" >.dev_setup.log 2>&1; then
+		cat .dev_setup.log >&2
+		exit 1
+	fi
 else
 	"$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --clear >/dev/null 2>&1
 fi
@@ -57,6 +62,7 @@ cat <<BANNER
  FuelBot dev run
  Mock backend : $([[ $no_mock -eq 1 ]] && echo "disabled (offline, bundled default config)" || echo "http://127.0.0.1:$MOCK_PORT  (log: .mock.log)")
  Scenario     : ${scenario:-$([[ $no_mock -eq 1 ]] && echo "-" || echo "current")}
+ Payments     : $([[ $no_mock -eq 1 ]] && echo "-" || echo "$payments")
  Switch live  : mockserver/scenario.sh maintenance_on | reset
  User data    : $("$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --print-dir 2>/dev/null | sed -n 's/^user data dir: //p' | head -1)
 ────────────────────────────────────────────────────────────

@@ -27,3 +27,4 @@ local_settings.override.json
 .screenshots/
 __pycache__/
 .mock.log
+.dev_setup.log
