@@ -67,6 +67,14 @@ func _initialize() -> void:
 	_label("QrCaption", fonts.mono_500, 24, P.QR_CAPTION)
 	_label("QrMessage", fonts.heading_800, 34, P.QR_CAPTION)
 	_label("ChipWarning", fonts.mono_500, 20, P.WARNING)
+	# Dispensing, on the lime background (DSP-05)
+	_label("DisplayOnAccent", fonts.display_900, 113, P.ON_ACCENT, 96)
+	_label("BodyOnAccent", fonts.body_600, 34, P.ON_ACCENT)
+	_label("MonoOnAccent", fonts.mono_500, 22, P.ON_ACCENT)
+	_label("MonoOnAccentSmall", fonts.mono_500, 20, P.ON_ACCENT)
+	_label("FooterOnAccent", fonts.heading_800, 50, P.ON_ACCENT)
+	_label("CollectText", fonts.display_900, 46, P.ON_ACCENT)
+	_label("LogoTextInverse", fonts.display_900, 26, P.ACCENT)
 
 	_panel("LogoTile", _box(P.ACCENT, 22))
 	_panel("CardPanel", _box(P.SURFACE, P.RADIUS_CARD, 2, P.BORDER, 32))
@@ -101,6 +109,11 @@ func _initialize() -> void:
 	var chip_warn := _box(P.WARNING_SURFACE, 8, 2, P.WARNING_BORDER)
 	_margins(chip_warn, 12, 4)
 	_panel("TestModeChip", chip_warn)
+	_panel("LogoTileInverse", _box(P.ON_ACCENT, 12))
+
+	theme.set_type_variation("DispenseProgress", "ProgressBar")
+	theme.set_stylebox("background", "DispenseProgress", _box(P.ACCENT_TRACK, 14))
+	theme.set_stylebox("fill", "DispenseProgress", _box(P.ON_ACCENT, 14))
 
 	var primary := _box(P.ACCENT, P.RADIUS_CARD)
 	var primary_pressed := _box(P.ACCENT.darkened(0.1), P.RADIUS_CARD)

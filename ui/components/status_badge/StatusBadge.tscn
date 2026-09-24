@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/components/status_badge/status_badge.gd" id="1"]
+
+[node name="StatusBadge" type="Control"]
+custom_minimum_size = Vector2(224, 224)
+mouse_filter = 2
+script = ExtResource("1")

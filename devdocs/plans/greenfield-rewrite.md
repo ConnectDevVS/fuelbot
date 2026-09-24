@@ -12,6 +12,9 @@ document.
 Allergens) run against a local mock backend. **Milestone 2 (payment) is
 built and verified against the mock. Its real Razorpay test-mode check is
 pending the product owner** ([payment SIGNOFF](../stories/payment/SIGNOFF.md)).
+**Milestone 4 (hardware bridge + dispensing) is built and verified with fake
+hardware (Levels 0 and 1). Levels 2/3 are pending a board**
+([dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md)).
 Per-milestone status is in Section 5. Work is executed as story sets under
 `devdocs/stories/`. Each set's README lists its detailed decisions, and its
 `SIGNOFF.md` records the verification evidence.
@@ -35,8 +38,16 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-24 | `Nav` autoload owns all scene changes; `DevCapture` autoload (dev-only screenshots); headless test harness | Testable navigation, verifiable UI | §3.3, §4, §7 |
 | 2026-09-24 | Maintenance screen shows technician diagnostics and **re-checks the flag on entry** | Design page 6; fixes a race where the flag clears mid-redirect | §3.11 |
 | 2026-09-24 | **Cancel race rule:** Cancel does one final payment check and dispenses if the customer already paid | Charging someone and cancelling their drink is the worst outcome | §3.5, payment README |
-| 2026-09-24 | **Bridge sequence:** `P<hopper>`, `B<n>` on 4242, **≥ 0.3 s wall-clock gap**, then `Y` on 4243; `X` on cancel/failure/expiry | The current `udprxtx.py` drops a `Y` that arrives while it's still collecting P/B. Milestone 4's bridge rewrite should take one atomic order message | §3.2, §3.7 |
+| 2026-09-24 | *(Superseded by protocol v2 below.)* **Bridge sequence:** `P<hopper>`, `B<n>` on 4242, **≥ 0.3 s wall-clock gap**, then `Y` on 4243; `X` on cancel/failure/expiry | The current `udprxtx.py` drops a `Y` that arrives while it's still collecting P/B. Milestone 4's bridge rewrite should take one atomic order message | §3.2, §3.7 |
 | 2026-09-24 | **Live-key guard:** `rzp_live_` keys refused unless `payments.allow_live_keys` | A dev machine can't take real money by accident | §3.5 |
+| 2026-09-24 | **Bridge protocol v2** (supersedes the P/B/gap/Y row above): one `ORDER <order_id> P<h> B<n>` datagram on 4242 after payment, `CANCEL <order_id>` on 4242 (informational), results `DONE <id>` / `TIMEOUT <id> <reason>` / `REJECTED <id> <reason>` on 4245. **Port 4243, `Y`/`X` and `result_gap_sec` retired** | Removes the dropped-`Y` hazard; results are tied to an order ID; `REJECTED` fails the screen at once instead of after the cap | §3.7, dispensing README |
+| 2026-09-24 | **The 4245 listener lives in the `Bridge` autoload** (app lifetime), which caches results per order; the dispensing scene reads the cache on entry | A fast reply (e.g. `REJECTED busy`) can arrive before the dispensing scene has loaded, and a datagram to an unbound port is lost | §3.7 |
+| 2026-09-24 | **Timing from firmware arithmetic:** cycle ≈ **68–78 s**, bridge deadline **110 s**, app `dispense_expected_sec` **75**, `dispense_safety_cap_sec` **130** (was 35–55 s / 60 s / 90 s) | Summing `VM_code.ino`'s delays and stepper steps; 60 s would time out every real order. The cap must exceed the bridge deadline. Level 3 retunes | §3.7, dispensing README decision 8 |
+| 2026-09-24 | **Dispensing and Complete are one screen** (`scenes/dispensing/`, PDF page 5): blending → done (collect, return in 6 s) or failed (support message, return in 10 s). No `scenes/complete/` | Matches the design | §3.6, §3.7, §4 |
+| 2026-09-24 | **Dispensing failure shows the support message; no automatic refund** in M4 | Product owner decision; refund policy is an open item | §3.7 |
+| 2026-09-24 | **Firmware: motors 5–6 are `-1` placeholders** and such an order prints `FAULT:HOPPER_UNASSIGNED <h>` with nothing moving; any other invalid command prints `FAULT:BAD_COMMAND`. `STATUS:DONE` after `Mix Done` | Wiring isn't final. Also fixes an existing hazard: an unknown hopper digit refilled water forever | §3.7 |
+| 2026-09-24 | **Bridge recovers after each cycle** (until `Home reached` or 15 s) and rejects orders meanwhile; stdlib `termios` serial, no `pyserial` | The Mega watchdog-resets and re-homes after every cycle; pyserial isn't installed and isn't needed | §3.7 |
+| 2026-09-24 | **Verification with fake hardware only** (Levels 0 and 1); Levels 2/3 are written-up pending steps. Firmware is syntax-checked on the host (`tools/check_firmware.sh`), not AVR-compiled | No board available; `arduino-cli` not installed | §6, dispensing SIGNOFF |
 
 ## 1. Context
 
@@ -557,62 +568,73 @@ The QR-generating label text comes from
 `ConfigManager.get_message("qr_generating")` instead of a scene's static
 `text` property.
 
+**`scenes/dispensing/` (`Dispensing.tscn`/`dispensing.gd`)** *(Milestone 4,
+design page 5; replaces the old separate complete screen)*: one lime screen
+with three states. **Blending**: check badge, "Blending your drink", flavor
+and volume, and a progress bar estimated from `timing.dispense_expected_sec`
+(linear to 95 %, then creeping; never 100 % before `DONE`) with "~N
+seconds". **Done**: 100 %, "Collect from the hatch below", "Returning to
+menu in 6s", then `Nav.go_idle()`. **Failed** (`TIMEOUT`, `REJECTED` or the
+safety cap): `!` badge and the `dispensing_timeout` support message, then
+idle. All timing is wall clock. It reads results from `Bridge` (§3.7). No
+maintenance check and no inactivity timer.
+
 ### 3.7 Hardware dispensing-confirmation signal
 
-Today the Arduino↔Godot link is one-way and the dispensing screen is a pure
-fixed-duration timer with no relationship to what the hardware is actually
-doing. This adds the minimal signal needed for the sale/telemetry reports to
-fire on a real outcome: **did the dispense routine finish, or time out.**
-Nothing here adds fault sensing (no cup/motor sensors exist) — it's purely
-"did we hear back in time."
+*(Rewritten 2026-09-24 to match what Milestone 4 built; details, state
+tables and the protocol table are in the
+[dispensing story set](../stories/dispensing/README.md).)*
 
-**`hardware/firmware/VM_code.ino`**: right before the existing end-of-cycle
-sequence (`Serial.println("Mix Done"); Serial.flush(); delay(100);
-resetArduino();` at the end of `loop()`), print one additional,
-machine-parseable line: `Serial.println("STATUS:DONE");` — then flush and
-reset as today. Only `VM_code.ino` is touched (2.2.6) — no new sensors, no
-new pins, no change to the dispense sequence itself.
+The app now learns the real outcome of a dispense: **did the firmware
+finish, or not.** Nothing here adds fault sensing (there are no cup or motor
+sensors). It's "did we hear back in time", plus two firmware-detected
+refusals.
 
-**`hardware/bridge/udprxtx.py`**: after writing the `"PB\n"` command to the
-Arduino on payment success (today it immediately loops back to "Ready" with
-no wait), block reading `arduino.readline()` in a loop with an overall
-deadline (e.g. 60s, comfortably above the firmware's worst-case cycle time)
-looking for a line containing `"STATUS:DONE"`.
-- If received in time: send UDP `"DONE"` to a **new port, 4245**, then
-  proceed to "Ready".
-- If the deadline elapses: send UDP `"TIMEOUT"` to port 4245 instead, then
-  proceed to "Ready" (don't hang the bridge script forever on one order).
+**Protocol v2** (all UDP on `127.0.0.1`, ASCII, one message per datagram;
+`<id>` = `OrderState.order_id`, a ULID):
 
-This is a real behavior change worth flagging: blocking for up to 60s is
-safe because the machine is physically single-cup/single-order — the
-Arduino's own `loop()` is itself blocked by `delay()` calls throughout the
-dispense sequence and won't read a new command until `resetArduino()`
-restarts it, so there was never a real second order this could have
-serialized in parallel with.
+| Direction | Port | Message |
+|-----------|------|---------|
+| app → bridge | 4242 | `ORDER <id> P<hopper> B<n>`, once, **only after payment succeeds** (§3.2) |
+| app → bridge | 4242 | `CANCEL <id>` on cancel / failure / expiry (informational) |
+| bridge → app | 4245 | `DONE <id>` / `TIMEOUT <id> <deadline\|serial_lost\|fault:CODE>` / `REJECTED <id> <busy\|bad_order\|serial_unavailable>` |
+| bridge → Arduino | serial 9600 | `<hopper><n>\n` (unchanged) |
 
-**`scenes/dispensing/` (`Dispensing.tscn`/`dispensing.gd`)**: add a
-`PacketPeerUDP` bound (not connected — the first *receiving* socket in the
-project; existing sockets only ever `connect_to_host()` to send) to listen
-on port 4245. Replaces the fixed 85s timer. In `_process()`, alongside the
-progress-bar animation, poll for an incoming packet:
-- On `"DONE"`: stop the progress bar at 100%, show
-  `ConfigManager.get_message("dispensing_success")`, fire the sale report
-  (3.12) and telemetry report (3.8) with the matching result, proceed to
-  `scenes/complete/`.
-- On `"TIMEOUT"`: stop the progress bar, show
-  `ConfigManager.get_message("dispensing_timeout")` instead, fire both
-  reports with `dispensing_result: "timeout"` / no success stage, proceed
-  onward.
-- **Safety cap**: if *no* packet arrives at all within ~90s (UDP packet
-  loss, bridge script crash, etc.), treat it the same as a local
-  `"TIMEOUT"` rather than hanging the screen indefinitely.
+**`hardware/firmware/VM_code.ino`** (ported; changes marked `// M4:`):
+prints `STATUS:DONE` after `Mix Done`, right before the existing watchdog
+reset. It validates the command before anything moves: hopper 5/6 without a
+wired pin (`M5`/`M6` are `-1` placeholders) → `FAULT:HOPPER_UNASSIGNED <h>`,
+and anything else invalid → `FAULT:BAD_COMMAND`. `homeAxis()` is still
+unbounded (Milestone 5).
 
-**`scenes/complete/` (`Complete.tscn`/`complete.gd`)**: ported forward
-as-is (10s auto-return to idle).
+**`hardware/bridge/udprxtx.py`** (rewritten, stdlib only): one order at a
+time. It writes the 2-digit command, then reads serial lines without
+blocking until `STATUS:DONE` (→ `DONE`), a `FAULT:` line (→ `TIMEOUT
+fault:<CODE>`), the **110 s** deadline (→ `TIMEOUT deadline`) or a lost link
+(→ `TIMEOUT serial_lost`). Then it *recovers* (until `Home reached`, max 15
+s) and rejects orders meanwhile (`REJECTED busy`). It never blocks without a
+deadline, and it reopens the serial port if it disappears. Blocking one
+order at a time is safe because the machine is physically single-cup, and
+the Arduino's own `loop()` is blocked in `delay()`s for the whole cycle.
 
-This keeps the change surface small: one new `Serial.println`, one new
-blocking read with a timeout in a script that already opens the serial
-port, one new UDP port, one new receiving socket in Godot.
+**Timing.** Summing the firmware's `delay()`s and stepper steps gives
+**68–78 s** per drink (not the 35–55 s first assumed), so the bridge deadline
+is 110 s, the app's `timing.dispense_expected_sec` is 75 and
+`timing.dispense_safety_cap_sec` is 130. The cap is greater than the
+deadline, so the bridge's own `TIMEOUT` normally arrives first. Level 3
+retunes all three from measured cycles.
+
+**App.** The `Bridge` autoload owns the receiving socket on 4245 (the first
+receiving socket in the project) for the app's lifetime, and caches results
+per order ID. The dispensing screen can't miss a reply that arrived before it
+loaded. `scenes/dispensing/` (one screen, PDF page 5; see §3.6):
+- `DONE` for this order: the bar goes to 100 %, "Collect from the hatch
+  below", "Returning to menu in 6s", then idle.
+- `TIMEOUT` / `REJECTED` for this order, or **no result within the safety
+  cap**: `ConfigManager.get_message("dispensing_timeout")`, then idle after
+  10 s. **No automatic refund** (open item).
+- Sale reporting (§3.12) and telemetry (§3.8) will hook into these two
+  outcomes in Milestones 6 and 5.
 
 ### 3.8 Fault/telemetry reporting — `TelemetryReporter.gd`
 
@@ -1115,16 +1137,16 @@ fuelbot/ (repo root)
 │   ├── OrderState.gd            ✓ replaces the static-var hack
 │   ├── Nav.gd                   ✓ all scene changes (testable)
 │   ├── DevCapture.gd            ✓ dev-only screenshots, always last
-│   ├── RazorpayManager.gd       # rewritten clean, single implementation
+│   ├── RazorpayManager.gd       ✓ rewritten clean, single implementation
+│   ├── Bridge.gd                ✓ UDP to the hardware bridge: ORDER/CANCEL out, results in on 4245
 │   ├── SalesReporter.gd
 │   └── TelemetryReporter.gd     # fault/stage-timing reports, own queue+retry
 ├── scenes/
 │   ├── idle/{Idle.tscn, idle.gd}                          ✓
 │   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd} ✓
 │   ├── flavor_detail/{FlavorDetail.tscn, flavor_detail.gd} ✓ Ingredients & Allergens
-│   ├── payment/{Payment.tscn, payment.gd}                  ✓ stub until Milestone 2
-│   ├── dispensing/{Dispensing.tscn, dispensing.gd}
-│   ├── complete/{Complete.tscn, complete.gd}
+│   ├── payment/{Payment.tscn, payment.gd}                  ✓
+│   ├── dispensing/{Dispensing.tscn, dispensing.gd}             ✓ blending → done/failed (one screen, PDF p5)
 │   ├── maintenance/{Maintenance.tscn, maintenance.gd}      ✓
 │   └── scene_paths.gd                                      ✓
 ├── ui/                          ✓ components/, theme/palette.gd, format.gd, gallery/
@@ -1136,16 +1158,18 @@ fuelbot/ (repo root)
 │   ├── fonts/                   ✓ Archivo + JetBrains Mono (OFL)
 │   ├── theme/                   ✓ generated by tools/build_theme.gd
 │   └── video/                   ✓ idle_ad_default.ogv
-├── hardware/
-│   ├── firmware/VM_code.ino
-│   ├── bridge/udprxtx.py
-│   └── pos/{pinelabs.py, transactions.xlsx}   # ported, inert
+├── hardware/                    ✓ (.gdignore'd)
+│   ├── firmware/VM_code.ino     ✓ + host_stub/ for tools/check_firmware.sh
+│   ├── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
+│   └── pos/{pinelabs.py, transactions.xlsx}   # ported, inert (not yet)
 ├── mockserver/                  ✓ replaces tools/mock_config_server.py: stdlib server + JSON scenarios
 ├── tests/                       ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
 ├── tools/
 │   ├── run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd  ✓
-│   ├── fake_arduino_serial.py   # Level 1 harness — full STATUS:* sequence + --fault mode
-│   └── fake_dispense_bridge.py  # Level 0 harness — fakes DONE/TIMEOUT + telemetry on 4246
+│   ├── fake_arduino_serial.py   ✓ Level 1 harness: VM_code.ino over a PTY, --fault modes
+│   ├── fake_dispense_bridge.py  ✓ Level 0 harness: DONE/TIMEOUT/REJECTED/silent (telemetry on 4246 is M5)
+│   ├── check_firmware.sh        ✓ host syntax check of the sketch
+│   └── test_fakes.py            ✓ incl. automated Level 1
 ├── designs/GMRFuelBot-OnDevice-SsampleScreens.pdf   ✓
 └── devdocs/
     ├── plans/greenfield-rewrite.md   # this document
@@ -1166,8 +1190,8 @@ existing external reference (docs, muscle memory) to preserve.
 | 0 — Skeleton | ✅ Done | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
 | 1 — Core data & state | ✅ Done (config, OrderState, mock server) | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
 | 2 — Payment layer | 🟡 Built; mock end-to-end PASS; **real test-mode check pending** (product owner) | [payment SIGNOFF](../stories/payment/SIGNOFF.md) |
-| 3 — Idle, listing, details, payment screens | ✅ Idle, listing, details done; payment screen is a stub pending M2 | [idle](../stories/idle/SIGNOFF.md), [details](../stories/details/SIGNOFF.md) |
-| 4 — Hardware bridge + dispensing | Not started. Includes **motors 5–6** in firmware/wiring | — |
+| 3 — Idle, listing, details, payment screens | ✅ Idle, listing, details and payment screens done | [idle](../stories/idle/SIGNOFF.md), [details](../stories/details/SIGNOFF.md) |
+| 4 — Hardware bridge + dispensing | 🟡 Built; **Level 0 + Level 1 PASS** (fake bridge; real bridge + fake Arduino). **Level 2/3 pending hardware**; motors 5–6 are fail-safe placeholders pending wiring | [dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md) |
 | 5 — Telemetry | Not started | — |
 | 6 — Maintenance + sale reporting | Maintenance screen/poll ✅ done early (idle set); sale reporting not started | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
 | 7 — Asset migration | Partly done: flavor images, video, fonts ported. The flavor PNGs need padding trimmed | [assets/ASSETS.md](../../assets/ASSETS.md) |
@@ -1218,11 +1242,12 @@ existing external reference (docs, muscle memory) to preserve.
 
 **Milestone 4 — Hardware bridge + real dispensing signal**
 - `hardware/firmware/VM_code.ino`, `hardware/bridge/udprxtx.py`,
-  `scenes/dispensing/`, `scenes/complete/` per Section 3.7.
+  `scenes/dispensing/` (one screen; no `scenes/complete/`) per Section 3.7.
+  *(Built 2026-09-24: [dispensing story set](../stories/dispensing/README.md).)*
 - `hardware/pos/pinelabs.py` + `transactions.xlsx`: ported forward inert,
   unwired, per decision 2.2.2.
 - Verify (Section 7, steps 5, 7, 8): hopper-vs-position check, real
-  `STATUS:DONE`/`TIMEOUT` on the serial monitor, 90s safety cap.
+  `STATUS:DONE`/`TIMEOUT` on the serial monitor, safety cap (130 s; decision log).
 
 **Milestone 5 — Fault/telemetry reporting**
 - `hardware/firmware/VM_code.ino`, `hardware/bridge/udprxtx.py`,
@@ -1267,8 +1292,8 @@ existing external reference (docs, muscle memory) to preserve.
   `import_s3tc_bptc` (a desktop-GPU format); without ETC2/ASTC, textures
   fall back to uncompressed on the Pi's GPU.
 - Two `systemd` services: the exported Godot binary, and
-  `hardware/bridge/udprxtx.py` — bridge starts first (Godot expects UDP
-  4242/4243 reachable at boot), both `Restart=on-failure`.
+  `hardware/bridge/udprxtx.py` — bridge starts first (Godot sends to UDP 4242
+  and listens on 4245), both `Restart=on-failure`.
 - Kiosk boot: autologin into a minimal single-app session (a kiosk-mode
   compositor like `cage`/`labwc` running only the Godot binary, no desktop
   chrome), screen blanking/DPMS disabled.
@@ -1287,6 +1312,14 @@ A staged rig so the full mechanical assembly isn't required just to check
 whether Godot/the bridge/the firmware agree on the protocol. Each level is
 cheaper to debug in than the one after it — don't skip to Level 3 to find a
 bug Level 0 would have caught in seconds.
+
+*(2026-09-24: Levels 0 and 1 are built and pass; see the
+[dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md). As built, Level 0 uses
+protocol v2 on 4242/4245 with `--mode done|timeout|reject|silent`, and the
+4246 telemetry is left for Milestone 5. Level 1 needs no `socat`:
+`fake_arduino_serial.py` owns a Python PTY pair, and its faults are
+`never_done|silent|disconnect`, with `homing_timeout` coming in Milestone 5.
+Level 1 also runs automatically in `tools/test_fakes.py`.)*
 
 - **Level 0 — pure software, no hardware.** `tools/fake_dispense_bridge.py`:
   listens on the same UDP ports `udprxtx.py` uses (4242 selection, 4243
@@ -1320,8 +1353,8 @@ bug Level 0 would have caught in seconds.
 - **Level 3 — full mechanical bench, no packaging.** Real motors/pump/
   stepper on a bench rig outside the enclosure, cup on a scale. This is
   where real dispense timing gets measured against the firmware's
-  ~35–55s estimate (to tune the dispensing screen's progress bar and the
-  90s safety cap against actual numbers), and where `SalesReporter`'s real
+  ~68–78 s estimate (dispensing README decision 8; to tune the dispensing screen's progress bar and the
+  safety cap (130 s) against actual numbers), and where `SalesReporter`'s real
   trigger point first gets exercised end-to-end.
 
 Only after Level 3 passes does it go in the actual enclosure.
@@ -1371,7 +1404,7 @@ still no CI. The manual steps below remain the acceptance checklist; steps
    against real/bench hardware: confirm the progress bar screen waits for
    and reacts to the real `"DONE"`/`"TIMEOUT"` UDP message rather than
    finishing on its own timer, and shows the correct message for each case.
-   Confirm the 90s safety cap fires correctly if you block all UDP traffic
+   Confirm the safety cap (130 s) fires correctly if you block all UDP traffic
    on port 4245 entirely.
 9. Confirm a sale report POST fires exactly once per completed order
    (success or timeout), with the mock sales-report server logging the

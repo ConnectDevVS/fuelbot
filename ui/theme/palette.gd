@@ -17,6 +17,7 @@ const WARNING_BORDER := Color("#5A4309")
 const SUCCESS := Color("#4ADE80")
 const QR_SURFACE := Color("#F7F8FA")
 const QR_CAPTION := Color("#3A3D44")
+const ACCENT_TRACK := Color("#ABDA35")  # progress track on the lime dispensing screen
 const ON_ACCENT_FAINT := Color(0.0667, 0.0706, 0.0824, 0.45)  # CTA dot: ON_ACCENT at 45%
 
 const PAD := 72

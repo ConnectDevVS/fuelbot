@@ -48,3 +48,11 @@ func test_mock_default_images_exist() -> void:
 		return
 	for f in _parse(MOCK_DEFAULT).body.flavors:
 		assert_true(ResourceLoader.exists(f.image), "mock image exists: %s" % f.image)
+
+
+func test_hopper_shuffle_scenario_is_valid() -> void:
+	var cfg := load_mock_config("hopper_shuffle")
+	var ConfigManagerScript := load("res://autoload/ConfigManager.gd")
+	assert_true(ConfigManagerScript.validate_config(cfg).is_empty(), "valid: hoppers still unique")
+	assert_eq(cfg.flavors[0].id, "guava", "guava is still the first card")
+	assert_eq(int(find_flavor(cfg, "guava").hopper), 3, "but on hopper 3")
