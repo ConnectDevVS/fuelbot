@@ -1,0 +1,19 @@
+{
+  "description": "QR created (image is a placeholder pattern, not scannable)",
+  "status": 200,
+  "body": {
+    "id": "qr_MockQr00000001",
+    "entity": "qr_code",
+    "created_at": "{{now}}",
+    "name": "{{request.name}}",
+    "usage": "single_use",
+    "type": "upi_qr",
+    "image_url": "{{origin}}/__mock/assets/qr_demo.png",
+    "payment_amount": "{{request.payment_amount}}",
+    "status": "active",
+    "description": "{{request.description}}",
+    "fixed_amount": true,
+    "notes": "{{request.notes}}",
+    "close_by": "{{request.close_by}}"
+  }
+}

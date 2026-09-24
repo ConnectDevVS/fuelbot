@@ -1,0 +1,5 @@
+{
+  "description": "HTTP 500",
+  "status": 500,
+  "body": {"error": "internal"}
+}

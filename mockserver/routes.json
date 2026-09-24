@@ -1,0 +1,32 @@
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/fuelbot/config",
+      "scenarios_dir": "responses/config",
+      "default_scenario": "default",
+      "require_tenant_header": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/payments/qr_codes",
+      "scenarios_dir": "responses/rzp_qr_create",
+      "default_scenario": "default",
+      "require_basic_auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/payments/qr_codes/{qr_id}/payments",
+      "scenarios_dir": "responses/rzp_qr_payments",
+      "default_scenario": "default",
+      "require_basic_auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/v1/payments/qr_codes/{qr_id}/close",
+      "scenarios_dir": "responses/rzp_qr_close",
+      "default_scenario": "default",
+      "require_basic_auth": true
+    }
+  ]
+}

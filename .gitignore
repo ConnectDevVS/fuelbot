@@ -15,3 +15,16 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# Provisioning / credentials: must never be committed (plan §5 M0)
+*.local.cfg
+tenant_id.txt
+razorpay_credentials.cfg
+local_settings.override.json
+
+# Local tooling output
+.DS_Store
+.screenshots/
+__pycache__/
+.mock.log
+.dev_setup.log

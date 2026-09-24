@@ -1,0 +1,10 @@
+{
+  "description": "Catalog change: chocolate costs 199, electro disabled",
+  "extends": "default",
+  "body_patch": {
+    "flavors": [
+      {"id": "chocolate", "actual_price": 199},
+      {"id": "electro", "enabled": false}
+    ]
+  }
+}
