@@ -56,7 +56,7 @@
         "badge": null, "sold_out": true, "enabled": true
       },
       {
-        "id": "cookie", "name": "Prymor Cookies & Cream", "hopper": 5,
+        "id": "cookie", "name": "Cookies & Cream", "hopper": 5,
         "actual_price": 160, "offer_price": null,
         "image": "res://assets/images/flavors/prymor_cookie.png",
         "description": "Cookies-and-cream whey shake.",

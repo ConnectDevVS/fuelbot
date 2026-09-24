@@ -19,10 +19,10 @@ corner_radius_bottom_left = 6
 corner_detail = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lmra"]
-content_margin_left = 36.0
-content_margin_top = 36.0
-content_margin_right = 36.0
-content_margin_bottom = 36.0
+content_margin_left = 32.0
+content_margin_top = 32.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
 bg_color = Color(0.09019608, 0.09803922, 0.11764706, 1)
 border_width_left = 2
 border_width_top = 2
@@ -36,10 +36,10 @@ corner_radius_bottom_left = 28
 corner_detail = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wom5f"]
-content_margin_left = 36.0
-content_margin_top = 36.0
-content_margin_right = 36.0
-content_margin_bottom = 36.0
+content_margin_left = 32.0
+content_margin_top = 32.0
+content_margin_right = 32.0
+content_margin_bottom = 32.0
 bg_color = Color(0.09019608, 0.09803922, 0.11764706, 1)
 border_width_left = 4
 border_width_top = 4
@@ -234,11 +234,11 @@ GhostButton/styles/normal = SubResource("StyleBoxFlat_nht3e")
 GhostButton/styles/pressed = SubResource("StyleBoxFlat_ork6n")
 Heading/base_type = &"Label"
 Heading/colors/font_color = Color(0.95686275, 0.9607843, 0.9490196, 1)
-Heading/font_sizes/font_size = 46
+Heading/font_sizes/font_size = 42
 Heading/fonts/font = ExtResource("5_m7oo3")
 HeadingDim/base_type = &"Label"
 HeadingDim/colors/font_color = Color(0.41960785, 0.44313726, 0.47843137, 1)
-HeadingDim/font_sizes/font_size = 46
+HeadingDim/font_sizes/font_size = 42
 HeadingDim/fonts/font = ExtResource("5_m7oo3")
 HeroPanel/base_type = &"PanelContainer"
 HeroPanel/styles/panel = SubResource("StyleBoxFlat_3fynq")

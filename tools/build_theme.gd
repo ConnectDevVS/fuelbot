@@ -32,8 +32,8 @@ func _initialize() -> void:
 	# Display sizes use an exact line pitch measured from the PDF.
 	_label("DisplayXL", fonts.display_900, 128, P.TEXT, 118)
 	_label("DisplayL", fonts.display_900, 100, P.TEXT, 96)
-	_label("Heading", fonts.heading_800, 46, P.TEXT)
-	_label("HeadingDim", fonts.heading_800, 46, P.TEXT_DIM)
+	_label("Heading", fonts.heading_800, 42, P.TEXT)
+	_label("HeadingDim", fonts.heading_800, 42, P.TEXT_DIM)
 	_label("Body", fonts.body_400, 34, P.TEXT_MUTED)
 	_label("BodyStrong", fonts.body_600, 34, P.TEXT_MUTED)
 	_label("Mono", fonts.mono_500, 24, P.TEXT_DIM)
@@ -49,8 +49,8 @@ func _initialize() -> void:
 	_label("ButtonText", fonts.display_900, 52, P.ON_ACCENT)
 
 	_panel("LogoTile", _box(P.ACCENT, 22))
-	_panel("CardPanel", _box(P.SURFACE, P.RADIUS_CARD, 2, P.BORDER, 36))
-	var popular := _box(P.SURFACE, P.RADIUS_CARD, 4, P.ACCENT, 36)
+	_panel("CardPanel", _box(P.SURFACE, P.RADIUS_CARD, 2, P.BORDER, 32))
+	var popular := _box(P.SURFACE, P.RADIUS_CARD, 4, P.ACCENT, 32)
 	popular.shadow_color = Color(P.ACCENT, 0.25)
 	popular.shadow_size = 12
 	_panel("CardPanelPopular", popular)

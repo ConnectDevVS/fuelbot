@@ -27,10 +27,12 @@ func _ready() -> void:
 		margin.add_theme_constant_override("margin_" + side, 36)
 	add_child(margin)
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 24)
 	margin.add_child(row)
 	_left = Label.new()
 	_left.name = "Left"
 	_left.theme_type_variation = &"MonoMuted"
+	_left.add_theme_font_size_override("font_size", 22)
 	_left.text = ConfigManager.get_message(left_key)
 	row.add_child(_left)
 	var spacer := Control.new()

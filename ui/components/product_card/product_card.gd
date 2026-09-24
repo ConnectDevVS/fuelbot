@@ -28,12 +28,12 @@ func _init() -> void:
 	_content = VBoxContainer.new()
 	_content.name = "Content"
 	_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_content.add_theme_constant_override("separation", 14)
+	_content.add_theme_constant_override("separation", 10)
 	add_child(_content)
 
 	var image_area := Control.new()
 	image_area.name = "ImageArea"
-	image_area.custom_minimum_size.y = 176
+	image_area.custom_minimum_size.y = 160
 	image_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	image_area.clip_contents = true
 	image_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
