@@ -64,7 +64,8 @@ Made while writing this set (verified by the spikes noted in each story):
 2. **Firmware retries homing itself, with back-off, instead of resetting in
    a loop** (plan §3.8 said reset). On timeout the board stops the motor,
    prints `FAULT:HOMING_TIMEOUT` and stays up, *not homed*. It retries after
-   1 min, then 2, 4 and 8, capped at 15 min, and refuses commands meanwhile
+   1 min, then 2, 4 and 8, capped at **10 min** (product owner: the longest a
+   repaired machine waits before retrying), and refuses commands meanwhile
    with `FAULT:NOT_HOMED`. A reset loop would drive the carriage into the
    hard stop for 20 s every ~20 s, forever. With back-off the motor runs 20
    s per attempt, and ever more rarely. Decision 1 still holds: a successful

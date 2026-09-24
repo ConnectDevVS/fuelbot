@@ -33,7 +33,7 @@ hardware/firmware/test_firmware.py # new tests; the M4 line expectations updated
    - when `millis() - lastHomingFailure >= retryMs` (measured from the
      **end** of the failed attempt), call `homeAxis()` again.
      `retryMs` starts at `HOMING_RETRY_MS` (60 000), doubles after each
-     failure, is capped at `HOMING_RETRY_MAX_MS` (900 000), and resets on
+     failure, is capped at `HOMING_RETRY_MAX_MS` (600 000 = 10 min; product owner, 2026-09-24), and resets on
      success.
 4. **End-of-cycle homing failure keeps the drink** (decision 3): after
    `moveTo(0)`, a failed `homeAxis()` still leads to `STATUS:DONE`, flush and
@@ -56,10 +56,11 @@ hardware/firmware/test_firmware.py # new tests; the M4 line expectations updated
       LOW), **no watchdog reset**.
 - [ ] `test_not_homed_refuses_commands`: while faulted, `12` →
       `FAULT:NOT_HOMED`; no motor or pump LOW writes.
-- [ ] `test_retry_backoff`: switch broken throughout, `--until 1000` →
+- [ ] `test_retry_backoff`: switch broken throughout →
       attempts (`HOMING_START` then `FAULT:HOMING_TIMEOUT` 20 s later) start
-      at 0, 80, 220 and 480 s. The gaps after each failure are 60, 120 and
-      240 s.
+      at 0, 80, 220, 480, 980 and 1600 s. The gaps after each failure are
+      60, 120, 240, 480 and then 600 s (the cap, not 960). Run with
+      `--until 2400`.
 - [ ] `test_auto_recovery`: switch broken 0–150 s → the attempts at 0 s and
       80 s fail, the one at ~220 s succeeds (`STATUS:HOMING_DONE`), and a
       `12` sent at 300 s runs a full cycle. The same `12` sent at 150 s gets
