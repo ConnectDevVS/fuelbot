@@ -131,6 +131,8 @@ func _proceed() -> void:
 	_proceed_button.disabled = true
 	OrderState.charged_price = ConfigManager.get_charge_price(flavor)
 	OrderState.selected_base_id = base_id
+	OrderState.order_id = Ulid.generate()
+	OrderState.order_number = OrderCounter.next()
 	Nav.go(ScenePaths.PAYMENT)
 
 

@@ -21,6 +21,7 @@ config/icon="res://icon.svg"
 ConfigManager="*res://autoload/ConfigManager.gd"
 OrderState="*res://autoload/OrderState.gd"
 Nav="*res://autoload/Nav.gd"
+OrderCounter="*res://autoload/OrderCounter.gd"
 DevCapture="*res://autoload/DevCapture.gd"
 
 [display]

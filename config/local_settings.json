@@ -70,7 +70,8 @@
 
     "payment_stub_title": "Scan to pay",
     "payment_stub_body": "Payment is coming in the next story set.",
-    "payment_cancel": "Cancel order"
+    "payment_cancel": "Cancel order",
+    "order_number": "ORDER #{number}"
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,
