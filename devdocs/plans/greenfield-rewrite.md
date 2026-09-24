@@ -9,7 +9,9 @@ document.
 
 **Status (2026-09-24).** Milestones 0, 1 and 3 are done: the idle screens
 (attract, listing, maintenance) and the details page (Ingredients &
-Allergens) run against a local mock backend. **Next: Milestone 2, payment.**
+Allergens) run against a local mock backend. **Milestone 2 (payment) is
+built and verified against the mock. Its real Razorpay test-mode check is
+pending the product owner** ([payment SIGNOFF](../stories/payment/SIGNOFF.md)).
 Per-milestone status is in Section 5. Work is executed as story sets under
 `devdocs/stories/`. Each set's README lists its detailed decisions, and its
 `SIGNOFF.md` records the verification evidence.
@@ -32,6 +34,9 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-24 | QR expiry **180 s** (`timing.qr_expiry_sec`) | Confirmed | §3.1, §3.5 |
 | 2026-09-24 | `Nav` autoload owns all scene changes; `DevCapture` autoload (dev-only screenshots); headless test harness | Testable navigation, verifiable UI | §3.3, §4, §7 |
 | 2026-09-24 | Maintenance screen shows technician diagnostics and **re-checks the flag on entry** | Design page 6; fixes a race where the flag clears mid-redirect | §3.11 |
+| 2026-09-24 | **Cancel race rule:** Cancel does one final payment check and dispenses if the customer already paid | Charging someone and cancelling their drink is the worst outcome | §3.5, payment README |
+| 2026-09-24 | **Bridge sequence:** `P<hopper>`, `B<n>` on 4242, **≥ 0.3 s wall-clock gap**, then `Y` on 4243; `X` on cancel/failure/expiry | The current `udprxtx.py` drops a `Y` that arrives while it's still collecting P/B. Milestone 4's bridge rewrite should take one atomic order message | §3.2, §3.7 |
+| 2026-09-24 | **Live-key guard:** `rzp_live_` keys refused unless `payments.allow_live_keys` | A dev machine can't take real money by accident | §3.5 |
 
 ## 1. Context
 
@@ -492,7 +497,13 @@ exposing:
 
 Public functions: `create_qr(amount_rupees: int, order_id: String) -> void`
 (the order ID goes in the QR's `notes` so Razorpay payments join to orders),
-`stop_polling() -> void`. QR expiry: `timing.qr_expiry_sec` = **180 s**.
+`stop_polling() -> void`, plus (as built) `check_now()` (the final check on
+Cancel), `close_qr()`, `abort()` (also closes a QR whose create is still in
+flight) and the `poll_completed(status)` signal. Transient poll errors keep
+polling; only the timeout ends an order. QR expiry: `timing.qr_expiry_sec` =
+**180 s** (`close_by = now + qr_expiry_sec`; the old code used 900 s).
+Razorpay's minimum `close_by` lead time is to be confirmed in the real
+test-mode check.
 Milestone 2 runs against **Razorpay test-mode keys**; automated tests run
 against the mock server's payment routes. Internally: builds/POSTs to
 `https://api.razorpay.com/v1/payments/qr_codes`, polls
@@ -1154,7 +1165,7 @@ existing external reference (docs, muscle memory) to preserve.
 |-----------|--------|----------|
 | 0 — Skeleton | ✅ Done | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
 | 1 — Core data & state | ✅ Done (config, OrderState, mock server) | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
-| 2 — Payment layer | ⏭ **Next** (test-mode keys; order ID; hopper after payment) | — |
+| 2 — Payment layer | 🟡 Built; mock end-to-end PASS; **real test-mode check pending** (product owner) | [payment SIGNOFF](../stories/payment/SIGNOFF.md) |
 | 3 — Idle, listing, details, payment screens | ✅ Idle, listing, details done; payment screen is a stub pending M2 | [idle](../stories/idle/SIGNOFF.md), [details](../stories/details/SIGNOFF.md) |
 | 4 — Hardware bridge + dispensing | Not started. Includes **motors 5–6** in firmware/wiring | — |
 | 5 — Telemetry | Not started | — |

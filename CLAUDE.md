@@ -21,8 +21,10 @@ eventual target.
 ## Layout
 
 ```
-autoload/      ConfigManager (first!), OrderState, Nav, DevCapture (always last)
-scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment = STUB, maintenance);
+autoload/      ConfigManager (first!), OrderState, Nav, OrderCounter, RazorpayManager, Bridge,
+               DevCapture (always last)
+scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing = STUB,
+               maintenance);
                scene_paths.gd = ScenePaths constants
 ui/            components/ (brand_header, product_card, footer_bar, connectivity_status, chip,
                allergen_banner, nutrition_tile, step_indicator), theme/palette.gd (Palette),
@@ -74,6 +76,25 @@ overflow were both found this way. Story work is one commit per story
   payment reads them. Back clears the selection. A catalog refresh while on
   details re-resolves the flavor by id and bails to the listing if it's gone
   or sold out.
+- **Payment rules (Milestone 2):**
+  - The hopper goes to the bridge **only after payment succeeds**: `P<hopper>`
+    and `B<n>` on 4242, a **wall-clock** gap (`bridge.result_gap_sec`), then
+    `Y` on 4243. Cancel, failure and expiry send `X`. The current bridge
+    drops an early `Y`.
+  - **Cancel race:** Cancel does one final `check_now()` and dispenses if the
+    payment is already captured.
+  - Leaving the payment screen by any path except PAID calls
+    `RazorpayManager.abort()`, which closes the QR, including one still being
+    created.
+  - `OrderState.order_id` (ULID from `Ulid.generate()`) is the analytics key
+    and goes in the QR notes. `order_number` (`OrderCounter`) is display-only.
+  - **Credentials:** only in `user://razorpay_credentials.cfg`, written by
+    hand. **Never log, print or commit keys** (`run_tests.sh` greps for it).
+    Log `mode()` only. `rzp_live_` keys are refused unless
+    `payments.allow_live_keys`.
+  - `dev_setup.gd` (default) = mock keys + `razorpay_base_url` → mock;
+    `-- --payments=razorpay-test` = real Razorpay with hand-written test keys.
+    Mock Razorpay routes use the **same paths** as the real API.
 - **Allergens:** the banner is hidden when the list is empty. Never render
   "allergen-free"; the data only says nothing was declared. The nutrition
   section hides when absent (the bundled config has none), and missing keys
@@ -148,6 +169,15 @@ overflow were both found this way. Story work is one commit per story
 - **Atomic file writes:** write `path.tmp`, then
   `DirAccess.rename_absolute(tmp, path)`, which replaces the target atomically
   on POSIX.
+- **`SceneTreeTimer` can fire early.** A `create_timer()` made right after a
+  slow frame consumes that frame's delta: 0.2 s measured 29 ms. For anything
+  where a short wait is a correctness problem (bridge gaps, countdowns), wait
+  on `Time.get_ticks_msec()` in a `process_frame` loop instead.
+- **JSON numbers are floats** in GDScript. Compare with `int(...)`, or
+  `assert_eq(1.0, 1)` fails on type.
+- **`HTTPRequest` requests die with the app.** A fire-and-forget request made
+  just before `quit()` may never go out. That's fine for the QR close
+  (Razorpay closes at `close_by`), but keep it in mind.
 - **Theme generator vs cache:** the project theme is loaded before
   `build_theme.gd` runs, so saving fonts at their existing paths collided
   ("cyclic resource inclusion"). The generator calls `take_over_path()` and
@@ -174,6 +204,11 @@ overflow were both found this way. Story work is one commit per story
   `get_cell_value()` …) rather than tests walking node trees.
 - Layout constraints worth keeping get a test (e.g. six cards fit without
   scrolling, a long name stays within 3 lines).
+- **Scene tests with real autoloads** (payment): point `RazorpayManager` at
+  the mock (`base_url`, `credentials_path`, poll timings, then
+  `reload_credentials()`) and `Bridge` at ephemeral `PacketPeerUDP.bind(0)`
+  listeners (`connect_sockets()`). Restore both in `after_each` with
+  `configure_from_settings()`. Tests never bind 4242/4243.
 - **Real-flow walkthroughs:** to verify navigation without dry-run and without
   a human, use a temporary scene that adds a persistent `Node` to `root`
   (so it survives scene changes), calls `Nav.go(IDLE)`, then injects taps with
@@ -184,6 +219,12 @@ overflow were both found this way. Story work is one commit per story
 
 ## Mock server
 
+- Features: `{param}` path segments (exact routes win), `require_basic_auth`,
+  `sequence` envelopes (one response per request, the last repeats),
+  placeholders `{{origin}}`/`{{now}}`/`{{request.<key>}}` (a whole-string
+  placeholder keeps its JSON type), `last_body` in `/__mock/state`, and
+  `/__mock/assets/<file>`. Route keys for pattern routes are the literal
+  paths, e.g. `'/v1/payments/qr_codes/{qr_id}/payments'`.
 - One JSON file per response variant in `mockserver/responses/<route>/`.
   `extends` + `body_patch` deep-merge, and arrays of `{id}` objects merge by
   id. Files are re-read on every request.
@@ -218,9 +259,12 @@ overflow were both found this way. Story work is one commit per story
   says.
 - Not yet verified by hand: the editor F5 path, and a manual tap-through of the
   full flow.
-- `scenes/payment/` is a stub. Next: the payment story set (PDF p4, plan M2),
-  then Dispensing/Complete (p5, M4) and sale reporting (M6). Pending
-  decisions: when to prime the hopper (Proceed vs payment success), Razorpay
-  test keys vs mock, QR expiry, order-number source.
+- **Milestone 2 Part B pending:** real Razorpay test-mode check by the
+  product owner (payment SIGNOFF). Confirm Razorpay's minimum `close_by` lead
+  time there.
+- `scenes/dispensing/` is a stub. Next: Milestone 4 (bridge rewrite with an
+  atomic order message, DONE/TIMEOUT on 4245, dispensing + complete screens,
+  PDF p5, firmware motors 5–6), then sale reporting (M6, `order_id` in the
+  payload).
 - Flavor PNGs from the old build have heavy padding and render small; crop
   them.
