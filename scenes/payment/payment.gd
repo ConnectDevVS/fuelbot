@@ -81,7 +81,9 @@ func _on_payment_received(payment_id: String, amount_paise: int) -> void:
 	OrderState.transaction_id = payment_id
 	_enter(State.PAID)
 	var base := ConfigManager.get_base(OrderState.selected_base_id)
-	await Bridge.send_order_paid(int(OrderState.selected_flavor.get("hopper", 0)), String(base.get("code", "")))
+	# Dispensing runs either way: a refused order already has a REJECTED result waiting.
+	Bridge.send_order_paid(OrderState.order_id, int(OrderState.selected_flavor.get("hopper", 0)),
+		String(base.get("code", "")))
 	Nav.go(ScenePaths.DISPENSING)
 
 
@@ -118,7 +120,7 @@ func _expire() -> void:
 
 func _cleanup_and_schedule_return() -> void:
 	RazorpayManager.abort()
-	Bridge.send_order_cancelled()
+	Bridge.send_order_cancelled(OrderState.order_id)
 	_return_timer.wait_time = maxf(ConfigManager.get_timing("payment_error_return_sec", 8.0), 0.05)
 	_return_timer.start()
 
@@ -147,7 +149,7 @@ func _on_cancel_pressed() -> void:
 	if state != State.CANCELLING:
 		return  # paid during the final check
 	RazorpayManager.abort()
-	Bridge.send_order_cancelled()
+	Bridge.send_order_cancelled(OrderState.order_id)
 	Nav.go_idle()
 
 

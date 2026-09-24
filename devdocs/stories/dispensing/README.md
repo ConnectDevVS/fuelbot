@@ -168,7 +168,7 @@ the 26-character Crockford ULID from `OrderState.order_id`.
 | Arduino → bridge | serial | `Home reached` | homing finished (boot and after every cycle). Ends bridge recovery |
 
 The app accepts only 4245 messages matching
-`^(DONE|TIMEOUT|REJECTED) <ULID>( <token>)?$` whose ULID is the current
+`^(DONE|TIMEOUT|REJECTED) <ULID>( <token>)?$` (ULID = `[0-7][0-9A-HJKMNP-TV-Z]{25}`) whose ULID is the current
 order's. Anything else is logged and ignored.
 
 ## Design measurements (PDF page 5, 1080×1920 px)

@@ -77,7 +77,7 @@ func get_result(order_id: String) -> Dictionary   # {} or {"kind": .., "reason":
   `push_warning`s once and retries every 5 s (wall clock). The dispensing
   safety cap still protects the customer.
 - **Parsing:** strip, then match
-  `^(DONE|TIMEOUT|REJECTED) ([0-9A-HJKMNP-TV-Z]{26})(?: (\S+))?$`. On a
+  `^(DONE|TIMEOUT|REJECTED) ([0-7][0-9A-HJKMNP-TV-Z]{25})(?: (\S+))?$` (the same ULID rule as `Ulid.is_valid`). On a
   match, store `{kind, reason}` under the order ID in a result cache (keep
   the newest 16 IDs), log `[Bridge] <- DONE 01J…`, and emit
   `result_received`. A later result for the same ID doesn't replace the
@@ -129,8 +129,11 @@ an ephemeral port (`listen_port = 0`, then read the bound port with
       the old 4243.
 - [ ] `grep -rn "result_gap_sec\|4243" autoload scenes config tools` returns
       nothing (docs aside).
-- [ ] `tools/run_tests.sh`, `tools/check_boot.sh` pass. Tests never bind
-      4242/4245. Bridge and payment tests are re-run 3×.
+- [ ] `tools/run_tests.sh`, `tools/check_boot.sh` pass. Tests bind only
+      ephemeral ports. The `Bridge` autoload itself binds 4245 at boot in
+      every process, the test runner included; if a dev app already holds
+      it, that is one warning and not a failure. Bridge and payment tests
+      are re-run 3×.
 
 ## Out of scope
 

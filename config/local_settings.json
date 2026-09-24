@@ -7,9 +7,9 @@
   },
   "bridge": {
     "host": "127.0.0.1",
-    "selection_port": 4242,
-    "result_port": 4243,
-    "result_gap_sec": 0.3
+    "order_port": 4242,
+    "listen_host": "127.0.0.1",
+    "listen_port": 4245
   },
   "payments": {
     "allow_live_keys": false,
