@@ -19,7 +19,7 @@
     "qr_generating": "QR Code Generation in Progress",
     "payment_failed": "Payment failed. Please try again.",
     "payment_timeout": "Payment timed out. Please try again.",
-    "dispensing_success": "Enjoy your shake!",
+    "dispensing_success": "ENJOY\nYOUR SHAKE",
     "dispensing_timeout": "Something went wrong. Please contact support if you were charged.",
     "maintenance_default": "This machine is temporarily out of service.",
     "config_fetch_failed": "Running in offline mode.",
@@ -94,8 +94,19 @@
     "payment_cancel": "Cancel order",
     "payment_test_mode": "TEST MODE",
     "payment_mock_mode": "MOCK PAYMENTS",
-    "dispensing_stub_title": "Payment received",
-    "dispensing_stub_body": "Dispensing arrives in the next story set."
+
+    "dispensing_order_paid": "ORDER #{number} · PAID",
+    "dispensing_paid_via": "UPI · {price}",
+    "dispensing_title": "BLENDING\nYOUR DRINK",
+    "dispensing_failed_title": "WE'RE\nSORRY",
+    "dispensing_meta": "{name} · {volume_ml} ml",
+    "dispensing_progress_label": "BLENDING",
+    "dispensing_remaining": "~{seconds} SECONDS",
+    "dispensing_almost": "ALMOST DONE",
+    "dispensing_ready_label": "READY",
+    "dispensing_collect": "Collect from the hatch below",
+    "dispensing_footer": "Earned it. Now drink it.",
+    "dispensing_returning": "RETURNING TO MENU IN {seconds}S"
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,
@@ -109,6 +120,9 @@
     "detail_screen_inactivity_sec": 60,
     "payment_error_return_sec": 8,
     "payment_final_check_timeout_sec": 5,
-    "dispensing_stub_return_sec": 10
+    "dispense_expected_sec": 75,
+    "dispense_safety_cap_sec": 130,
+    "dispensing_done_return_sec": 6,
+    "dispensing_error_return_sec": 10
   }
 }

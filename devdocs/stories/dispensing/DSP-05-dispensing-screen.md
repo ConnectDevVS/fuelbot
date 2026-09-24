@@ -53,7 +53,7 @@ Remove `dispensing_stub_return_sec`.
 
 | Variation | Base | Font / box |
 |-----------|------|------------|
-| `DisplayOnAccent` | Label | display 900, 124, `ON_ACCENT`, line pitch 105 |
+| `DisplayOnAccent` | Label | display 900, **113**, `ON_ACCENT`, line pitch **96** (see note) |
 | `BodyOnAccent` | Label | body 600, 34, `ON_ACCENT` |
 | `MonoOnAccent` | Label | mono 500, 22, `ON_ACCENT` (+2 spacing, as `Mono`) |
 | `MonoOnAccentSmall` | Label | mono 500, 20, `ON_ACCENT` |
@@ -63,6 +63,12 @@ Remove `dispensing_stub_return_sec`.
 | `LogoTileInverse` | PanelContainer | `ON_ACCENT`, radius 12 |
 | `CollectPill` | PanelContainer | `ON_ACCENT`, radius 20 |
 | `DispenseProgress` | ProgressBar | `background` `ACCENT_TRACK` r14, `fill` `ON_ACCENT` r14 |
+
+Note, found at the first screenshot: at 124 px the weight-900 title rendered
+`YOUR DRINK` 860 px wide, against 781 in the design. The design's display
+face is narrower than Archivo 900 at wdth 100. Matching the **width** (113 px,
+pitch 96) keeps long titles such as `ENJOY / YOUR SHAKE` inside the column.
+The cap height is then ~78 px against 89 in the design.
 
 ### `StatusBadge` (`class_name StatusBadge`, `Control`)
 

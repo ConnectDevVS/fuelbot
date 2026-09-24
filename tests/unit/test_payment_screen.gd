@@ -3,7 +3,6 @@ extends TestCase
 ## with mock creds) and the REAL Bridge (pointed at ephemeral UDP listeners).
 
 const PaymentScene := preload("res://scenes/payment/Payment.tscn")
-const DispensingScene := preload("res://scenes/dispensing/Dispensing.tscn")
 const CREDS := "user://test_pay/creds.cfg"
 const PAYMENTS := "/v1/payments/qr_codes/{qr_id}/payments"
 const CREATE := "/v1/payments/qr_codes"
@@ -197,19 +196,3 @@ func test_leaving_stops_polling() -> void:
 	assert_eq(await _count(PAYMENTS), before, "no polls after leaving")
 	assert_eq(await _count(CLOSE), 1, "QR closed on leave")
 
-
-func test_dispensing_stub() -> void:
-	OrderState.transaction_id = "pay_X"
-	ConfigManager.local_settings.timing.dispensing_stub_return_sec = 0.3
-	_scene = DispensingScene.instantiate()
-	add_child(_scene)
-	assert_eq(_scene.get_name_text(), "Prymor Guava", "name")
-	assert_eq(_scene.get_order_text(), "ORDER #0042", "order")
-	assert_true(await _wait_nav(ScenePaths.IDLE, 1.5), "returns to idle")
-
-
-func test_dispensing_stub_without_payment() -> void:
-	_scene = DispensingScene.instantiate()
-	add_child(_scene)
-	await wait_frames(2)
-	assert_eq(Nav.last_requested, ScenePaths.IDLE, "guarded")

@@ -8,6 +8,7 @@ const ChipScene := preload("res://ui/components/chip/Chip.tscn")
 const AllergenBannerScene := preload("res://ui/components/allergen_banner/AllergenBanner.tscn")
 const NutritionTileScene := preload("res://ui/components/nutrition_tile/NutritionTile.tscn")
 const StepIndicatorScene := preload("res://ui/components/step_indicator/StepIndicator.tscn")
+const StatusBadgeScene := preload("res://ui/components/status_badge/StatusBadge.tscn")
 
 const DESIGN_CHIPS := ["Whey protein isolate", "Toned milk", "Peanut butter", "Banana",
 	"Rolled oats", "Jaggery", "Cinnamon", "Filtered water"]
@@ -46,6 +47,7 @@ func _ready() -> void:
 	margin.add_child(col)
 
 	_add_details_section(col)
+	_add_dispensing_section(col)
 
 	col.add_child(BrandHeaderScene.instantiate())
 	var clock_header := BrandHeaderScene.instantiate()
@@ -120,3 +122,21 @@ func _add_details_section(col: VBoxContainer) -> void:
 		var tile := NutritionTileScene.instantiate()
 		tile.set_value(spec[0], spec[1], spec[2])
 		tiles.add_child(tile)
+
+
+## Dispensing badges (DSP-05) on the lime background they are drawn for.
+func _add_dispensing_section(col: VBoxContainer) -> void:
+	var panel := PanelContainer.new()
+	var lime := StyleBoxFlat.new()
+	lime.bg_color = Palette.ACCENT
+	lime.set_content_margin_all(24)
+	panel.add_theme_stylebox_override("panel", lime)
+	col.add_child(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 32)
+	panel.add_child(row)
+	for mark in [StatusBadge.Mark.CHECK, StatusBadge.Mark.ALERT]:
+		var badge: StatusBadge = StatusBadgeScene.instantiate()
+		badge.diameter = 160
+		badge.mark = mark
+		row.add_child(badge)

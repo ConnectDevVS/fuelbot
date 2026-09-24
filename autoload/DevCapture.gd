@@ -2,7 +2,7 @@ extends Node
 ## Dev-only screenshot hook. Inert unless launched with -- --capture=<abs path>.
 ## Waits in real time (unlike Movie Maker) so HTTP-dependent screens have their data.
 ## Optional --select=<flavor id> puts that flavor in OrderState first, so screens
-## that need a selection (details, payment) can be launched directly.
+## that need a selection (details, payment, dispensing) can be launched directly.
 
 func _ready() -> void:
 	var out := ""
@@ -32,5 +32,6 @@ func _select(id: String) -> void:
 			OrderState.selected_base_id = "water"
 			OrderState.order_id = Ulid.generate()
 			OrderState.order_number = 42
+			OrderState.transaction_id = "pay_DevCapture"  # dispensing's entry guard
 			return
 	push_warning("[DevCapture] no flavor '%s' to select" % id)
