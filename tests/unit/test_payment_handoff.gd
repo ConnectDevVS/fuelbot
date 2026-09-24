@@ -1,7 +1,6 @@
 extends TestCase
 
 const FlavorDetailScene := preload("res://scenes/flavor_detail/FlavorDetail.tscn")
-const PaymentScene := preload("res://scenes/payment/Payment.tscn")
 
 var _snap: Dictionary
 var _scene: Control
@@ -69,21 +68,3 @@ func test_no_enabled_base_disables_proceed() -> void:
 	_scene.press_proceed()
 	assert_eq(Nav.last_requested, "", "no navigation")
 
-
-func test_payment_stub_shows_committed_order() -> void:
-	OrderState.select_flavor(find_flavor(ConfigManager.current_config, "guava"))
-	OrderState.charged_price = 75
-	_scene = PaymentScene.instantiate()
-	add_child(_scene)
-	assert_eq(_scene.get_name_text(), "Prymor Guava", "flavor name")
-	assert_eq(_scene.get_price_text(), "₹75", "amount")
-	_scene.press_cancel()
-	assert_eq(Nav.last_requested, ScenePaths.IDLE, "cancel goes idle")
-	assert_false(OrderState.has_selection(), "order cleared")
-
-
-func test_payment_stub_without_order_goes_idle() -> void:
-	_scene = PaymentScene.instantiate()
-	add_child(_scene)
-	await wait_frames(2)
-	assert_eq(Nav.last_requested, ScenePaths.IDLE, "no committed order")

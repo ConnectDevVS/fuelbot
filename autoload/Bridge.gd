@@ -21,11 +21,17 @@ var _busy := false
 
 func _ready() -> void:
 	if auto_configure:
-		var cfg: Dictionary = ConfigManager.local_settings.get("bridge", {})
-		host = String(cfg.get("host", host))
-		selection_port = int(cfg.get("selection_port", selection_port))
-		result_port = int(cfg.get("result_port", result_port))
-		result_gap_sec = float(cfg.get("result_gap_sec", result_gap_sec))
+		configure_from_settings()
+	else:
+		connect_sockets()
+
+
+func configure_from_settings() -> void:
+	var cfg: Dictionary = ConfigManager.local_settings.get("bridge", {})
+	host = String(cfg.get("host", "127.0.0.1"))
+	selection_port = int(cfg.get("selection_port", 4242))
+	result_port = int(cfg.get("result_port", 4243))
+	result_gap_sec = float(cfg.get("result_gap_sec", 0.3))
 	connect_sockets()
 
 

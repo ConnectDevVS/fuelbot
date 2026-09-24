@@ -79,10 +79,23 @@
     "nutrition_missing": "—",
     "proceed_to_pay": "Proceed to Pay  {price}",
 
-    "payment_stub_title": "Scan to pay",
-    "payment_stub_body": "Payment is coming in the next story set.",
+    "order_number": "ORDER #{number}",
+    "payment_title": "Scan to pay",
+    "payment_summary_meta": "{volume_ml} ML · 1 DRINK",
+    "payment_qr_caption": "SCAN WITH ANY UPI APP",
+    "payment_creating": "Preparing QR",
+    "payment_waiting": "Waiting for payment",
+    "payment_received": "Payment received",
+    "payment_failed_status": "Payment failed",
+    "payment_expired_status": "QR expired",
+    "payment_cancelling": "Cancelling…",
+    "payment_hint": "Do not leave the machine until your drink is dispensed",
+    "payment_unavailable": "Payments are unavailable right now. Please try again later.",
     "payment_cancel": "Cancel order",
-    "order_number": "ORDER #{number}"
+    "payment_test_mode": "TEST MODE",
+    "payment_mock_mode": "MOCK PAYMENTS",
+    "dispensing_stub_title": "Payment received",
+    "dispensing_stub_body": "Dispensing arrives in the next story set."
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,
@@ -94,6 +107,8 @@
     "sale_report_retry_interval_sec": 60,
     "attract_tap_debounce_sec": 0.5,
     "detail_screen_inactivity_sec": 60,
-    "payment_stub_return_sec": 20
+    "payment_error_return_sec": 8,
+    "payment_final_check_timeout_sec": 5,
+    "dispensing_stub_return_sec": 10
   }
 }

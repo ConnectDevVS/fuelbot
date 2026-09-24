@@ -173,3 +173,13 @@ func test_check_now_after_stop() -> void:
 	await mock_scenario("paid", PAYMENTS)
 	rzp.check_now()
 	assert_true(await wait_until(paid, 3.0), "final check finds the payment")
+
+
+func test_abort_closes_in_flight_create() -> void:
+	_make()
+	var created := watch_signal(rzp, &"qr_created")
+	_create()
+	rzp.abort()
+	await wait_seconds(0.8)
+	assert_false(created.fired, "no qr_created after abort")
+	assert_eq(int((await mock_state()).request_counts[CLOSE]), 1, "late QR closed")

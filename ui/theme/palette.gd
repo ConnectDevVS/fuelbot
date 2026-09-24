@@ -15,6 +15,8 @@ const WARNING := Color("#F5B014")
 const WARNING_SURFACE := Color("#211A04")
 const WARNING_BORDER := Color("#5A4309")
 const SUCCESS := Color("#4ADE80")
+const QR_SURFACE := Color("#F7F8FA")
+const QR_CAPTION := Color("#3A3D44")
 const ON_ACCENT_FAINT := Color(0.0667, 0.0706, 0.0824, 0.45)  # CTA dot: ON_ACCENT at 45%
 
 const PAD := 72

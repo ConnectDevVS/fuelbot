@@ -11,6 +11,7 @@ signal qr_created(qr_id: String, image_path: String, amount_rupees: int)
 signal qr_create_failed(reason: String)
 signal payment_received(payment_id: String, amount_paise: int)
 signal payment_failed(reason: String)
+signal poll_completed(status: String)   # every poll: "captured" | "failed" | "pending" | "error"
 
 const IMAGE_PATH := "user://qr_current.png"
 
@@ -29,6 +30,7 @@ var _auth_header := ""
 var _qr_id := ""
 var _amount_rupees := 0
 var _finished := false
+var _aborted := false
 var _poll_deadline_msec := 0
 var _http_create: HTTPRequest
 var _http_image: HTTPRequest
@@ -112,6 +114,7 @@ func create_qr(amount_rupees: int, order_id: String, order_number: int, descript
 		stop_polling()
 		close_qr()
 	_finished = false
+	_aborted = false
 	_amount_rupees = amount_rupees
 	var body := {
 		"type": "upi_qr",
@@ -160,6 +163,15 @@ func close_qr() -> void:
 	_qr_id = ""
 
 
+## Abandon the current order: stop polling, close the QR, and close a QR whose
+## create request is still in flight as soon as it lands. Emits nothing further.
+func abort() -> void:
+	_aborted = true
+	_finished = true
+	stop_polling()
+	close_qr()
+
+
 # --- Internals ---------------------------------------------------------------
 
 func _on_create_completed(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -174,6 +186,9 @@ func _on_create_completed(result: int, code: int, _headers: PackedStringArray, b
 		qr_create_failed.emit("bad_response")
 		return
 	_qr_id = data.id
+	if _aborted:
+		close_qr()
+		return
 	_http_image.download_file = IMAGE_PATH
 	if _http_image.request(String(data.image_url)) != OK:
 		qr_create_failed.emit("image_download")
@@ -181,6 +196,9 @@ func _on_create_completed(result: int, code: int, _headers: PackedStringArray, b
 
 
 func _on_image_completed(result: int, code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+	if _aborted:
+		close_qr()
+		return
 	var ok := result == HTTPRequest.RESULT_SUCCESS and code == 200 and FileAccess.file_exists(IMAGE_PATH) \
 		and FileAccess.get_file_as_bytes(IMAGE_PATH).size() > 0
 	if not ok:
@@ -213,22 +231,30 @@ func _poll() -> void:
 func _on_poll_completed(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if _finished:
 		return
-	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
-		return  # transient: keep polling; only the timeout ends an order
-	var data = JSON.parse_string(body.get_string_from_utf8())
-	if not data is Dictionary:
-		return
-	var items: Array = data.get("items", [])
-	if items.is_empty() or not items[0] is Dictionary:
-		return
-	var payment: Dictionary = items[0]
-	match String(payment.get("status", "")):
+	var status := _poll_status(result, code, body)
+	match status[0]:
 		"captured":
 			_finish()
-			payment_received.emit(String(payment.get("id", "")), int(payment.get("amount", 0)))
+			payment_received.emit(String(status[1].get("id", "")), int(status[1].get("amount", 0)))
 		"failed":
 			_finish()
 			payment_failed.emit("failed")
+	# "pending" / "error" are transient: keep polling; only the timeout ends an order.
+	poll_completed.emit(status[0])
+
+
+## Returns [status, payment dict].
+func _poll_status(result: int, code: int, body: PackedByteArray) -> Array:
+	if result != HTTPRequest.RESULT_SUCCESS or code != 200:
+		return ["error", {}]
+	var data = JSON.parse_string(body.get_string_from_utf8())
+	if not data is Dictionary:
+		return ["error", {}]
+	var items: Array = data.get("items", [])
+	if items.is_empty() or not items[0] is Dictionary:
+		return ["pending", {}]
+	var status := String(items[0].get("status", ""))
+	return [status if status in ["captured", "failed"] else "pending", items[0]]
 
 
 func _finish() -> void:

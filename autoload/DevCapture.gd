@@ -29,5 +29,8 @@ func _select(id: String) -> void:
 		if f.id == id:
 			OrderState.select_flavor(f)
 			OrderState.charged_price = ConfigManager.get_charge_price(f)
+			OrderState.selected_base_id = "water"
+			OrderState.order_id = Ulid.generate()
+			OrderState.order_number = 42
 			return
 	push_warning("[DevCapture] no flavor '%s' to select" % id)
