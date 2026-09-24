@@ -32,7 +32,7 @@ ui/            components/ (brand_header, product_card, footer_bar, connectivity
                format.gd (Fmt), gallery/ (dev only; shows every component)
 config/        local_settings.json (strings, timing, api), default_config.json (offline fallback catalog)
 assets/        fonts (OFL), generated theme/, images/flavors/, video/ (.ogv only)
-hardware/      firmware/VM_code.ino (+ host_stub/), bridge/udprxtx.py (+ test) (.gdignore'd)
+hardware/      firmware/VM_code.ino (+ host_sim/ simulator, test_firmware.py), bridge/udprxtx.py (+ test) (.gdignore'd)
 mockserver/    stdlib Python mock backend: routes.json, responses/<route>/*.json, assets/ (.gdignore'd)
 tests/         TestRunner.tscn + test_case.gd + unit/test_*.gd
 tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd,
