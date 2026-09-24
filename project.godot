@@ -10,6 +10,9 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+; ORDER MATTERS: autoloads initialise top to bottom. Everything after
+; ConfigManager reads ConfigManager.tenant_id / current_config in _ready().
+ConfigManager="*res://autoload/ConfigManager.gd"
 DevCapture="*res://autoload/DevCapture.gd"
 
 [display]
