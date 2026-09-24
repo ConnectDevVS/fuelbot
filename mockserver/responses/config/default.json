@@ -1,0 +1,91 @@
+{
+  "description": "PowerFuel Gym demo tenant: 6 flavors on hoppers 1-6, one popular, one sold out",
+  "status": 200,
+  "body": {
+    "version": 1,
+    "tenant": {
+      "display_name": "PowerFuel Gym",
+      "logo_text": "PF",
+      "location_label": "FUELBOT · BAY 02",
+      "site": "PowerFuel Gym / Bay 02",
+      "support_phone": "1800 419 0142"
+    },
+    "flavors": [
+      {
+        "id": "guava", "name": "Prymor Guava", "hopper": 1,
+        "actual_price": 90, "offer_price": 75,
+        "image": "res://assets/images/flavors/prymor_guava.png",
+        "description": "Cold-blended whey isolate with real guava and electrolytes.",
+        "volume_ml": 400,
+        "nutrition": {"kcal": 210, "protein_g": 24, "carbs_g": 12, "fat_g": 2},
+        "ingredients": ["Whey Isolate", "Guava Flavor", "Electrolytes"],
+        "allergens": ["Milk", "Soy"],
+        "badge": "POPULAR", "sold_out": false, "enabled": true
+      },
+      {
+        "id": "chocolate", "name": "MMN Chocolate", "hopper": 2,
+        "actual_price": 180, "offer_price": null,
+        "image": "res://assets/images/flavors/mmn_chocolate.png",
+        "description": "Classic chocolate whey shake.",
+        "volume_ml": 400,
+        "nutrition": {"kcal": 310, "protein_g": 24, "carbs_g": 30, "fat_g": 6},
+        "ingredients": ["Whey Protein", "Cocoa"],
+        "allergens": ["Milk"],
+        "badge": null, "sold_out": false, "enabled": true
+      },
+      {
+        "id": "electro", "name": "Prymor Electro", "hopper": 3,
+        "actual_price": 35, "offer_price": null,
+        "image": "res://assets/images/flavors/prymor_electro.png",
+        "description": "Light electrolyte recovery drink.",
+        "volume_ml": 400,
+        "nutrition": {"kcal": 60, "protein_g": 0, "carbs_g": 14, "fat_g": 0},
+        "ingredients": ["Electrolytes", "Citrus Flavor"],
+        "allergens": [],
+        "badge": null, "sold_out": false, "enabled": true
+      },
+      {
+        "id": "vanilla", "name": "ON Vanilla", "hopper": 4,
+        "actual_price": 140, "offer_price": null,
+        "image": "res://assets/images/flavors/on_vanilla.png",
+        "description": "Gold Standard vanilla whey.",
+        "volume_ml": 400,
+        "nutrition": {"kcal": 240, "protein_g": 24, "carbs_g": 8, "fat_g": 3},
+        "ingredients": ["Whey Protein", "Vanilla Flavor"],
+        "allergens": ["Milk", "Soy"],
+        "badge": null, "sold_out": true, "enabled": true
+      },
+      {
+        "id": "cookie", "name": "Prymor Cookies & Cream", "hopper": 5,
+        "actual_price": 160, "offer_price": null,
+        "image": "res://assets/images/flavors/prymor_cookie.png",
+        "description": "Cookies-and-cream whey shake.",
+        "volume_ml": 400,
+        "nutrition": {"kcal": 290, "protein_g": 25, "carbs_g": 26, "fat_g": 5},
+        "ingredients": ["Whey Protein", "Cookie Crumb", "Cocoa"],
+        "allergens": ["Milk", "Gluten"],
+        "badge": null, "sold_out": false, "enabled": true
+      },
+      {
+        "id": "coffee", "name": "Beast Coffee", "hopper": 6,
+        "actual_price": 190, "offer_price": null,
+        "image": "res://assets/images/flavors/beast_coffee.png",
+        "description": "Cold-brew coffee protein shake.",
+        "volume_ml": 400,
+        "nutrition": {"kcal": 260, "protein_g": 25, "carbs_g": 18, "fat_g": 4},
+        "ingredients": ["Whey Protein", "Cold Brew Coffee"],
+        "allergens": ["Milk"],
+        "badge": null, "sold_out": false, "enabled": true
+      }
+    ],
+    "bases": [
+      {"id": "water", "name": "Water", "code": "B2", "enabled": true},
+      {"id": "milk", "name": "Milk", "code": "B1", "enabled": false}
+    ],
+    "maintenance": {
+      "enabled": false, "message": "",
+      "flagged_by": null, "flagged_at": null, "faults": []
+    },
+    "idle_video_url": null
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Remote maintenance with operator message and two active faults",
+  "extends": "default",
+  "body_patch": {
+    "maintenance": {
+      "enabled": true,
+      "message": "This machine is temporarily unavailable. No payment will be taken. Service has been notified remotely.",
+      "flagged_by": "Remote console · ops@fuelbot",
+      "flagged_at": "2026-09-24T00:41:00Z",
+      "faults": [
+        {"code": "E-204", "description": "Blender motor temperature above threshold"},
+        {"code": "E-118", "description": "Hopper 3 (electro) level low"}
+      ]
+    }
+  }
+}

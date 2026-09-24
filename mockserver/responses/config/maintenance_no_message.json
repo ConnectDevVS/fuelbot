@@ -1,0 +1,10 @@
+{
+  "description": "Remote maintenance with empty message (falls back to local default)",
+  "extends": "default",
+  "body_patch": {
+    "maintenance": {
+      "enabled": true, "message": "", "flagged_by": "Remote console",
+      "flagged_at": "2026-09-24T00:41:00Z", "faults": []
+    }
+  }
+}

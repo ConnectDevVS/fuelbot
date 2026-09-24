@@ -1,0 +1,11 @@
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/fuelbot/config",
+      "scenarios_dir": "responses/config",
+      "default_scenario": "default",
+      "require_tenant_header": true
+    }
+  ]
+}
