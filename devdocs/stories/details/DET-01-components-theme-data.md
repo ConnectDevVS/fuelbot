@@ -35,7 +35,7 @@ Reuse existing fonts. **No new colour literals**: everything comes from
 | `DisplayM` | Label | display_900 / 80, pitch 76 (via `_label(..., 76)`) | TEXT |
 | `BodySmall` | Label | body_400 / 28 | TEXT_MUTED |
 | `SectionLabel` | Label | mono_500 / 22 | TEXT_DIM |
-| `ChipText` | Label | heading_800 / 28 | TEXT |
+| `ChipText` | Label | heading_800 / 26 (tuned from 28) | TEXT |
 | `AllergenCaption` | Label | mono_500 / 20 | ON_ACCENT |
 | `AllergenText` | Label | display_900 / 46 | ON_ACCENT |
 | `AllergenIcon` | Label | display_900 / 44 | WARNING |
@@ -44,14 +44,14 @@ Reuse existing fonts. **No new colour literals**: everything comes from
 | `NutritionLabel` | Label | mono_500 / 20 | TEXT_DIM |
 | `StepText` | Label | mono_500 / 22 | TEXT_MUTED |
 | `LogoTextSmall` | Label | display_900 / 22 | ON_ACCENT |
-| `ChipPanel` | PanelContainer | — | bg SURFACE_RAISED, border 2 BORDER, radius 33, margins 26 h / 14 v |
+| `ChipPanel` | PanelContainer | — | bg SURFACE_RAISED, border 2 BORDER, radius 33, margins 22 h / 14 v (tuned from 26) |
 | `AllergenPanel` | PanelContainer | — | bg WARNING, radius 20, margins 36 h / 30 v |
 | `AllergenIconPanel` | PanelContainer | — | bg ON_ACCENT, radius 40 (circle at 80×80) |
 | `NutritionTilePanel` | PanelContainer | — | bg SURFACE, border 2 BORDER, radius 16, margin 24 |
 | `LogoTileSmall` | PanelContainer | — | bg ACCENT, radius 12 |
 | `BackPill` | Button | heading_800 / 30, TEXT (all states) | bg SURFACE_RAISED, border 2 BORDER, radius 40; pressed SURFACE; focus empty |
 | `GhostButtonMuted` | Button | heading_800 / 36, TEXT_MUTED | like `GhostButton`, radius 20 |
-| `PrimaryButtonM` | Button | display_900 / 40, ON_ACCENT | like `PrimaryButton`, radius 20 |
+| `PrimaryButtonM` | Button | display_900 / 40, ON_ACCENT | like `PrimaryButton`, radius 20; disabled = SURFACE_RAISED bg + TEXT_DIM text |
 
 Regenerate with `godot --headless --path . --script res://tools/build_theme.gd`
 and commit the `.tres`.

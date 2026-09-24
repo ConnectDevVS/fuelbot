@@ -22,8 +22,11 @@ eventual target.
 
 ```
 autoload/      ConfigManager (first!), OrderState, Nav, DevCapture (always last)
-scenes/        one folder per screen; scene_paths.gd = ScenePaths constants
-ui/            components/, theme/palette.gd (Palette), format.gd (Fmt), gallery/ (dev only)
+scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment = STUB, maintenance);
+               scene_paths.gd = ScenePaths constants
+ui/            components/ (brand_header, product_card, footer_bar, connectivity_status, chip,
+               allergen_banner, nutrition_tile, step_indicator), theme/palette.gd (Palette),
+               format.gd (Fmt), gallery/ (dev only; shows every component)
 config/        local_settings.json (strings, timing, api), default_config.json (offline fallback catalog)
 assets/        fonts (OFL), generated theme/, images/flavors/, video/ (.ogv only)
 mockserver/    stdlib Python mock backend + JSON scenarios (.gdignore'd)
@@ -37,8 +40,9 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
   **:8788**, and fails on any `SCRIPT ERROR`, not just on failed asserts.
 - `python3 -m unittest mockserver/test_server.py`: mock server tests.
 - `tools/check_boot.sh`: 5 s headless boot, fails on script or parse errors.
-- `tools/screenshot.sh <res://Scene.tscn|main> [out.png] [delay]`: real-time
-  capture (540×960) into `.screenshots/`.
+- `tools/screenshot.sh <res://Scene.tscn|main> [out.png] [delay] [flavor id]`:
+  real-time capture (540×960) into `.screenshots/`. The 4th arg passes
+  `--select=<id>` to `DevCapture` so details/payment can be launched directly.
 - `tools/dev_run.sh [--scenario=x] [--editor] [--no-mock] [-- godot args]`: dev
   launch with the mock on **:8787**.
 - `godot --headless --path . --script res://tools/build_theme.gd`: regenerate
@@ -65,6 +69,15 @@ overflow were both found this way. Story work is one commit per story
   shadows a singleton.
 - **All scene changes go through `Nav.go()` / `Nav.go_idle()`**, never
   `change_scene_to_file`. `go_idle()` also resets `OrderState`.
+- **Proceed to Pay (details) is the order commitment point.** It sets
+  `OrderState.charged_price` and `selected_base_id` (first enabled base), and
+  payment reads them. Back clears the selection. A catalog refresh while on
+  details re-resolves the flavor by id and bails to the listing if it's gone
+  or sold out.
+- **Allergens:** the banner is hidden when the list is empty. Never render
+  "allergen-free"; the data only says nothing was declared. The nutrition
+  section hides when absent (the bundled config has none), and missing keys
+  show `—`.
 - **Idle (`scenes/idle`) is the only maintenance enforcement point.** Other
   screens must not check maintenance: an order in progress is never
   interrupted. The maintenance screen re-checks the flag on entry, because it
@@ -135,6 +148,11 @@ overflow were both found this way. Story work is one commit per story
 - **Atomic file writes:** write `path.tmp`, then
   `DirAccess.rename_absolute(tmp, path)`, which replaces the target atomically
   on POSIX.
+- **Theme generator vs cache:** the project theme is loaded before
+  `build_theme.gd` runs, so saving fonts at their existing paths collided
+  ("cyclic resource inclusion"). The generator calls `take_over_path()` and
+  then saves in place. Keep that pattern for any generated resource the
+  project already loads.
 - A `JSON.parse_string` failure prints an engine `ERROR:` line. That's
   expected in the corrupt-cache/malformed tests, and `check_boot.sh`
   deliberately doesn't match it.
@@ -155,7 +173,14 @@ overflow were both found this way. Story work is one commit per story
 - Scenes expose small getters for tests (`get_cards()`, `get_message_text()`,
   `get_cell_value()` …) rather than tests walking node trees.
 - Layout constraints worth keeping get a test (e.g. six cards fit without
-  scrolling).
+  scrolling, a long name stays within 3 lines).
+- **Real-flow walkthroughs:** to verify navigation without dry-run and without
+  a human, use a temporary scene that adds a persistent `Node` to `root`
+  (so it survives scene changes), calls `Nav.go(IDLE)`, then injects taps with
+  `Input.parse_input_event()`. Positions are in *window* coordinates, i.e.
+  viewport × (window size / 1080×1920). Capture with
+  `get_viewport().get_texture().get_image()`. Don't commit it; record results
+  in SIGNOFF.
 
 ## Mock server
 
@@ -193,6 +218,9 @@ overflow were both found this way. Story work is one commit per story
   says.
 - Not yet verified by hand: the editor F5 path, and a manual tap-through of the
   full flow.
-- Next story set proposed: Order flow (Ingredients → Payment → Dispensing →
-  Complete → Sale reporting). Pending decisions: when to send the hopper
-  command, Razorpay test keys vs mock, QR expiry, order-number source.
+- `scenes/payment/` is a stub. Next: the payment story set (PDF p4, plan M2),
+  then Dispensing/Complete (p5, M4) and sale reporting (M6). Pending
+  decisions: when to prime the hopper (Proceed vs payment success), Razorpay
+  test keys vs mock, QR expiry, order-number source.
+- Flavor PNGs from the old build have heavy padding and render small; crop
+  them.

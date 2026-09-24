@@ -66,7 +66,11 @@
     "nutrition_fat": "FAT",
     "nutrition_grams": "{value}g",
     "nutrition_missing": "—",
-    "proceed_to_pay": "Proceed to Pay  {price}"
+    "proceed_to_pay": "Proceed to Pay  {price}",
+
+    "payment_stub_title": "Scan to pay",
+    "payment_stub_body": "Payment is coming in the next story set.",
+    "payment_cancel": "Cancel order"
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,
@@ -77,6 +81,7 @@
     "maintenance_poll_interval_sec": 120,
     "sale_report_retry_interval_sec": 60,
     "attract_tap_debounce_sec": 0.5,
-    "detail_screen_inactivity_sec": 60
+    "detail_screen_inactivity_sec": 60,
+    "payment_stub_return_sec": 20
   }
 }

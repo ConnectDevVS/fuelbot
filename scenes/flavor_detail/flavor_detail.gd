@@ -76,6 +76,7 @@ func _render(flavor: Dictionary) -> void:
 	var price := Fmt.rupees(ConfigManager.get_charge_price(flavor))
 	_price.text = price
 	_proceed_button.text = ConfigManager.get_message("proceed_to_pay", {"price": price})
+	_proceed_button.disabled = _default_base_id() == ""
 
 	var allergens: Array = flavor.get("allergens", [])
 	_banner.set_allergens(allergens)
@@ -117,8 +118,27 @@ func _back() -> void:
 	Nav.go(ScenePaths.FLAVOR_SELECT)
 
 
+## Proceed to Pay is the order commitment point: price and base are fixed here
+## (the design has no base step) and the payment screen reads them.
 func _proceed() -> void:
-	pass  # DET-03 commits the order and navigates to payment.
+	var flavor := OrderState.selected_flavor
+	if not ConfigManager.is_orderable(flavor):
+		_back()
+		return
+	var base_id := _default_base_id()
+	if base_id == "":
+		return
+	_proceed_button.disabled = true
+	OrderState.charged_price = ConfigManager.get_charge_price(flavor)
+	OrderState.selected_base_id = base_id
+	Nav.go(ScenePaths.PAYMENT)
+
+
+func _default_base_id() -> String:
+	for base in ConfigManager.current_config.get("bases", []):
+		if base.get("enabled", false):
+			return String(base.get("id", ""))
+	return ""
 
 
 # --- Test/introspection helpers ----------------------------------------------
@@ -183,7 +203,12 @@ func press_back_bottom() -> void:
 
 
 func press_proceed() -> void:
-	_proceed_button.pressed.emit()
+	if not _proceed_button.disabled:
+		_proceed_button.pressed.emit()
+
+
+func is_proceed_disabled() -> bool:
+	return _proceed_button.disabled
 
 
 # --- Layout ------------------------------------------------------------------
