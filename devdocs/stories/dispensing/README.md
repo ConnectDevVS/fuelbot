@@ -144,6 +144,11 @@ Made while writing this set (verified by the spikes noted in each story):
     headers. That catches typos, not AVR-specific problems. Level 2 is the
     real compile and flash.
 
+15. **"Collect from the hatch below" is plain text with a bobbing down-arrow
+    (`HintArrow`), not the design's filled dark pill.** The pill read as a
+    button on a touchscreen, and tapping it did nothing (product owner
+    feedback after the first test, 2026-09-24).
+
 Deviations from the plan text: §3.7's 60 s / 90 s numbers (decision 8), the
 socket location (decision 6), the separate Complete scene (decision 3), and
 the §6 Level 0 telemetry on 4246 (Milestone 5, not built). §5 Milestone 4 also

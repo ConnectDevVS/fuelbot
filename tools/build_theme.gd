@@ -73,7 +73,7 @@ func _initialize() -> void:
 	_label("MonoOnAccent", fonts.mono_500, 22, P.ON_ACCENT)
 	_label("MonoOnAccentSmall", fonts.mono_500, 20, P.ON_ACCENT)
 	_label("FooterOnAccent", fonts.heading_800, 50, P.ON_ACCENT)
-	_label("CollectText", fonts.display_900, 46, P.ACCENT)
+	_label("CollectText", fonts.display_900, 46, P.ON_ACCENT)
 	_label("LogoTextInverse", fonts.display_900, 26, P.ACCENT)
 
 	_panel("LogoTile", _box(P.ACCENT, 22))
@@ -110,7 +110,6 @@ func _initialize() -> void:
 	_margins(chip_warn, 12, 4)
 	_panel("TestModeChip", chip_warn)
 	_panel("LogoTileInverse", _box(P.ON_ACCENT, 12))
-	_panel("CollectPill", _box(P.ON_ACCENT, 20))
 
 	theme.set_type_variation("DispenseProgress", "ProgressBar")
 	theme.set_stylebox("background", "DispenseProgress", _box(P.ACCENT_TRACK, 14))

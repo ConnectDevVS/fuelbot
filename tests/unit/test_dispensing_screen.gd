@@ -89,7 +89,7 @@ func test_blending_progress() -> void:
 	assert_true(p > 0.3 and p < 0.6, "progress ~0.475 after 0.5 s of 1 s (%f)" % p)
 	assert_true(RegEx.create_from_string("^~\\d+ SECONDS$").search(_scene.get_remaining_text()) != null,
 		"remaining label '%s'" % _scene.get_remaining_text())
-	assert_false(_scene.is_collect_visible(), "no collect pill while blending")
+	assert_false(_scene.is_collect_visible(), "no collect hint while blending")
 	assert_eq(_scene.get_return_text(), "", "no return countdown while blending")
 	assert_eq(_scene.get_badge_mark(), StatusBadge.Mark.CHECK, "check badge")
 
@@ -111,7 +111,7 @@ func test_done() -> void:
 	await _bridge_says("DONE %s" % _id)
 	assert_eq(_scene.get_state(), _scene.State.DONE, "done")
 	assert_eq(_scene.get_progress(), 1.0, "full bar")
-	assert_true(_scene.is_collect_visible(), "collect pill")
+	assert_true(_scene.is_collect_visible(), "collect hint")
 	assert_eq(_scene.get_title_text(), ConfigManager.get_message("dispensing_success"), "title")
 	assert_eq(_scene.get_return_text(), "RETURNING TO MENU IN 1S", "return countdown")
 	assert_true(await _wait_nav(ScenePaths.IDLE, 1.5), "back to idle")
@@ -142,7 +142,7 @@ func _assert_failed() -> void:
 	assert_eq(_scene.get_meta_text(), ConfigManager.get_message("dispensing_timeout"), "support message")
 	assert_eq(_scene.get_badge_mark(), StatusBadge.Mark.ALERT, "alert badge")
 	assert_false(_scene.is_bar_visible(), "no bar")
-	assert_false(_scene.is_collect_visible(), "no collect pill")
+	assert_false(_scene.is_collect_visible(), "no collect hint")
 	assert_eq(_scene.get_return_text(), "RETURNING TO MENU IN 1S", "return countdown")
 
 
@@ -198,4 +198,4 @@ func test_layout_fits() -> void:
 				control.get_class(), control.get_global_rect()])
 	assert_eq(_scene.get_title_line_count(), 2, "title is 2 lines")
 	assert_eq(_scene.get_bar_size(), Vector2(762, 28), "bar size")
-	assert_true(_scene.get_pill_size().x >= 751 and _scene.get_pill_size().y >= 116, "pill size")
+	assert_true(_scene.get_collect_size().x > 500, "collect hint laid out (%s)" % _scene.get_collect_size())

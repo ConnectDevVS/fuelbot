@@ -70,6 +70,10 @@ face is narrower than Archivo 900 at wdth 100. Matching the **width** (113 px,
 pitch 96) keeps long titles such as `ENJOY / YOUR SHAKE` inside the column.
 The cap height is then ~78 px against 89 in the design.
 
+Change after sign-off (README decision 15): the collect pill became plain
+`CollectText` (now `ON_ACCENT`) plus a drawn, bobbing `HintArrow`
+(`ui/components/hint_arrow/`). The `CollectPill` variation is removed.
+
 ### `StatusBadge` (`class_name StatusBadge`, `Control`)
 
 `@export var mark: Mark` (`CHECK`, `ALERT`), `diameter := 224.0`,

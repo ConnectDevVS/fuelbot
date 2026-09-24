@@ -58,7 +58,8 @@ cropped to the screen: the header, badge, two-line title, meta, bar and
 labels, collect pill, footer and return line all match in position and
 colour. Deliberate differences: the title is 113 px (not the measured
 ~124) to match the design's **width** (DSP-05 note), and the drawn check is
-rounder than the design's glyph.
+rounder than the design's glyph. Later change: the collect pill is now plain
+text plus a bobbing down-arrow (README decision 15).
 
 ## Issues found and fixed during execution
 

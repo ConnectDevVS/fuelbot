@@ -8,6 +8,7 @@ extends Control
 enum State { BLENDING, DONE, FAILED }
 
 const StatusBadgeScene := preload("res://ui/components/status_badge/StatusBadge.tscn")
+const HintArrowScene := preload("res://ui/components/hint_arrow/HintArrow.tscn")
 const COLUMN_WIDTH := 762
 
 var state := State.BLENDING
@@ -22,7 +23,7 @@ var _bar_box: VBoxContainer
 var _bar: ProgressBar
 var _bar_left: Label
 var _bar_right: Label
-var _pill: PanelContainer
+var _collect: VBoxContainer
 var _footer: Label
 var _return_label: Label
 var _order_label: Label
@@ -90,7 +91,7 @@ func _enter(new_state: State) -> void:
 	var flavor := OrderState.selected_flavor
 	_badge.mark = StatusBadge.Mark.ALERT if new_state == State.FAILED else StatusBadge.Mark.CHECK
 	_bar_box.visible = new_state != State.FAILED
-	_pill.visible = new_state == State.DONE
+	_collect.visible = new_state == State.DONE
 	_footer.visible = new_state != State.FAILED
 	_return_label.modulate.a = 0.0 if new_state == State.BLENDING else 1.0
 	match new_state:
@@ -160,7 +161,7 @@ func get_header_texts() -> Array:
 
 
 func is_collect_visible() -> bool:
-	return _pill.visible
+	return _collect.visible
 
 
 func is_bar_visible() -> bool:
@@ -177,7 +178,7 @@ func get_title_line_count() -> int:
 
 ## Controls worth checking against the 1080×1920 frame.
 func get_layout_controls() -> Array:
-	return [_badge, _title, _meta, _bar, _bar_left, _bar_right, _pill, _footer, _return_label,
+	return [_badge, _title, _meta, _bar, _bar_left, _bar_right, _collect, _footer, _return_label,
 		_order_label, _paid_label]
 
 
@@ -185,8 +186,8 @@ func get_bar_size() -> Vector2:
 	return _bar.size
 
 
-func get_pill_size() -> Vector2:
-	return _pill.size
+func get_collect_size() -> Vector2:
+	return _collect.size
 
 
 # --- Layout (PDF page 5 measurements in the dispensing README) -----------------
@@ -274,18 +275,21 @@ func _build() -> void:
 	_bar_right = _label(&"MonoOnAccent", "")
 	labels.add_child(_bar_right)
 	col.add_child(_gap(62))
-	# The pill's slot is reserved while blending, so DONE doesn't shift the layout.
-	var pill_slot := CenterContainer.new()
-	pill_slot.custom_minimum_size.y = 116
-	col.add_child(pill_slot)
-	_pill = PanelContainer.new()
-	_pill.theme_type_variation = &"CollectPill"
-	_pill.custom_minimum_size = Vector2(751, 116)
-	pill_slot.add_child(_pill)
+	# An instruction, not a button: plain text + a bobbing arrow towards the hatch
+	# (the design's filled pill read as tappable). Its slot is reserved while
+	# blending, so DONE doesn't shift the layout.
+	var collect_slot := CenterContainer.new()
+	collect_slot.custom_minimum_size.y = 150
+	col.add_child(collect_slot)
+	_collect = VBoxContainer.new()
+	_collect.add_theme_constant_override("separation", 14)
+	collect_slot.add_child(_collect)
 	var collect := _label(&"CollectText", ConfigManager.get_message("dispensing_collect"))
 	collect.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	collect.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_pill.add_child(collect)
+	_collect.add_child(collect)
+	var arrow_center := CenterContainer.new()
+	_collect.add_child(arrow_center)
+	arrow_center.add_child(HintArrowScene.instantiate())
 
 	root.add_child(_expander())
 
