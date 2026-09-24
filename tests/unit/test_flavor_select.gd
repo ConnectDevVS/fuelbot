@@ -1,7 +1,6 @@
 extends TestCase
 
 const FlavorSelectScene := preload("res://scenes/flavor_select/FlavorSelect.tscn")
-const FlavorDetailScene := preload("res://scenes/flavor_detail/FlavorDetail.tscn")
 
 var _snap: Dictionary
 var _scene: Control
@@ -22,8 +21,8 @@ func after_each() -> void:
 	restore_app_state(_snap)
 
 
-func _open(scene: PackedScene = FlavorSelectScene) -> Control:
-	_scene = scene.instantiate()
+func _open() -> Control:
+	_scene = FlavorSelectScene.instantiate()
 	add_child(_scene)
 	return _scene
 
@@ -109,16 +108,3 @@ func test_empty_catalog() -> void:
 	assert_eq(_scene.get_cards().size(), 0, "no cards")
 	assert_true(_scene._empty.visible, "empty label visible")
 
-
-func test_detail_stub_with_selection() -> void:
-	OrderState.select_flavor(find_flavor(ConfigManager.current_config, "guava"))
-	_open(FlavorDetailScene)
-	assert_eq(_scene.get_name_text(), "Prymor Guava", "name shown")
-	_scene.press_back()
-	assert_eq(Nav.last_requested, ScenePaths.FLAVOR_SELECT, "back to listing")
-
-
-func test_detail_stub_without_selection() -> void:
-	_open(FlavorDetailScene)
-	await wait_frames(2)
-	assert_eq(Nav.last_requested, ScenePaths.IDLE, "no selection goes idle")

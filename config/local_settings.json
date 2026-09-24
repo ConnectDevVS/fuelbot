@@ -52,8 +52,6 @@
     "diag_never": "never",
     "diag_unknown": "—",
 
-    "detail_stub_title": "Ingredients & allergens",
-    "detail_stub_body": "This screen is coming in the next story.",
     "back": "Back",
 
     "step_indicator": "STEP {step} OF {total}",
@@ -78,7 +76,6 @@
     "qr_expiry_sec": 180,
     "maintenance_poll_interval_sec": 120,
     "sale_report_retry_interval_sec": 60,
-    "detail_stub_return_sec": 10,
     "attract_tap_debounce_sec": 0.5,
     "detail_screen_inactivity_sec": 60
   }
