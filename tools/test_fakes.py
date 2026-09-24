@@ -187,7 +187,7 @@ class Level1Tests(unittest.TestCase):
 class CliTests(unittest.TestCase):
     def test_help_and_stdlib_only(self):
         stdlib = set(getattr(sys, "stdlib_module_names", ())) or {
-            "argparse", "datetime", "os", "pty", "select", "signal", "socket", "sys", "threading",
+            "argparse", "datetime", "json", "os", "pty", "select", "signal", "socket", "sys", "threading",
             "time", "tty", "typing"}
         for script in ("fake_dispense_bridge.py", "fake_arduino_serial.py"):
             out = subprocess.run([sys.executable, os.path.join(HERE, script), "--help"],

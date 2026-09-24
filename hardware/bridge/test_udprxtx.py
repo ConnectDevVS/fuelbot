@@ -1,5 +1,6 @@
 """Tests for the hardware bridge. Run: python3 -m unittest hardware/bridge/test_udprxtx.py"""
 import argparse
+import json
 import os
 import pty
 import select
@@ -28,15 +29,20 @@ class FakeClock:
 
 
 class CoreHarness:
-    def __init__(self, serial_ok=True, write_ok=True, deadline=110.0, recover_sec=15.0):
+    def __init__(self, serial_ok=True, write_ok=True, deadline=110.0, recover_sec=15.0, heartbeat_sec=10.0):
         self.clock = FakeClock()
         self.sent = []
         self.written = []
+        self.events = []
         self.serial_ok = serial_ok
         self.write_ok = write_ok
         self.core = BridgeCore(self.sent.append, self._write, lambda: self.serial_ok,
                                clock=self.clock, deadline=deadline, recover_sec=recover_sec,
-                               logger=lambda _m: None)
+                               logger=lambda _m: None, emit=self.events.append,
+                               heartbeat_sec=heartbeat_sec)
+
+    def of(self, event_type):
+        return [e for e in self.events if e["event_type"] == event_type]
 
     def _write(self, command):
         if self.write_ok:
@@ -44,9 +50,15 @@ class CoreHarness:
         return self.write_ok
 
     def ready(self):
-        self.core.on_serial_line("Home reached")
+        self.core.on_serial_line("STATUS:HOMING_DONE")
         assert self.core.state == udprxtx.READY
         return self
+
+
+CYCLE = ["STATUS:WATER_FILL_1_DONE", "STATUS:PROTEIN_DISPENSED 1", "STATUS:WATER_FILL_2_DONE",
+         "STATUS:MIX_DONE", "STATUS:HOMING_START", "STATUS:HOMING_DONE", "STATUS:DONE"]
+STAGES = ["WATER_FILL_1_DONE", "PROTEIN_DISPENSED", "WATER_FILL_2_DONE", "MIX_DONE",
+          "HOMING_START", "HOMING_DONE", "DONE"]
 
 
 class ParseTests(unittest.TestCase):
@@ -70,14 +82,15 @@ class CoreTests(unittest.TestCase):
         h.core.on_app_message("ORDER %s P1 B2" % ID)
         self.assertEqual(h.written, ["12"])
         self.assertEqual(h.core.state, udprxtx.DISPENSING)
-        for line in ["Water Filled in Cup", "Protein 1 Dispensed", "Homing", "Home reached", "Mix Done"]:
+        for line in CYCLE[:-1]:
             h.core.on_serial_line(line)
-        self.assertEqual(h.sent, [], "Home reached mid-cycle is not the end")
+        self.assertEqual(h.sent, [], "HOMING_DONE mid-cycle is not the end")
         h.core.on_serial_line("STATUS:DONE")
         self.assertEqual(h.sent, ["DONE %s" % ID])
         self.assertEqual(h.core.state, udprxtx.RECOVERING)
-        h.core.on_serial_line("Reset!")
-        h.core.on_serial_line("Home reached")
+        h.core.on_serial_line("STATUS:BOOT")
+        h.core.on_serial_line("STATUS:HOMING_START")
+        h.core.on_serial_line("STATUS:HOMING_DONE")
         self.assertEqual(h.core.state, udprxtx.READY)
 
     def test_deadline(self):
@@ -178,6 +191,104 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(h.sent, [])
 
 
+class TelemetryTests(unittest.TestCase):
+    def _run_cycle(self, h, lines=CYCLE, step=5.0):
+        for line in lines:
+            h.clock.now += step
+            h.core.on_serial_line(line)
+
+    def test_cycle_record(self):
+        h = CoreHarness().ready()
+        h.core.on_app_message("ORDER %s P1 B2" % ID)
+        self._run_cycle(h)
+        [rec] = h.of("dispense_cycle")
+        self.assertEqual(rec["order_id"], ID)
+        self.assertEqual((rec["result"], rec["reason"], rec["fault"]), ("DONE", "", None))
+        self.assertEqual((rec["hopper"], rec["base"]), (1, 2))
+        self.assertEqual([st["stage"] for st in rec["stages"]], STAGES)
+        self.assertEqual([st["t_offset_ms"] for st in rec["stages"]], [5000 * (i + 1) for i in range(7)])
+        self.assertEqual(rec["duration_ms"], 35000)
+
+    def test_timeout_record(self):
+        h = CoreHarness(deadline=110).ready()
+        h.core.on_app_message("ORDER %s P2 B2" % ID)
+        self._run_cycle(h, CYCLE[:2])
+        h.clock.now += 200
+        h.core.tick()
+        rec = h.of("dispense_cycle")[-1]
+        self.assertEqual((rec["result"], rec["reason"]), ("TIMEOUT", "deadline"))
+        self.assertEqual([st["stage"] for st in rec["stages"]], STAGES[:2])
+
+    def test_rejected_record(self):
+        h = CoreHarness()   # still recovering
+        h.core.on_app_message("ORDER %s P3 B2" % ID)
+        [rec] = h.of("dispense_cycle")
+        self.assertEqual((rec["result"], rec["reason"], rec["stages"], rec["hopper"]), ("REJECTED", "busy", [], 3))
+
+    def test_homing_fault_mid_cycle(self):
+        h = CoreHarness().ready()
+        h.core.on_app_message("ORDER %s P1 B2" % ID)
+        self._run_cycle(h, CYCLE[:5] + ["FAULT:HOMING_TIMEOUT", "STATUS:DONE"])
+        self.assertEqual(h.sent, ["DONE %s" % ID], "the drink is done (decision 3)")
+        [fault] = h.of("machine_fault")
+        self.assertEqual((fault["fault"], fault["order_id"]), ("HOMING_TIMEOUT", ID))
+        rec = h.of("dispense_cycle")[-1]
+        self.assertEqual((rec["result"], rec["fault"]), ("DONE", "HOMING_TIMEOUT"))
+        self.assertNotIn("HOMING_DONE", [st["stage"] for st in rec["stages"]])
+        self.assertEqual(h.core.machine_fault, "HOMING_TIMEOUT")
+
+    def test_orders_refused_while_faulted(self):
+        h = CoreHarness().ready()
+        h.core.on_serial_line("FAULT:HOMING_TIMEOUT")
+        h.core.on_serial_line("FAULT:HOMING_TIMEOUT")   # a retry fails again: one event per outage
+        self.assertEqual(len(h.of("machine_fault")), 1)
+        self.assertIsNone(h.of("machine_fault")[0]["order_id"])
+        h.core.on_app_message("ORDER %s P1 B2" % ID)
+        self.assertEqual(h.sent, ["REJECTED %s machine_fault" % ID])
+        self.assertEqual(h.written, [])
+        h.core.on_serial_line("STATUS:HOMING_START")
+        h.core.on_serial_line("STATUS:HOMING_DONE")
+        self.assertEqual(h.of("machine_ok"), [{"v": 1, "event_type": "machine_ok", "cleared": "HOMING_TIMEOUT"}])
+        h.core.on_app_message("ORDER %s P1 B2" % ID2)
+        self.assertEqual(h.written, ["12"])
+
+    def test_not_homed_fault_ends_order(self):
+        h = CoreHarness().ready()
+        h.core.on_app_message("ORDER %s P1 B2" % ID)
+        h.core.on_serial_line("FAULT:NOT_HOMED")
+        self.assertEqual(h.sent, ["TIMEOUT %s fault:NOT_HOMED" % ID])
+        self.assertEqual(h.of("dispense_cycle")[-1]["fault"], "NOT_HOMED")
+        self.assertIsNone(h.core.machine_fault, "NOT_HOMED alone isn't a machine fault event")
+
+    def test_heartbeat(self):
+        h = CoreHarness(heartbeat_sec=10)
+        h.core.tick()
+        h.clock.now += 5
+        h.core.tick()
+        h.core.on_serial_line("FAULT:HOMING_TIMEOUT")
+        h.clock.now += 5
+        h.core.tick()
+        beats = h.of("bridge_status")
+        self.assertEqual(len(beats), 2, "at start, then every 10 s")
+        self.assertEqual([b["machine_fault"] for b in beats], [None, "HOMING_TIMEOUT"])
+        self.assertEqual(beats[1]["serial"], True)
+        self.assertEqual(beats[1]["uptime_s"], 10)
+
+    def test_legacy_home_reached(self):
+        h = CoreHarness()
+        h.core.on_serial_line("Home reached")
+        self.assertEqual(h.core.state, udprxtx.READY, "an M4 board still works")
+
+    def test_event_size(self):
+        h = CoreHarness().ready()
+        h.core.on_app_message("ORDER %s P6 B2" % ID)
+        self._run_cycle(h, CYCLE * 2, step=40.0)   # more stages than a real cycle, big offsets
+        h.clock.now += 1000
+        h.core.tick()
+        for e in h.events:
+            self.assertLess(len(json.dumps(e, separators=(",", ":")).encode()), 1024, e["event_type"])
+
+
 class PosixSerialTests(unittest.TestCase):
     def test_posix_serial_on_pty(self):
         master, slave = pty.openpty()
@@ -215,9 +326,13 @@ class RunLoopTests(unittest.TestCase):
         results = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         results.bind(("127.0.0.1", 0))
         results.settimeout(3)
+        telemetry = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        telemetry.bind(("127.0.0.1", 0))
+        telemetry.settimeout(3)
         args = udprxtx.build_parser().parse_args([
             "--serial", os.ttyname(slave), "--order-port", "0",
-            "--result-port", str(results.getsockname()[1]), "--recover-sec", "0.1", "--deadline", "5"])
+            "--result-port", str(results.getsockname()[1]), "--recover-sec", "0.1", "--deadline", "5",
+            "--telemetry-port", str(telemetry.getsockname()[1])])
         stop = threading.Event()
         ports = []
         t = threading.Thread(target=udprxtx.run, args=(args, stop, ports.append),
@@ -234,14 +349,22 @@ class RunLoopTests(unittest.TestCase):
             ready, _, _ = select.select([master], [], [], 2)
             self.assertTrue(ready, "command reached the serial side")
             self.assertEqual(os.read(master, 100), b"32\n")
-            os.write(master, b"Mix Done\r\nSTATUS:DONE\r\n")
+            os.write(master, b"STATUS:MIX_DONE\r\nSTATUS:DONE\r\n")
             data, _ = results.recvfrom(1024)
             self.assertEqual(data.decode(), "DONE %s" % ID)
+            events = []
+            while not any(e["event_type"] == "dispense_cycle" for e in events):
+                events.append(json.loads(telemetry.recvfrom(2048)[0]))
+            rec = [e for e in events if e["event_type"] == "dispense_cycle"][0]
+            self.assertEqual((rec["order_id"], rec["result"]), (ID, "DONE"))
+            self.assertEqual([st["stage"] for st in rec["stages"]], ["MIX_DONE", "DONE"])
+            self.assertEqual(events[0]["event_type"], "bridge_status", "heartbeat at startup")
             sender.close()
         finally:
             stop.set()
             t.join(3)
             results.close()
+            telemetry.close()
             os.close(master)
             os.close(slave)
         self.assertFalse(t.is_alive(), "stops cleanly")
@@ -256,7 +379,7 @@ class RunLoopTests(unittest.TestCase):
             imports = {line.split()[1].split(".")[0] for line in f
                        if line.startswith("import ") or line.startswith("from ")}
         self.assertLessEqual(imports, set(sys.stdlib_module_names) if hasattr(sys, "stdlib_module_names") else {
-            "argparse", "collections", "datetime", "os", "re", "select", "signal", "socket", "sys",
+            "argparse", "collections", "datetime", "json", "os", "re", "select", "signal", "socket", "sys",
             "termios", "threading", "time", "typing"}, imports)
 
 
