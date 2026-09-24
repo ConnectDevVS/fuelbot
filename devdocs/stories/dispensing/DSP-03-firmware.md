@@ -72,8 +72,9 @@ recovery behaviour that Level 2 hasn't verified.
 
 ### `tools/check_firmware.sh`
 
-`clang++ -std=c++11 -fsyntax-only -x c++ -I hardware/firmware/host_stub
-hardware/firmware/VM_code.ino`. (Spiked on the **old** sketch with scratch
+`clang++ -std=c++11 -fsyntax-only -Wall -Werror -Wno-tautological-compare
+-x c++ -I hardware/firmware/host_stub hardware/firmware/VM_code.ino`
+(`-Wno-tautological-compare` because `M5 >= 0` is constant by design). (Spiked on the **old** sketch with scratch
 stubs: it passes, so the check is useful as a baseline.) It prints `FIRMWARE SYNTAX OK` or fails.
 The stubs declare `pinMode`, `digitalWrite`, `digitalRead`, `analogWrite`,
 `delay`, `delayMicroseconds`, `isDigit`, a `String` with `trim`/`length`/
@@ -91,6 +92,8 @@ IDE's generated prototypes aren't needed.
       `ab`. (There's no AVR emulator here. `tools/fake_arduino_serial.py` in
       DSP-04 mirrors this behaviour and is tested.)
 - [ ] `STATUS:DONE` is printed once per completed cycle, after `Mix Done`.
+- [ ] The check really checks: a deliberate typo fails it, and a variant
+      with `M5`/`M6` set to real pins (so the `#if` branches compile) passes.
 
 ## Out of scope
 
