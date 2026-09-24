@@ -64,6 +64,8 @@
     "diag_payments": "PAYMENTS",
     "diag_never": "never",
     "diag_unknown": "—",
+    "fault_homing_timeout": "Carriage did not reach its home position",
+    "fault_unknown": "Hardware fault",
 
     "back": "Back",
 

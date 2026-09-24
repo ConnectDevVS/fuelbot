@@ -10,6 +10,9 @@ signal event_received(event: Dictionary)
 const QUEUE_PATH := "user://telemetry_queue.json"
 const POSTED_EVENTS := ["dispense_cycle", "machine_fault", "machine_ok"]
 const LISTEN_RETRY_SEC := 5.0
+## Machine faults that take the machine out of service (plan §3.10 Bucket C). They
+## auto-clear when the board homes again (telemetry README decision 1).
+const LOCAL_MAINTENANCE_FAULTS := ["HOMING_TIMEOUT"]
 
 var listen_host := "127.0.0.1"
 var listen_port := 4246
@@ -21,6 +24,7 @@ var _listener := PacketPeerUDP.new()
 var _listening := false
 var _listen_warned := false
 var _next_listen_try_msec := 0
+var _applied_fault: Variant = null   # last value pushed to ConfigManager (heartbeats don't churn)
 
 
 func _ready() -> void:
@@ -101,6 +105,7 @@ func _process(_delta: float) -> void:
 		var kind := String(event.get("event_type", ""))
 		if kind == "bridge_status":
 			event_received.emit(event)
+			_apply_health(event.get("machine_fault"))
 			continue
 		if not kind in POSTED_EVENTS:
 			print("[Telemetry] <- ignored event_type '%s'" % kind)
@@ -108,3 +113,25 @@ func _process(_delta: float) -> void:
 		print("[Telemetry] <- %s %s" % [kind, event.get("order_id", event.get("fault", event.get("cleared", "")))])
 		event_received.emit(event)
 		report_event(event, "bridge")
+		if kind == "machine_fault":
+			_apply_health(event.get("fault"))
+		elif kind == "machine_ok":
+			_apply_health(null)
+
+
+## fault: a code, or null for "healthy". Only Bucket C codes change maintenance;
+## ConfigManager is only called when the value actually changes.
+func _apply_health(fault: Variant) -> void:
+	var code: Variant = fault if fault is String and fault != "" else null
+	if code != null and not code in LOCAL_MAINTENANCE_FAULTS:
+		print("[Telemetry] machine fault %s: logged only (not a maintenance fault)" % code)
+		code = null
+	if code == _applied_fault:
+		return
+	_applied_fault = code
+	if code == null:
+		print("[Telemetry] machine healthy: clearing the local hardware fault")
+		ConfigManager.set_local_hardware_fault(false)
+	else:
+		push_warning("[Telemetry] machine fault %s: out of service until the board homes" % code)
+		ConfigManager.set_local_hardware_fault(true, code)

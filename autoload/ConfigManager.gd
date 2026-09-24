@@ -32,6 +32,8 @@ var is_online := false
 var last_successful_fetch_unix := 0.0
 var remote_maintenance_enabled := false
 var local_hardware_fault_active := false
+var local_hardware_fault_code := ""   # e.g. "HOMING_TIMEOUT" (set by TelemetryReporter, TEL-06)
+var local_hardware_fault_since := ""  # UTC ISO time the local fault was first set
 
 var _default_tenant: Dictionary = {}
 var _http_boot: HTTPRequest
@@ -189,16 +191,32 @@ func get_maintenance_info() -> Dictionary:
 			"source": "local",
 			"message": default_message,
 			"flagged_by": get_message("maintenance_local_fault_by"),
-			"flagged_at": "",
-			"faults": [],
+			"flagged_at": local_hardware_fault_since,
+			"faults": [] if local_hardware_fault_code == "" else [{
+				"code": local_hardware_fault_code,
+				"description": _fault_description(local_hardware_fault_code),
+			}],
 		}
 	return {"active": false, "source": "", "message": default_message,
 		"flagged_by": "", "flagged_at": "", "faults": []}
 
 
-func set_local_hardware_fault(active: bool) -> void:
+## Bucket C machine faults (plan §3.10). code (e.g. "HOMING_TIMEOUT") is shown on the
+## maintenance screen's fault list.
+func set_local_hardware_fault(active: bool, code: String = "") -> void:
+	if active and not local_hardware_fault_active:
+		local_hardware_fault_since = Time.get_datetime_string_from_system(true) + "Z"
 	local_hardware_fault_active = active
+	local_hardware_fault_code = code if active else ""
+	if not active:
+		local_hardware_fault_since = ""
 	_emit_maintenance_if_changed()
+
+
+func _fault_description(code: String) -> String:
+	var key := "fault_" + code.to_lower()
+	var messages: Dictionary = local_settings.get("messages", {})
+	return get_message(key) if messages.has(key) else get_message("fault_unknown")
 
 
 func refresh_maintenance_now() -> bool:
