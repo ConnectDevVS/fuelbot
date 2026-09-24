@@ -58,6 +58,9 @@ overflow were both found this way. Story work is one commit per story
 
 - **Autoload order matters.** `ConfigManager` is first (the others read it in
   `_ready`). `DevCapture` stays last. New autoloads go in between.
+- **`project.godot` is rewritten by the editor**: it strips comments and drops
+  keys equal to defaults. Put rules like the autoload order here, not in
+  comments there, and commit the editor-normalised form.
 - **Autoload scripts never use `class_name`.** Godot rejects a class name that
   shadows a singleton.
 - **All scene changes go through `Nav.go()` / `Nav.go_idle()`**, never
