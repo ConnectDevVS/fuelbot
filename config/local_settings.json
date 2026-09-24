@@ -1,0 +1,70 @@
+{
+  "api": {
+    "base_url": "https://example.invalid/fuelbot",
+    "config_path": "/config",
+    "request_timeout_sec": 10
+  },
+  "messages": {
+    "qr_generating": "QR Code Generation in Progress",
+    "payment_failed": "Payment failed. Please try again.",
+    "payment_timeout": "Payment timed out. Please try again.",
+    "dispensing_success": "Enjoy your shake!",
+    "dispensing_timeout": "Something went wrong. Please contact support if you were charged.",
+    "maintenance_default": "This machine is temporarily out of service.",
+    "config_fetch_failed": "Running in offline mode.",
+
+    "status_ready": "READY",
+    "status_machine_ready": "MACHINE READY",
+    "status_offline": "OFFLINE",
+
+    "attract_headline": "FRESH\nBLENDED\nPROTEIN",
+    "attract_subline": "{count_word} shakes on tap. Blended to order in under a minute.\nFrom {min_price}.",
+    "attract_cta": "Tap Anywhere To Start",
+    "attract_footer": "UPI PAYMENT ONLY · NO CASH ACCEPTED",
+
+    "listing_title": "FUEL\nUP",
+    "listing_hint": "Tap a drink to see\ningredients and pay",
+    "listing_footer": "UPI PAYMENT ONLY · ONE DRINK PER ORDER",
+    "listing_empty": "No drinks available right now.",
+    "card_tap": "TAP →",
+    "card_meta": "{protein_g}g protein · {kcal} kcal",
+    "card_sold_out": "SOLD OUT",
+
+    "maintenance_header": "FUELBOT PLATFORM · SERVICE MODE",
+    "maintenance_status": "STATUS: OUT OF SERVICE",
+    "maintenance_title": "OUT OF\nSERVICE",
+    "maintenance_diagnostics_title": "DIAGNOSTICS — TECHNICIAN USE",
+    "maintenance_local_fault_by": "Local hardware fault",
+    "maintenance_payments_disabled": "DISABLED",
+    "maintenance_network_online": "ONLINE",
+    "maintenance_network_offline": "OFFLINE",
+    "maintenance_faults_title": "ACTIVE FAULTS ({count})",
+    "maintenance_service": "SERVICE: {phone}",
+    "maintenance_exit_hint": "EXIT VIA REMOTE CONSOLE ONLY",
+    "diag_machine_id": "MACHINE ID",
+    "diag_site": "SITE",
+    "diag_flagged_by": "FLAGGED BY",
+    "diag_flagged_at": "FLAGGED AT",
+    "diag_firmware": "FIRMWARE",
+    "diag_network": "NETWORK",
+    "diag_last_heartbeat": "LAST HEARTBEAT",
+    "diag_payments": "PAYMENTS",
+    "diag_never": "never",
+    "diag_unknown": "—",
+
+    "detail_stub_title": "Ingredients & allergens",
+    "detail_stub_body": "This screen is coming in the next story.",
+    "back": "Back"
+  },
+  "timing": {
+    "flavor_screen_inactivity_sec": 60,
+    "payment_screen_inactivity_sec": 180,
+    "payment_poll_interval_sec": 3,
+    "payment_poll_timeout_sec": 180,
+    "qr_expiry_sec": 180,
+    "maintenance_poll_interval_sec": 120,
+    "sale_report_retry_interval_sec": 60,
+    "detail_stub_return_sec": 10,
+    "attract_tap_debounce_sec": 0.5
+  }
+}
