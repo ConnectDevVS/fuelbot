@@ -73,8 +73,10 @@ python3 tools/fake_arduino_serial.py [--time-scale 1.0] [--fault none|never_done
   `Shake Frothing Done`/`Homing` (a stuck `homeAxis()`) and never prints
   `STATUS:DONE`; `silent` reads commands and prints nothing; `disconnect`
   closes the PTY halfway through the cycle.
-- Commands that arrive during a cycle are buffered and handled afterwards,
-  as on the real board.
+- Commands that arrive during a cycle are **dropped** (logged to stderr), as
+  on the real board: `loop()` is blocked in `delay()`s, and the watchdog
+  reset at the end of the cycle clears the UART buffer. The bridge never
+  sends one then, because it waits for `DONE` plus recovery.
 - `FakeArduino` class with `feed(bytes)` and `due(now) -> list[str]` for
   unit tests; `main()` is the PTY loop.
 
