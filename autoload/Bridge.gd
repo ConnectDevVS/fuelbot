@@ -50,7 +50,12 @@ func send_order_paid(hopper: int, base_code: String) -> void:
 	_busy = true
 	_send(_selection, selection_port, "P%d" % hopper)
 	_send(_selection, selection_port, base_code)
-	await get_tree().create_timer(result_gap_sec).timeout
+	# Wall-clock wait, not create_timer(): a SceneTreeTimer created right after a
+	# slow frame fires early (it consumes that frame's delta), and a short gap
+	# here means a dropped Y and a paid order that never dispenses.
+	var until := Time.get_ticks_msec() + int(result_gap_sec * 1000)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
 	_send(_result, result_port, "Y")
 	_busy = false
 
