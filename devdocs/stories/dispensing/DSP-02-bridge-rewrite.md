@@ -20,6 +20,10 @@ Depends on: nothing in this set (the protocol table in the README).
 - When the far side closes, `select()` reports the fd readable and
   `os.read()` returns `b''` (EOF). The bridge must treat that as **link
   lost**, not spin.
+- **Found while implementing:** with `O_NONBLOCK` and `VMIN=0`, macOS
+  returns `b''` from a PTY with *no data*, which is indistinguishable from
+  EOF. `VMIN=1` makes "no data" raise `EAGAIN`, and `b''` then means closed.
+  `PosixSerial` uses `VMIN=1`.
 
 ## Deliverables
 
@@ -52,7 +56,7 @@ IDs, commands and serial lines are logged. There are no secrets here.
   `parse_order_id_only()` recovers the ID so the bridge can reply
   `REJECTED <id> bad_order`.
 - `class PosixSerial`: `open()` (raw 8N1 at `--baud`, `O_NONBLOCK`,
-  `CLOCAL|CREAD`, `HUPCL` off), `fileno()`, `write_line(str)`,
+  `CLOCAL|CREAD`, `HUPCL` off, `VMIN=1`/`VTIME=0`), `fileno()`, `write_line(str)`,
   `read_lines() -> list[str]` (non-blocking, buffers partial lines, strips
   `\r\n`, drops empty lines, decodes as UTF-8 with replacement), `close()`.
   EOF or `OSError` raises `LinkLost`.
