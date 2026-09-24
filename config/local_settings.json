@@ -5,6 +5,12 @@
     "request_timeout_sec": 10,
     "razorpay_base_url": "https://api.razorpay.com"
   },
+  "bridge": {
+    "host": "127.0.0.1",
+    "selection_port": 4242,
+    "result_port": 4243,
+    "result_gap_sec": 0.3
+  },
   "payments": {
     "allow_live_keys": false,
     "credentials_path": "user://razorpay_credentials.cfg"
