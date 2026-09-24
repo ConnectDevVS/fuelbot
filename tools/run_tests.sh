@@ -6,6 +6,12 @@ GODOT="${GODOT:-godot}"
 
 "$GODOT" --headless --path . --import >/dev/null 2>&1 || true
 
+# Credentials must never be formatted into output (PAY-03).
+if grep -nE '(print|push_warning|push_error|printerr).*(key_id|key_secret|_auth_header)' autoload/RazorpayManager.gd; then
+	echo "run_tests: RazorpayManager may log credentials (see above)" >&2
+	exit 1
+fi
+
 # --- mock server (IDLE-04) ---
 MOCK_PORT=8788
 if curl -sf "http://127.0.0.1:$MOCK_PORT/__mock/state" >/dev/null 2>&1; then
