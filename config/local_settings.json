@@ -54,7 +54,21 @@
 
     "detail_stub_title": "Ingredients & allergens",
     "detail_stub_body": "This screen is coming in the next story.",
-    "back": "Back"
+    "back": "Back",
+
+    "step_indicator": "STEP {step} OF {total}",
+    "allergen_caption": "ALLERGEN WARNING",
+    "allergen_contains": "CONTAINS {list}",
+    "detail_volume": "{volume_ml} ml.",
+    "detail_ingredients": "INGREDIENTS",
+    "detail_nutrition": "NUTRITION PER SERVING",
+    "nutrition_kcal": "KCAL",
+    "nutrition_protein": "PROTEIN",
+    "nutrition_carbs": "CARBS",
+    "nutrition_fat": "FAT",
+    "nutrition_grams": "{value}g",
+    "nutrition_missing": "—",
+    "proceed_to_pay": "Proceed to Pay  {price}"
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,
@@ -65,6 +79,7 @@
     "maintenance_poll_interval_sec": 120,
     "sale_report_retry_interval_sec": 60,
     "detail_stub_return_sec": 10,
-    "attract_tap_debounce_sec": 0.5
+    "attract_tap_debounce_sec": 0.5,
+    "detail_screen_inactivity_sec": 60
   }
 }

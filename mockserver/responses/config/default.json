@@ -18,7 +18,7 @@
         "description": "Cold-blended whey isolate with real guava and electrolytes.",
         "volume_ml": 400,
         "nutrition": {"kcal": 210, "protein_g": 24, "carbs_g": 12, "fat_g": 2},
-        "ingredients": ["Whey Isolate", "Guava Flavor", "Electrolytes"],
+        "ingredients": ["Whey protein isolate", "Guava pulp", "Electrolyte blend", "Toned milk", "Rolled oats", "Jaggery", "Pink salt", "Filtered water"],
         "allergens": ["Milk", "Soy"],
         "badge": "POPULAR", "sold_out": false, "enabled": true
       },
@@ -29,7 +29,7 @@
         "description": "Classic chocolate whey shake.",
         "volume_ml": 400,
         "nutrition": {"kcal": 310, "protein_g": 24, "carbs_g": 30, "fat_g": 6},
-        "ingredients": ["Whey Protein", "Cocoa"],
+        "ingredients": ["Whey protein concentrate", "Toned milk", "Cocoa", "Jaggery", "Filtered water"],
         "allergens": ["Milk"],
         "badge": null, "sold_out": false, "enabled": true
       },
@@ -40,7 +40,7 @@
         "description": "Light electrolyte recovery drink.",
         "volume_ml": 400,
         "nutrition": {"kcal": 60, "protein_g": 0, "carbs_g": 14, "fat_g": 0},
-        "ingredients": ["Electrolytes", "Citrus Flavor"],
+        "ingredients": ["Electrolyte blend", "Citrus extract", "Pink salt", "Filtered water"],
         "allergens": [],
         "badge": null, "sold_out": false, "enabled": true
       },
@@ -51,7 +51,7 @@
         "description": "Gold Standard vanilla whey.",
         "volume_ml": 400,
         "nutrition": {"kcal": 240, "protein_g": 24, "carbs_g": 8, "fat_g": 3},
-        "ingredients": ["Whey Protein", "Vanilla Flavor"],
+        "ingredients": ["Whey protein", "Toned milk", "Vanilla extract", "Filtered water"],
         "allergens": ["Milk", "Soy"],
         "badge": null, "sold_out": true, "enabled": true
       },
@@ -62,7 +62,7 @@
         "description": "Cookies-and-cream whey shake.",
         "volume_ml": 400,
         "nutrition": {"kcal": 290, "protein_g": 25, "carbs_g": 26, "fat_g": 5},
-        "ingredients": ["Whey Protein", "Cookie Crumb", "Cocoa"],
+        "ingredients": ["Whey protein", "Toned milk", "Cookie crumb", "Cocoa", "Jaggery"],
         "allergens": ["Milk", "Gluten"],
         "badge": null, "sold_out": false, "enabled": true
       },
@@ -73,7 +73,7 @@
         "description": "Cold-brew coffee protein shake.",
         "volume_ml": 400,
         "nutrition": {"kcal": 260, "protein_g": 25, "carbs_g": 18, "fat_g": 4},
-        "ingredients": ["Whey Protein", "Cold Brew Coffee"],
+        "ingredients": ["Whey protein", "Cold brew coffee", "Toned milk", "Jaggery"],
         "allergens": ["Milk"],
         "badge": null, "sold_out": false, "enabled": true
       }

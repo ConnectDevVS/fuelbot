@@ -47,6 +47,19 @@ func _initialize() -> void:
 	_label("LogoText", fonts.display_900, 42, P.ON_ACCENT)
 	_label("BadgeText", fonts.mono_500, 20, P.ON_ACCENT)
 	_label("ButtonText", fonts.display_900, 52, P.ON_ACCENT)
+	# Details page (DET-01)
+	_label("DisplayM", fonts.display_900, 80, P.TEXT, 76)
+	_label("BodySmall", fonts.body_400, 28, P.TEXT_MUTED)
+	_label("SectionLabel", fonts.mono_500, 22, P.TEXT_DIM)
+	_label("ChipText", fonts.heading_800, 26, P.TEXT)
+	_label("AllergenCaption", fonts.mono_500, 20, P.ON_ACCENT)
+	_label("AllergenText", fonts.display_900, 46, P.ON_ACCENT)
+	_label("AllergenIcon", fonts.display_900, 44, P.WARNING)
+	_label("NutritionValue", fonts.display_900, 52, P.TEXT)
+	_label("NutritionValueAccent", fonts.display_900, 52, P.ACCENT)
+	_label("NutritionLabel", fonts.mono_500, 20, P.TEXT_DIM)
+	_label("StepText", fonts.mono_500, 22, P.TEXT_MUTED)
+	_label("LogoTextSmall", fonts.display_900, 22, P.ON_ACCENT)
 
 	_panel("LogoTile", _box(P.ACCENT, 22))
 	_panel("CardPanel", _box(P.SURFACE, P.RADIUS_CARD, 2, P.BORDER, 32))
@@ -63,6 +76,15 @@ func _initialize() -> void:
 	_panel("BadgePanel", badge)
 	_panel("DiagPanel", _box(P.SURFACE, P.RADIUS_PANEL, 2, P.BORDER))
 	_panel("FaultPanel", _box(P.WARNING_SURFACE, 12, 2, P.WARNING_BORDER, 28))
+	var chip := _box(P.SURFACE_RAISED, 33, 2, P.BORDER)
+	_margins(chip, 22, 14)
+	_panel("ChipPanel", chip)
+	var allergen := _box(P.WARNING, 20)
+	_margins(allergen, 36, 30)
+	_panel("AllergenPanel", allergen)
+	_panel("AllergenIconPanel", _box(P.ON_ACCENT, 40))
+	_panel("NutritionTilePanel", _box(P.SURFACE, P.RADIUS_PANEL, 2, P.BORDER, 24))
+	_panel("LogoTileSmall", _box(P.ACCENT, 12))
 
 	var primary := _box(P.ACCENT, P.RADIUS_CARD)
 	var primary_pressed := _box(P.ACCENT.darkened(0.1), P.RADIUS_CARD)
@@ -70,6 +92,19 @@ func _initialize() -> void:
 	var ghost := _box(Color(0, 0, 0, 0), 24, 2, P.BORDER, 24)
 	var ghost_pressed := _box(P.SURFACE_RAISED, 24, 2, P.BORDER, 24)
 	_button("GhostButton", fonts.heading_800, 40, P.TEXT, ghost, ghost, ghost_pressed)
+	var pill := _box(P.SURFACE_RAISED, 40, 2, P.BORDER)
+	_margins(pill, 32, 0)
+	var pill_pressed := _box(P.SURFACE, 40, 2, P.BORDER)
+	_margins(pill_pressed, 32, 0)
+	_button("BackPill", fonts.heading_800, 30, P.TEXT, pill, pill, pill_pressed)
+	var ghost_m := _box(Color(0, 0, 0, 0), 20, 2, P.BORDER, 24)
+	var ghost_m_pressed := _box(P.SURFACE_RAISED, 20, 2, P.BORDER, 24)
+	_button("GhostButtonMuted", fonts.heading_800, 36, P.TEXT_MUTED, ghost_m, ghost_m, ghost_m_pressed)
+	var primary_m := _box(P.ACCENT, 20)
+	var primary_m_pressed := _box(P.ACCENT.darkened(0.1), 20)
+	_button("PrimaryButtonM", fonts.display_900, 40, P.ON_ACCENT, primary_m, primary_m, primary_m_pressed)
+	theme.set_stylebox("disabled", "PrimaryButtonM", _box(P.SURFACE_RAISED, 20, 2, P.BORDER))
+	theme.set_color("font_disabled_color", "PrimaryButtonM", P.TEXT_DIM)
 
 	var err := ResourceSaver.save(theme, THEME_PATH)
 	print("theme saved: ", THEME_PATH, " err=", err)
@@ -89,8 +124,11 @@ func _variation(name: String, base: FontFile, axes: Dictionary, glyph_spacing: i
 	fv.spacing_glyph = glyph_spacing
 	fv.fallbacks = fallbacks
 	var path := "%s/%s.tres" % [FONT_DIR, name]
-	ResourceSaver.save(fv, path, ResourceSaver.FLAG_CHANGE_PATH)
-	return load(path)
+	# The project theme (and so these fonts) is already cached when this runs:
+	# take over the cached path instead of saving a conflicting second copy.
+	fv.take_over_path(path)
+	ResourceSaver.save(fv, path)
+	return fv
 
 
 func _label(name: String, font: Font, size: int, color: Color, line_pitch: int = 0) -> void:
@@ -135,3 +173,10 @@ func _box(bg: Color, radius: int, border: int = 0, border_color: Color = Color.T
 		sb.border_color = border_color
 	sb.set_content_margin_all(margin)
 	return sb
+
+
+func _margins(sb: StyleBoxFlat, horizontal: int, vertical: int) -> void:
+	sb.set_content_margin(SIDE_LEFT, horizontal)
+	sb.set_content_margin(SIDE_RIGHT, horizontal)
+	sb.set_content_margin(SIDE_TOP, vertical)
+	sb.set_content_margin(SIDE_BOTTOM, vertical)
