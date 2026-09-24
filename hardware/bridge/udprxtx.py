@@ -5,19 +5,23 @@
                            CANCEL <order_id>                 informational, never interrupts a cycle
   bridge -> app  UDP 4245  DONE <order_id>
                            TIMEOUT <order_id> <reason>       deadline | serial_lost | fault:<CODE>
-                           REJECTED <order_id> <reason>      busy | bad_order | serial_unavailable
+                           REJECTED <order_id> <reason>      busy | bad_order | serial_unavailable | machine_fault
+  bridge -> app  UDP 4246  JSON events: dispense_cycle, machine_fault, machine_ok, bridge_status (heartbeat)
   bridge -> Arduino        "<hopper><n>\\n"
-  Arduino -> bridge        free text, STATUS:DONE, FAULT:<CODE>, "Home reached" (ready)
+  Arduino -> bridge        STATUS:<STAGE>[ detail], FAULT:<CODE>[ detail]
+                           (STATUS:HOMING_DONE = ready; the M4 "Home reached" is still accepted)
 
 Single-cup machine: one order at a time. Never blocks without a deadline.
 Standard library only (termios serial; no pyserial). Python 3.9+.
-See devdocs/stories/dispensing/README.md for the full protocol.
+See devdocs/stories/dispensing/README.md (protocol) and
+devdocs/stories/telemetry/README.md (telemetry events, machine health).
 
 Usage: python3 hardware/bridge/udprxtx.py [--serial /dev/arduino] [--deadline 110] ...
 """
 import argparse
 import collections
 import datetime
+import json
 import os
 import re
 import select
@@ -31,6 +35,8 @@ from typing import Callable, List, Optional, Tuple
 
 ORDER_PORT = 4242
 RESULT_PORT = 4245
+TELEMETRY_PORT = 4246
+HEARTBEAT_SEC = 10.0
 DEFAULT_SERIAL = "/dev/arduino"
 DEFAULT_BAUD = 9600
 DEADLINE_SEC = 110.0   # > the firmware's ~68-78 s cycle (dispensing README decision 8)
@@ -43,8 +49,10 @@ ORDER_RE = re.compile(r"^ORDER (%s) P([1-%d]) B([1-9])$" % (ULID, MAX_HOPPER))
 CANCEL_RE = re.compile(r"^CANCEL (%s)$" % ULID)
 ORDER_ID_RE = re.compile(r"^ORDER (%s)(?: |$)" % ULID)
 FAULT_RE = re.compile(r"^FAULT:([A-Z_]+)")
+STATUS_RE = re.compile(r"^STATUS:([A-Z0-9_]+)(?: (.*))?$")
 DONE_LINE = "STATUS:DONE"
-READY_LINE = "Home reached"
+READY_LINES = ("STATUS:HOMING_DONE", "Home reached")   # M5 line, and the M4 one during a swap
+HOMING_FAULT = "HOMING_TIMEOUT"   # the one fault that takes the machine out of service (auto-clears)
 
 RECOVERING = "RECOVERING"
 READY = "READY"
@@ -156,28 +164,37 @@ class PosixSerial:
 
 
 class BridgeCore:
-    """The whole order policy, no I/O of its own (unit-testable with a fake clock).
+    """The whole order and machine-health policy, no I/O of its own (unit-testable with a
+    fake clock).
 
-    send(msg) -> app; write_serial(cmd) -> bool (False = link lost);
-    serial_ok() -> bool; clock() -> seconds (monotonic).
+    send(msg) -> app on 4245; write_serial(cmd) -> bool (False = link lost);
+    serial_ok() -> bool; clock() -> seconds (monotonic); emit(event dict) -> app on 4246.
     """
 
     def __init__(self, send: Callable[[str], None], write_serial: Callable[[str], bool],
                  serial_ok: Callable[[], bool], clock: Callable[[], float] = time.monotonic,
                  deadline: float = DEADLINE_SEC, recover_sec: float = RECOVER_SEC,
-                 logger: Callable[[str], None] = log):
+                 logger: Callable[[str], None] = log,
+                 emit: Optional[Callable[[dict], None]] = None,
+                 heartbeat_sec: float = HEARTBEAT_SEC):
         self._send = send
         self._write_serial = write_serial
         self._serial_ok = serial_ok
         self._clock = clock
         self._log = logger
+        self._emit = emit or (lambda _e: None)
         self.deadline = deadline
         self.recover_sec = recover_sec
+        self.heartbeat_sec = heartbeat_sec
         self.state = RECOVERING
         self.active = None           # order id being dispensed
+        self.machine_fault = None    # e.g. "HOMING_TIMEOUT" until the board homes again
         self._deadline_at = 0.0
         self._recover_until = clock() + recover_sec
         self._finished = collections.deque(maxlen=32)
+        self._started = clock()
+        self._next_heartbeat = clock()   # one right away
+        self._cycle = {}                 # the active order's telemetry: t0, hopper, base, stages, fault
 
     # --- inputs --------------------------------------------------------------
 
@@ -188,7 +205,7 @@ class BridgeCore:
             order_id = parse_order_id_only(text)
             if order_id:
                 self._log("malformed order '%s'" % text)
-                self._reply("REJECTED", order_id, "bad_order")
+                self._reject(order_id, "bad_order")
             else:
                 self._log("ignored app message %r" % text)
             return
@@ -204,35 +221,57 @@ class BridgeCore:
             return
         if not self._serial_ok():
             self._log("ORDER %s rejected: serial unavailable" % order_id)
-            self._reply("REJECTED", order_id, "serial_unavailable")
+            self._reject(order_id, "serial_unavailable", hopper, base)
+            return
+        if self.machine_fault:
+            self._log("ORDER %s rejected: machine fault %s" % (order_id, self.machine_fault))
+            self._reject(order_id, "machine_fault", hopper, base)
             return
         if self.state != READY:
             self._log("ORDER %s rejected: busy (%s, active=%s)" % (order_id, self.state, self.active))
-            self._reply("REJECTED", order_id, "busy")
+            self._reject(order_id, "busy", hopper, base)
             return
         command = "%d%d" % (hopper, base)
         if not self._write_serial(command):
             self._log("ORDER %s rejected: serial write failed" % order_id)
-            self._reply("REJECTED", order_id, "serial_unavailable")
+            self._reject(order_id, "serial_unavailable", hopper, base)
             return
         self.active = order_id
         self.state = DISPENSING
         self._deadline_at = self._clock() + self.deadline
+        self._cycle = {"t0": self._clock(), "hopper": hopper, "base": base, "stages": [], "fault": None}
         self._log("ORDER %s -> serial %s (deadline %.0f s)" % (order_id, command, self.deadline))
 
     def on_serial_line(self, line: str) -> None:
         self._log("serial: %s" % line)
         fault = FAULT_RE.match(line)
-        if self.state == DISPENSING:
-            if line == DONE_LINE:
-                self._finish("DONE", "")
-            elif fault:
-                self._finish("TIMEOUT", "fault:" + fault.group(1))
-        elif self.state == RECOVERING and line == READY_LINE:
-            self.state = READY
-            self._log("ready")
-        elif fault:
-            self._log("fault outside an order: %s" % line)
+        status = STATUS_RE.match(line)
+        if fault:
+            code = fault.group(1)
+            if code == HOMING_FAULT:
+                self._set_machine_fault(code)
+                if self.state == DISPENSING and not self._cycle["fault"]:
+                    self._cycle["fault"] = code   # the order goes on: STATUS:DONE follows (decision 3)
+            elif self.state == DISPENSING:
+                self._cycle["fault"] = code
+                self._finish("TIMEOUT", "fault:" + code)
+            else:
+                self._log("fault outside an order: %s" % line)
+            return
+        if status and self.state == DISPENSING and status.group(1) != "BOOT":
+            offset = int(round((self._clock() - self._cycle["t0"]) * 1000))
+            self._cycle["stages"].append({"stage": status.group(1), "t_offset_ms": offset})
+        if line == DONE_LINE and self.state == DISPENSING:
+            self._finish("DONE", "")
+        elif line in READY_LINES:
+            if self.machine_fault:
+                cleared = self.machine_fault
+                self.machine_fault = None
+                self._log("machine fault %s cleared (homed)" % cleared)
+                self._emit({"v": 1, "event_type": "machine_ok", "cleared": cleared})
+            if self.state == RECOVERING:
+                self.state = READY
+                self._log("ready")
 
     def on_link_lost(self) -> None:
         if self.state == DISPENSING:
@@ -250,16 +289,45 @@ class BridgeCore:
             self._finish("TIMEOUT", "deadline")
         elif self.state == RECOVERING and now >= self._recover_until and self._serial_ok():
             self.state = READY
-            self._log("ready (no '%s' within %.0f s)" % (READY_LINE, self.recover_sec))
+            self._log("ready (no homing-done line within %.0f s)" % self.recover_sec)
+        if now >= self._next_heartbeat:
+            self._next_heartbeat = now + self.heartbeat_sec
+            self._emit({"v": 1, "event_type": "bridge_status", "state": self.state,
+                        "serial": bool(self._serial_ok()), "machine_fault": self.machine_fault,
+                        "uptime_s": int(now - self._started)})
 
     # --- internals -----------------------------------------------------------
 
+    def _set_machine_fault(self, code: str) -> None:
+        if self.machine_fault:
+            return   # one machine_fault per outage; retries are in the serial log
+        self.machine_fault = code
+        self._log("machine fault %s: refusing orders until the board homes" % code)
+        self._emit({"v": 1, "event_type": "machine_fault", "fault": code, "order_id": self.active})
+
     def _finish(self, kind: str, reason: str) -> None:
+        cycle = self._cycle
+        fault = cycle.get("fault")
+        self._emit(self._cycle_event(self.active, kind, reason, cycle.get("hopper"), cycle.get("base"),
+                                     cycle.get("stages", []), fault,
+                                     int(round((self._clock() - cycle.get("t0", self._clock())) * 1000))))
         self._reply(kind, self.active, reason)
         self._finished.append(self.active)
         self.active = None
+        self._cycle = {}
         self.state = RECOVERING
         self._recover_until = self._clock() + self.recover_sec
+
+    def _reject(self, order_id: str, reason: str, hopper: Optional[int] = None,
+                base: Optional[int] = None) -> None:
+        self._emit(self._cycle_event(order_id, "REJECTED", reason, hopper, base, [], None, 0))
+        self._reply("REJECTED", order_id, reason)
+
+    @staticmethod
+    def _cycle_event(order_id, result, reason, hopper, base, stages, fault, duration_ms) -> dict:
+        return {"v": 1, "event_type": "dispense_cycle", "order_id": order_id, "hopper": hopper,
+                "base": base, "result": result, "reason": reason, "stages": stages,
+                "fault": fault, "duration_ms": duration_ms}
 
     def _reply(self, kind: str, order_id: str, reason: str) -> None:
         message = "%s %s%s" % (kind, order_id, " " + reason if reason else "")
@@ -275,6 +343,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--order-port", type=int, default=ORDER_PORT)
     p.add_argument("--app-host", default="127.0.0.1")
     p.add_argument("--result-port", type=int, default=RESULT_PORT)
+    p.add_argument("--telemetry-port", type=int, default=TELEMETRY_PORT, help="JSON events to the app")
+    p.add_argument("--heartbeat-sec", type=float, default=HEARTBEAT_SEC)
     p.add_argument("--deadline", type=float, default=DEADLINE_SEC, help="seconds to wait for STATUS:DONE")
     p.add_argument("--recover-sec", type=float, default=RECOVER_SEC, help="max wait for 'Home reached'")
     p.add_argument("--reopen-sec", type=float, default=REOPEN_SEC, help="serial reopen interval")
@@ -303,6 +373,13 @@ def run(args: argparse.Namespace, stop: Optional[threading.Event] = None,
         except OSError as e:
             logger("send to app failed: %s" % e)
 
+    def emit(event: dict) -> None:
+        try:
+            out.sendto(json.dumps(event, separators=(",", ":")).encode("utf-8"),
+                       (args.app_host, args.telemetry_port))
+        except OSError as e:
+            logger("telemetry send failed: %s" % e)
+
     def lose(reason: str) -> None:
         logger("serial link lost: %s" % reason)
         link["serial"].close()
@@ -319,7 +396,8 @@ def run(args: argparse.Namespace, stop: Optional[threading.Event] = None,
             return False
 
     core = BridgeCore(send, write_serial, lambda: link["serial"] is not None,
-                      deadline=args.deadline, recover_sec=args.recover_sec, logger=logger)
+                      deadline=args.deadline, recover_sec=args.recover_sec, logger=logger,
+                      emit=emit, heartbeat_sec=args.heartbeat_sec)
     try:
         while not stop.is_set():
             if link["serial"] is None and time.monotonic() >= link["next_open"]:

@@ -241,3 +241,17 @@ func test_local_fault_composes() -> void:
 	cm.set_local_hardware_fault(false)
 	assert_eq(res.count, 2, "emitted on clear")
 	assert_eq(res.args[0], false, "cleared")
+
+
+func test_local_fault_code_in_maintenance_info() -> void:
+	_make_cm()
+	cm._load_local_settings()   # auto_boot is off: messages aren't loaded until boot()
+	cm.set_local_hardware_fault(true, "HOMING_TIMEOUT")
+	var info: Dictionary = cm.get_maintenance_info()
+	assert_eq(info.source, "local", "local source")
+	assert_eq(info.faults, [{"code": "HOMING_TIMEOUT", "description": "Carriage did not reach its home position"}])
+	cm.set_local_hardware_fault(true, "SOMETHING_NEW")
+	assert_eq(cm.get_maintenance_info().faults[0].description, "Hardware fault", "unknown code falls back")
+	cm.set_local_hardware_fault(false)
+	assert_eq(cm.local_hardware_fault_code, "", "cleared with the flag")
+	assert_false(cm.is_in_maintenance(), "out of maintenance")

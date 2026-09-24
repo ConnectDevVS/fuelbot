@@ -37,8 +37,8 @@ godot -e --path .                                                   # then F5
 | Command | What it does |
 |---------|--------------|
 | `tools/run_tests.sh [--filter=x]` | Headless GDScript tests (starts its own mock server on :8788) |
-| `python3 -m unittest mockserver/test_server.py hardware/bridge/test_udprxtx.py tools/test_fakes.py` | Python tests: mock server, hardware bridge, test-rig fakes (incl. automated Level 1) |
-| `tools/check_firmware.sh` | Host syntax check of `hardware/firmware/VM_code.ino` (clang++, stub headers; not an AVR compile) |
+| `python3 -m unittest mockserver/test_server.py hardware/bridge/test_udprxtx.py tools/test_fakes.py hardware/firmware/test_firmware.py` | Python tests: mock server, hardware bridge, test-rig fakes (incl. automated Level 1), and the firmware on a host simulator |
+| `tools/check_firmware.sh` | Host syntax check of `hardware/firmware/VM_code.ino` plus a build of the firmware simulator (clang++; not an AVR compile) |
 | `tools/check_boot.sh` | Boots the app headless for 5 s and fails on script errors |
 | `tools/screenshot.sh <res://Scene.tscn\|main> [out.png] [delay]` | Real-time screenshot into `.screenshots/` |
 | `mockserver/scenario.sh <name\|reset>` | Switch the mock backend's response while the app runs |
@@ -85,7 +85,7 @@ Real bridge, fake Arduino (Level 1): the fake opens a PTY and speaks the
 firmware's serial protocol.
 
 ```bash
-python3 tools/fake_arduino_serial.py --time-scale 0.1 --link "$TMPDIR/fuelbot-arduino"   # --fault never_done|silent|disconnect
+python3 tools/fake_arduino_serial.py --time-scale 0.1 --link "$TMPDIR/fuelbot-arduino"   # --fault never_done|silent|disconnect|homing_timeout|homing_flaky
 python3 hardware/bridge/udprxtx.py --serial "$TMPDIR/fuelbot-arduino" --recover-sec 3
 tools/dev_run.sh
 ```
@@ -105,6 +105,28 @@ Step-by-step Level 2/3 checks are in the
   The banner's `Bridge` line says whether a bridge is listening on 4242.
 - **One bridge:** only one process can bind 4242. Run the real bridge, the
   fake bridge or `tools/udp_monitor.py`, not two at once.
+
+## Telemetry and machine faults
+
+The bridge reports every dispense cycle (its stages and outcome) and machine
+faults as JSON on UDP 4246. The app adds the order and tenant details, keeps
+each record in `user://telemetry_queue.json` until the backend accepts it, and
+posts it to `api.base_url + api.telemetry_path` (the mock: `/fuelbot/telemetry`).
+Watch what arrives with `curl -s http://127.0.0.1:8787/__mock/state`
+(`request_counts` and `last_body` for `/fuelbot/telemetry`).
+
+A homing fault (the limit switch isn't reached within 20 s) puts the machine
+on the out-of-service screen after any order in progress finishes. It comes
+back by itself when the board homes again; the board retries after 1, 2, 4
+and 8 minutes, then every 10. To see it without hardware:
+
+```bash
+python3 tools/fake_dispense_bridge.py --mode done --delay 4 --homing-fault-sec 20
+```
+
+Order a drink: after "Enjoy your shake", the machine is out of service for
+20 s, then back on the attract screen. Details:
+[devdocs/stories/telemetry/README.md](devdocs/stories/telemetry/README.md).
 
 ## Local machine state (`user://`)
 

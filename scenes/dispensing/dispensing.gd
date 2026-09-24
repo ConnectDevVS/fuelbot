@@ -56,6 +56,11 @@ func _process(_delta: float) -> void:
 				if remaining >= 1 else ConfigManager.get_message("dispensing_almost")
 			if elapsed >= ConfigManager.get_timing("dispense_safety_cap_sec", 130.0):
 				push_warning("[Dispensing] order %s: no result within the safety cap" % OrderState.order_id)
+				# The bridge never answered, so it can't report this cycle: the app does (TEL-05).
+				TelemetryReporter.report_event({"v": 1, "event_type": "dispense_cycle",
+					"order_id": OrderState.order_id, "hopper": int(OrderState.selected_flavor.get("hopper", 0)),
+					"result": "NO_RESPONSE", "reason": "safety_cap", "stages": [], "fault": null,
+					"duration_ms": int(elapsed * 1000)}, "app")
 				_enter(State.FAILED)
 		State.DONE, State.FAILED:
 			var left_sec := maxi(_return_at_msec - now, 0) / 1000.0

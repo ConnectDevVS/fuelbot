@@ -1,7 +1,9 @@
-// Host-only declarations for tools/check_firmware.sh (clang++ -fsyntax-only).
-// Just enough of the Arduino core API for VM_code.ino to type-check; nothing links or runs.
+// Host-only Arduino API for the firmware simulator (sim.cpp) and the syntax check
+// (tools/check_firmware.sh). Declarations only; sim.cpp implements them against a
+// simulated board. Just enough of the core for VM_code.ino.
 #pragma once
 #include <stdint.h>
+#include <string>
 
 #define HIGH 1
 #define LOW 0
@@ -15,15 +17,17 @@ int digitalRead(int pin);
 void analogWrite(int pin, int value);
 void delay(unsigned long ms);
 void delayMicroseconds(unsigned int us);
+unsigned long millis();
 bool isDigit(char c);
 
 class String {
  public:
-  String();
-  String(const char* s);
+  std::string s;
+  String() {}
+  String(const char* c) : s(c) {}
   void trim();
-  unsigned int length() const;
-  char charAt(unsigned int index) const;
+  unsigned int length() const { return (unsigned int)s.size(); }
+  char charAt(unsigned int i) const { return i < s.size() ? s[i] : 0; }
 };
 
 class HardwareSerial {

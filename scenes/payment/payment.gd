@@ -83,7 +83,12 @@ func _on_payment_received(payment_id: String, amount_paise: int) -> void:
 	var base := ConfigManager.get_base(OrderState.selected_base_id)
 	# Dispensing runs either way: a refused order already has a REJECTED result waiting.
 	Bridge.send_order_paid(OrderState.order_id, int(OrderState.selected_flavor.get("hopper", 0)),
-		String(base.get("code", "")))
+		String(base.get("code", "")), {
+			"transaction_id": OrderState.transaction_id,
+			"flavor_id": String(OrderState.selected_flavor.get("id", "")),
+			"base_id": OrderState.selected_base_id,
+			"order_number": OrderState.order_number,
+		})
 	Nav.go(ScenePaths.DISPENSING)
 
 

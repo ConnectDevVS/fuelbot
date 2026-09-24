@@ -15,6 +15,9 @@ pending the product owner** ([payment SIGNOFF](../stories/payment/SIGNOFF.md)).
 **Milestone 4 (hardware bridge + dispensing) is built and verified with fake
 hardware (Levels 0 and 1). Levels 2/3 are pending a board**
 ([dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md)).
+**Milestone 5 (telemetry + machine faults) is built and verified on the
+firmware simulator and at Levels 0/1; Levels 2/3 are pending hardware**
+([telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md)).
 Per-milestone status is in Section 5. Work is executed as story sets under
 `devdocs/stories/`. Each set's README lists its detailed decisions, and its
 `SIGNOFF.md` records the verification evidence.
@@ -48,6 +51,15 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-24 | **Firmware: motors 5–6 are `-1` placeholders** and such an order prints `FAULT:HOPPER_UNASSIGNED <h>` with nothing moving; any other invalid command prints `FAULT:BAD_COMMAND`. `STATUS:DONE` after `Mix Done` | Wiring isn't final. Also fixes an existing hazard: an unknown hopper digit refilled water forever | §3.7 |
 | 2026-09-24 | **Bridge recovers after each cycle** (until `Home reached` or 15 s) and rejects orders meanwhile; stdlib `termios` serial, no `pyserial` | The Mega watchdog-resets and re-homes after every cycle; pyserial isn't installed and isn't needed | §3.7 |
 | 2026-09-24 | **Verification with fake hardware only** (Levels 0 and 1); Levels 2/3 are written-up pending steps. Firmware is syntax-checked on the host (`tools/check_firmware.sh`), not AVR-compiled | No board available; `arduino-cli` not installed | §6, dispensing SIGNOFF |
+| 2026-09-24 | **Homing faults auto-clear, always** (product owner): the machine returns to service when the board next homes | Least downtime; flapping is visible in telemetry | §3.8, §3.10, telemetry README |
+| 2026-09-24 | **Bounded homing without a reset loop:** 20 s timeout → `FAULT:HOMING_TIMEOUT`, motor stopped, not homed; retry after 1/2/4/8 min, **capped at 10 min** (product owner); commands refused with `FAULT:NOT_HOMED` | A reset loop would drive into the hard stop every ~20 s forever | §3.8 |
+| 2026-09-24 | A homing failure **at the end of a cycle keeps the drink** (`STATUS:DONE` still follows); maintenance starts afterwards | The drink is already mixed | §3.8, §3.10 |
+| 2026-09-24 | Firmware lines are all `STATUS:<STAGE>` / `FAULT:<CODE>` (free text removed); bridge recovery on `STATUS:HOMING_DONE` (M4 `Home reached` still accepted) | One parseable protocol | §3.8 |
+| 2026-09-24 | **UDP 4246 JSON events:** `dispense_cycle`, `machine_fault`, `machine_ok` (posted) and a 10 s `bridge_status` heartbeat (state only, not posted); the bridge refuses orders while faulted (`REJECTED machine_fault`) | Heartbeat heals a lost `machine_ok` or an app restart; defence in depth | §3.8 |
+| 2026-09-24 | **`ReportQueue`** (`core/`): durable, one in flight, retry timer, flush on boot, drop 4xx (not 408/429), cap 5 000 records; reused by M6 sales | An unbounded queue on an SD card, or a poison record, is worse than a bounded loss | §3.8, §3.12 |
+| 2026-09-24 | Telemetry endpoint = `api.base_url` + `api.telemetry_path`; the app stamps `event_id` (ULID), `tenant_id`, UTC `timestamp` (+`Z`; Godot omits it) and order context from `Bridge`; the app posts `NO_RESPONSE` itself at the safety cap | Settings, not consts (M1 rule); the bridge can't know Razorpay or tenant data | §3.8 |
+| 2026-09-24 | **Firmware host simulator** (`hardware/firmware/host_sim/`): the real sketch runs against a simulated board in tests | Behavioural firmware checks before any board exists | §6 |
+| 2026-09-24 | **Dead bridge → out of service** (product owner; to build in the Milestone 6 set): no `bridge_status` heartbeat for **30 s** → local fault `BRIDGE_DOWN` → maintenance after any order in progress; **auto-clears** when heartbeats resume; `bridge_down`/`bridge_up` events posted. **60 s grace after app start**; a setting disables it for development. `ConfigManager`'s local fault becomes a **set** of codes (homing and bridge faults can overlap) | With the bridge dead, every paying customer is charged and gets the failure screen after the 130 s cap, and the machine looks healthy meanwhile | §3.10, §5 M6 |
 
 ## 1. Context
 
@@ -638,6 +650,15 @@ loaded. `scenes/dispensing/` (one screen, PDF page 5; see §3.6):
 
 ### 3.8 Fault/telemetry reporting — `TelemetryReporter.gd`
 
+*(2026-09-24: built in Milestone 5; the [telemetry story set](../stories/telemetry/README.md)
+is the as-built spec. Differences from the text below: the board retries
+homing with back-off instead of resetting; the free-text lines are replaced
+(plus `STATUS:BOOT` and `FAULT:NOT_HOMED`); 4246 also carries `machine_fault`,
+`machine_ok` and a `bridge_status` heartbeat; the URL is a setting
+(`api.telemetry_path`), not a const; the queue is a shared `ReportQueue`,
+capped, and drops records the backend rejects; `event_id` replaces
+`cycle_id`.)*
+
 Scoped, per decision 2.1.9, to what the *current* hardware can detect:
 per-stage timing plus one homing-timeout fault. The fuller fault list is
 planned in Section 3.9 but not built now.
@@ -829,6 +850,12 @@ monitoring — considered and dropped.
 
 ### 3.10 Fault → screen mapping
 
+*(2026-09-24: Bucket C `FAULT:HOMING_TIMEOUT` is built. `TelemetryReporter`
+calls `ConfigManager.set_local_hardware_fault(true, "HOMING_TIMEOUT")` on
+`machine_fault` or a heartbeat that carries it, and clears it on `machine_ok`
+or a healthy heartbeat: **auto-clear, always** (product owner). The
+maintenance screen lists the fault and when it started.)*
+
 Not every fault belongs on a customer-facing screen, and not every
 screen-facing one belongs on the *same* screen. Three buckets, plus a
 `ConfigManager` change needed to support the middle one.
@@ -871,6 +898,14 @@ flag:**
   cycle's re-homing step; either way, the carriage position for the *next*
   order is unreliable, so it sets the local fault flag rather than only
   being logged.
+- **`BRIDGE_DOWN`** *(decided 2026-09-24, built in the Milestone 6 set)*: no
+  `bridge_status` heartbeat for 30 s (after a 60 s grace from app start).
+  Without the bridge nothing can dispense, so taking payment would only
+  charge customers for drinks the machine can't make. It auto-clears when
+  heartbeats resume, and can be disabled by a setting for development
+  without a bridge. With two local sources, `ConfigManager` tracks a set of
+  active local fault codes; the machine is out of service while any is set,
+  and the maintenance screen lists them all.
 - **Leak detected**: sets the flag; deliberately **does not auto-clear** on
   `FAULT:LEAK_CLEARED` — a leak that stops on its own can restart, so this
   one stays down until a technician acknowledges it (mechanism TBD when the
@@ -1139,8 +1174,9 @@ fuelbot/ (repo root)
 │   ├── DevCapture.gd            ✓ dev-only screenshots, always last
 │   ├── RazorpayManager.gd       ✓ rewritten clean, single implementation
 │   ├── Bridge.gd                ✓ UDP to the hardware bridge: ORDER/CANCEL out, results in on 4245
-│   ├── SalesReporter.gd
-│   └── TelemetryReporter.gd     # fault/stage-timing reports, own queue+retry
+│   ├── SalesReporter.gd         # M6 (will reuse core/report_queue.gd)
+│   └── TelemetryReporter.gd     ✓ 4246 events → enrich → ReportQueue; machine faults → maintenance
+├── core/report_queue.gd         ✓ durable outbound JSON queue (class_name ReportQueue)
 ├── scenes/
 │   ├── idle/{Idle.tscn, idle.gd}                          ✓
 │   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd} ✓
@@ -1159,15 +1195,15 @@ fuelbot/ (repo root)
 │   ├── theme/                   ✓ generated by tools/build_theme.gd
 │   └── video/                   ✓ idle_ad_default.ogv
 ├── hardware/                    ✓ (.gdignore'd)
-│   ├── firmware/VM_code.ino     ✓ + host_stub/ for tools/check_firmware.sh
+│   ├── firmware/VM_code.ino     ✓ + host_sim/ (simulator; tools/check_firmware.sh)
 │   ├── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
 │   └── pos/{pinelabs.py, transactions.xlsx}   # ported, inert (not yet)
 ├── mockserver/                  ✓ replaces tools/mock_config_server.py: stdlib server + JSON scenarios
 ├── tests/                       ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
 ├── tools/
 │   ├── run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd  ✓
-│   ├── fake_arduino_serial.py   ✓ Level 1 harness: VM_code.ino over a PTY, --fault modes
-│   ├── fake_dispense_bridge.py  ✓ Level 0 harness: DONE/TIMEOUT/REJECTED/silent (telemetry on 4246 is M5)
+│   ├── fake_arduino_serial.py   ✓ Level 1 harness: VM_code.ino over a PTY, --fault modes (incl. homing_timeout/flaky)
+│   ├── fake_dispense_bridge.py  ✓ Level 0 harness: DONE/TIMEOUT/REJECTED/silent + 4246 telemetry, --homing-fault-sec
 │   ├── check_firmware.sh        ✓ host syntax check of the sketch
 │   └── test_fakes.py            ✓ incl. automated Level 1
 ├── designs/GMRFuelBot-OnDevice-SsampleScreens.pdf   ✓
@@ -1192,7 +1228,7 @@ existing external reference (docs, muscle memory) to preserve.
 | 2 — Payment layer | 🟡 Built; mock end-to-end PASS; **real test-mode check pending** (product owner) | [payment SIGNOFF](../stories/payment/SIGNOFF.md) |
 | 3 — Idle, listing, details, payment screens | ✅ Idle, listing, details and payment screens done | [idle](../stories/idle/SIGNOFF.md), [details](../stories/details/SIGNOFF.md) |
 | 4 — Hardware bridge + dispensing | 🟡 Built; **Level 0 + Level 1 PASS** (fake bridge; real bridge + fake Arduino). **Level 2/3 pending hardware**; motors 5–6 are fail-safe placeholders pending wiring | [dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md) |
-| 5 — Telemetry | Not started | — |
+| 5 — Telemetry | 🟡 Built; **firmware simulator + Level 0 + Level 1 PASS**; Level 2/3 pending hardware; the telemetry backend is the mock | [telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md) |
 | 6 — Maintenance + sale reporting | Maintenance screen/poll ✅ done early (idle set); sale reporting not started | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
 | 7 — Asset migration | Partly done: flavor images, video, fonts ported. The flavor PNGs need padding trimmed | [assets/ASSETS.md](../../assets/ASSETS.md) |
 | 8 — Raspberry Pi | Not started | — |
@@ -1252,6 +1288,7 @@ existing external reference (docs, muscle memory) to preserve.
 **Milestone 5 — Fault/telemetry reporting**
 - `hardware/firmware/VM_code.ino`, `hardware/bridge/udprxtx.py`,
   `autoload/TelemetryReporter.gd` per Section 3.8.
+  *(Built 2026-09-24: [telemetry story set](../stories/telemetry/README.md).)*
 - Verify: run a normal cycle end-to-end and confirm one telemetry POST
   arrives with a full, ordered `stages` list and `fault: null`; then disable
   the limit switch (Level 2 rig, Section 6) and confirm `FAULT:HOMING_TIMEOUT`
@@ -1263,7 +1300,10 @@ existing external reference (docs, muscle memory) to preserve.
 
 **Milestone 6 — Maintenance mode + sale reporting**
 - `scenes/maintenance/` per Section 3.11; `autoload/SalesReporter.gd` per
-  Section 3.12.
+  Section 3.12 (reusing `core/report_queue.gd`).
+- *(Added 2026-09-24)* **Dead bridge → out of service** (`BRIDGE_DOWN`, §3.10):
+  heartbeat timeout 30 s, 60 s startup grace, auto-clear, dev setting, and
+  local faults as a set.
 - Verify (Section 7, steps 9, 10): one sale POST fires per completed order
   (success or timeout) with `charged_price`/`dispensing_result` matching
   reality; kill the mock server mid-order, confirm the record persists in
@@ -1320,6 +1360,11 @@ protocol v2 on 4242/4245 with `--mode done|timeout|reject|silent`, and the
 `fake_arduino_serial.py` owns a Python PTY pair, and its faults are
 `never_done|silent|disconnect`, with `homing_timeout` coming in Milestone 5.
 Level 1 also runs automatically in `tools/test_fakes.py`.)*
+
+*(2026-09-24, Milestone 5: Level 0 now includes the 4246 telemetry and
+`--homing-fault-sec`; Level 1 has `--fault homing_timeout|homing_flaky`. A
+"Level ½" was added: the real firmware on a host simulator,
+`hardware/firmware/test_firmware.py`.)*
 
 - **Level 0 — pure software, no hardware.** `tools/fake_dispense_bridge.py`:
   listens on the same UDP ports `udprxtx.py` uses (4242 selection, 4243
