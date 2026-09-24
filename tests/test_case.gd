@@ -94,3 +94,65 @@ func _mock_request(path: String, method: int, body: String) -> Dictionary:
 		return {}
 	var data = JSON.parse_string((res[3] as PackedByteArray).get_string_from_utf8())
 	return data if data is Dictionary else {}
+
+
+# --- Fixtures ----------------------------------------------------------------
+
+const MOCK_CONFIG_DIR := "res://mockserver/responses/config"
+
+
+## A mock scenario's body, resolved like the mock server does (extends +
+## body_patch), then normalised by ConfigManager.
+func load_mock_config(scenario: String = "default") -> Dictionary:
+	return ConfigManager.normalise(_resolve_mock_body(scenario))
+
+
+func _resolve_mock_body(scenario: String) -> Dictionary:
+	var env = JSON.parse_string(FileAccess.get_file_as_string("%s/%s.json" % [MOCK_CONFIG_DIR, scenario]))
+	if not env is Dictionary:
+		fail("cannot read mock scenario " + scenario)
+		return {}
+	if env.has("extends"):
+		var parent := _resolve_mock_body(env.extends)
+		return _merge(parent, env.get("body_patch", {})) if env.has("body_patch") else parent
+	return env.get("body", {})
+
+
+func _merge(base: Variant, patch: Variant) -> Variant:
+	if base is Dictionary and patch is Dictionary:
+		var out: Dictionary = base.duplicate(true)
+		for key in patch:
+			out[key] = _merge(out[key], patch[key]) if out.has(key) else patch[key]
+		return out
+	if _is_id_list(base) and _is_id_list(patch):
+		var out: Array = base.duplicate(true)
+		for item in patch:
+			var idx := out.find_custom(func(o: Dictionary) -> bool: return o.id == item.id)
+			if idx >= 0:
+				out[idx] = _merge(out[idx], item)
+			else:
+				out.append(item)
+		return out
+	return patch
+
+
+func _is_id_list(value: Variant) -> bool:
+	return value is Array and not value.is_empty() and value.all(
+		func(v: Variant) -> bool: return v is Dictionary and v.has("id"))
+
+
+func find_flavor(config: Dictionary, id: String) -> Dictionary:
+	for f in config.flavors:
+		if f.id == id:
+			return f
+	return {}
+
+
+## Synthetic left click (press + release) at a control's centre via _gui_input.
+func click(control: Control) -> void:
+	for pressed in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		ev.position = control.size / 2.0
+		control._gui_input(ev)
