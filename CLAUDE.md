@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 Guidance for working on this repo. The facts below were verified while
-building the idle-screen milestone (stories IDLE-01…10, Sept 2026, Godot 4.7.2).
+building the idle, details and payment story sets (IDLE-01…10, DET-01…03,
+PAY-01…06; Sept 2026, Godot 4.7.2).
 Read [README.md](README.md) for how to run things. This file covers how to
 change things without re-learning the same lessons.
 
@@ -31,9 +32,10 @@ ui/            components/ (brand_header, product_card, footer_bar, connectivity
                format.gd (Fmt), gallery/ (dev only; shows every component)
 config/        local_settings.json (strings, timing, api), default_config.json (offline fallback catalog)
 assets/        fonts (OFL), generated theme/, images/flavors/, video/ (.ogv only)
-mockserver/    stdlib Python mock backend + JSON scenarios (.gdignore'd)
+mockserver/    stdlib Python mock backend: routes.json, responses/<route>/*.json, assets/ (.gdignore'd)
 tests/         TestRunner.tscn + test_case.gd + unit/test_*.gd
-tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd
+tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd,
+               udp_monitor.py (prints bridge UDP traffic on 4242/4243)
 ```
 
 ## Commands (run from repo root)
@@ -45,8 +47,12 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
 - `tools/screenshot.sh <res://Scene.tscn|main> [out.png] [delay] [flavor id]`:
   real-time capture (540×960) into `.screenshots/`. The 4th arg passes
   `--select=<id>` to `DevCapture` so details/payment can be launched directly.
-- `tools/dev_run.sh [--scenario=x] [--editor] [--no-mock] [-- godot args]`: dev
-  launch with the mock on **:8787**.
+- `tools/dev_run.sh [--scenario=x] [--payments=mock|razorpay-test] [--editor]
+  [--fullscreen] [--no-mock] [-- godot args]`: dev launch with the mock on
+  **:8787**. `--scenario` switches the *config* route only; switch payment
+  outcomes with `mockserver/scenario.sh <name> '/v1/payments/qr_codes/{qr_id}/payments'`.
+- `python3 tools/udp_monitor.py`: see exactly what the app sends the bridge.
+  It can't run alongside the real bridge (port conflict).
 - `godot --headless --path . --script res://tools/build_theme.gd`: regenerate
   the theme after changing `palette.gd` or type sizes.
 - After adding assets, run `godot --headless --path . --import` (run_tests does
@@ -55,10 +61,16 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
 ## Definition of done for any change
 
 `tools/run_tests.sh` → `ALL TESTS PASSED`, `tools/check_boot.sh` → `BOOT OK`,
+`python3 -m unittest mockserver/test_server.py` → `OK` when the mock changed,
 and for UI changes a screenshot compared against the relevant PDF page.
 **Look at the screenshot**: the stuck-maintenance race and the six-card
 overflow were both found this way. Story work is one commit per story
-(`IDLE-NN: title`).
+(`IDLE-NN:`, `DET-NN:`, `PAY-NN: title`).
+- **Chain the commit with `&&`, never `;`.** `tools/run_tests.sh …; git commit`
+  committed a failing test once (`1baba35`). Use
+  `tools/run_tests.sh && tools/check_boot.sh && git commit …`.
+- **Re-run timing-sensitive tests** (payment, bridge, inactivity) 2–3× with
+  `--filter=` before calling them green.
 
 ## Project rules
 
@@ -126,8 +138,58 @@ overflow were both found this way. Story work is one commit per story
   flavors. `enabled:false` hides a flavor; `sold_out:true` shows it greyed and
   not tappable. Use `ConfigManager.is_orderable()`.
 - Credentials and provisioning files (`tenant_id.txt`,
-  `razorpay_credentials.cfg`, `*.local.cfg`, overrides) live in `user://` and
-  are gitignored. Never commit a key.
+  `razorpay_credentials.cfg`, `razorpay_credentials.mock.cfg`, `*.local.cfg`,
+  overrides) live in `user://` and are gitignored. Never commit a key.
+- **The old build's `fuelbotsource_og/second.gd` contains a live Razorpay
+  key.** Port logic from it, never text. When grepping it, mask
+  `rzp_(live|test)_…` and secrets in the output.
+
+## Razorpay test-mode run (real API, product owner's keys)
+
+Automated tests never need this: they use the mock. Run it to verify the
+payment integration against real Razorpay (PAY-06 Part B), and again after
+any change to `RazorpayManager` or the create payload.
+
+1. **Keys stay on the machine.** Never paste them into chat, a terminal
+   command or a file in the repo. Create this file by hand:
+   `~/Library/Application Support/Godot/app_userdata/FuelBot/razorpay_credentials.cfg`
+   ```ini
+   [razorpay]
+   key_id="rzp_test_…"
+   key_secret="…"
+   ```
+   `dev_setup.gd -- --payments=razorpay-test` refuses to continue (exit 1,
+   printing this format) if the file is missing or doesn't hold `rzp_test_`
+   keys. `rzp_live_` keys are refused by the app unless
+   `payments.allow_live_keys` is `true`. Never flip that on a dev machine.
+2. **Launch:** `tools/dev_run.sh --payments=razorpay-test`. The mock server
+   still serves the *config* route; payment calls go to
+   `https://api.razorpay.com` (the override's `razorpay_base_url` is removed).
+   The log should show `[Razorpay] ready (mode=test)` and never the key.
+3. **Order through to Scan to pay** (attract → drink → Proceed to Pay). Check:
+   - the header chip reads `TEST MODE` and the QR is real and scannable (the
+     mock's QR is a non-scannable placeholder);
+   - Razorpay Dashboard (test mode) → QR Codes lists the new QR: amount ₹ of
+     the drink, `single_use`, and **notes** with `order_id` (a 26-char ULID
+     matching `OrderState.order_id`), `order_number` and `tenant_id`.
+4. **Cancel** → the dashboard shows the QR as **closed** (on demand).
+5. **Expiry:** leave one alone → it closes at `close_by` ≈ creation + 180 s.
+   If create fails with `http_400` (the log says `QR create failed … http_400`),
+   Razorpay rejected `close_by` as too soon: record its stated minimum, raise
+   `timing.qr_expiry_sec` above it, and update plan §3.5 and the §0 decision
+   log.
+6. **Payment:** if Razorpay test mode offers a way to simulate paying a test
+   UPI QR (dashboard or test tooling, per current Razorpay docs), do it and
+   confirm `Payment received` → the dispensing stub, with
+   `python3 tools/udp_monitor.py` showing `P<hopper>`, `B2`, then `Y` about
+   0.3 s later. If there's no way to simulate it, record that; the capture
+   path is covered by the mock (`paid`, `paid_after_3`).
+7. **Record** the results in `devdocs/stories/payment/SIGNOFF.md` (Part B
+   table) and mark Milestone 2 done in plan §0/§5 once creation and close are
+   confirmed.
+8. **Back to mock:** `tools/dev_run.sh`. Mock keys live in their own
+   `razorpay_credentials.mock.cfg`, so the real test-key file is left alone.
+   `dev_setup.gd -- --clear` *does* delete it.
 
 ## Godot 4.7 gotchas (all hit or verified here)
 
@@ -186,6 +248,10 @@ overflow were both found this way. Story work is one commit per story
   ("cyclic resource inclusion"). The generator calls `take_over_path()` and
   then saves in place. Keep that pattern for any generated resource the
   project already loads.
+- **`PacketPeerUDP.bind(0, "127.0.0.1")`** picks a free port
+  (`get_local_port()`). Use it for UDP tests. To test timing between sends,
+  timestamp the sender's own `sent` signal, not packet receipt: drain loops
+  add frame-sized jitter (a 200 ms gap measured as 126 ms).
 - A `JSON.parse_string` failure prints an engine `ERROR:` line. That's
   expected in the corrupt-cache/malformed tests, and `check_boot.sh`
   deliberately doesn't match it.
@@ -216,9 +282,25 @@ overflow were both found this way. Story work is one commit per story
   a human, use a temporary scene that adds a persistent `Node` to `root`
   (so it survives scene changes), calls `Nav.go(IDLE)`, then injects taps with
   `Input.parse_input_event()`. Positions are in *window* coordinates, i.e.
-  viewport × (window size / 1080×1920). Capture with
-  `get_viewport().get_texture().get_image()`. Don't commit it; record results
-  in SIGNOFF.
+  viewport × (window size / 1080×1920). Useful viewport tap points: attract
+  anywhere (540,960), first listing card (300,650), Proceed (700,1800),
+  payment Cancel (540,1805). Capture with
+  `get_viewport().get_texture().get_image()`. Run `tools/udp_monitor.py`
+  alongside to record bridge traffic, and read the mock's `last_body` from
+  `/__mock/state` for what was sent to "Razorpay". **Wait ~1.5 s before
+  `quit()`** so fire-and-forget requests (QR close) actually go out. Waits
+  inside the walker use the wall clock. Don't commit it; record results in
+  SIGNOFF.
+- **Capturing screens that need an order:** `tools/screenshot.sh <scene> <out>
+  <delay> <flavor id>` → `DevCapture --select=<id>` sets the flavor, price,
+  base (`water`), a fresh ULID and order number 42. It selects from whatever
+  catalog is loaded at boot, so before the first fetch lands that's the
+  cache or the bundled default (no volume/nutrition). A missing meta line in
+  a capture can be this, not a bug.
+- **Credential leak checks:** boot with sentinel keys
+  (`rzp_test_SENTINEL1` / `SENTINEL2`) in the creds file and grep the log for
+  `SENTINEL`: it must be 0. `run_tests.sh` also greps `RazorpayManager.gd` for
+  print/warn calls that format `key_id`/`key_secret`/`_auth_header`.
 
 ## Mock server
 
@@ -232,13 +314,22 @@ overflow were both found this way. Story work is one commit per story
   `extends` + `body_patch` deep-merge, and arrays of `{id}` objects merge by
   id. Files are re-read on every request.
 - Add routes in `routes.json`; `server.py` has no route-specific code.
-- Missing `X-Tenant-Id` → 400. Admin endpoints: `/__mock/state`,
+- Missing `X-Tenant-Id` → 400 (config route). Missing/empty Basic auth → 401
+  (Razorpay routes; any `id:secret` passes). Admin endpoints: `/__mock/state`,
   `/__mock/scenario`, `/__mock/reset` (`mockserver/scenario.sh`).
+- Razorpay scenarios: create `default`/`bad_request`/`server_error`; payments
+  `default` (pending), `paid`, `paid_after_3` (a sequence), `failed`,
+  `server_error`; close `default`. Captured amounts are fixed at 7500 paise
+  (guava ₹75), so amount-checking tests use guava. Switching a scenario
+  restarts its sequence.
+- `assets/qr_demo.png` comes from `make_demo_qr.py` (stdlib PNG writer). It's
+  deliberately not scannable.
 - **Stale servers bite.** A leftover server on :8787 silently serves an old
   scenario, and a new one fails with "Address already in use" in its log. Start
   background servers with `& PID=$!` and `kill $PID`: `kill %1` did not work
-  across chained commands. `pkill -f mockserver/server.py` clears everything.
-  `run_tests.sh` refuses to run if :8788 is already taken.
+  across chained commands. `pkill -f mockserver/server.py` (and
+  `pkill -f udp_monitor.py`) clears everything. `run_tests.sh` refuses to run
+  if :8788 is already taken.
 - The cached config persists maintenance state across reboots (by design). A
   previous `maintenance_on` run makes the next boot start in maintenance until
   a fetch says otherwise.
@@ -250,7 +341,12 @@ overflow were both found this way. Story work is one commit per story
   unexpected screen, re-run it before debugging.
 - The macOS `user://` dir is `~/Library/Application Support/Godot/app_userdata/FuelBot/`.
   `godot --headless --path . --script res://tools/dev_setup.gd -- --clear`
-  resets it (no tenant, no override, no cache).
+  resets it (no tenant, override, cache, credentials or QR image; the order
+  counter stays). Plain `dev_setup.gd` re-provisions for mock payments.
+- **The shell is zsh.** Bash-only expansions fail (`${var^^}` →
+  "bad substitution"), and an unquoted `$var` isn't word-split (use
+  `${=var}`). Scripts in `tools/` have a bash shebang and are fine; this bites
+  inline one-liners.
 - There's no `timeout` binary on macOS; use Godot's `--quit-after N` (with
   `--max-fps` for real-time pacing).
 
@@ -262,9 +358,10 @@ overflow were both found this way. Story work is one commit per story
   says.
 - Not yet verified by hand: the editor F5 path, and a manual tap-through of the
   full flow.
-- **Milestone 2 Part B pending:** real Razorpay test-mode check by the
-  product owner (payment SIGNOFF). Confirm Razorpay's minimum `close_by` lead
-  time there.
+- **Milestone 2 Part B pending:** the real Razorpay test-mode check by the
+  product owner. Steps are in "Razorpay test-mode run" above; results go in
+  the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
+  whether test mode can simulate a UPI QR payment.
 - `scenes/dispensing/` is a stub. Next: Milestone 4 (bridge rewrite with an
   atomic order message, DONE/TIMEOUT on 4245, dispensing + complete screens,
   PDF p5, firmware motors 5–6), then sale reporting (M6, `order_id` in the
