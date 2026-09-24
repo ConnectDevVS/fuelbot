@@ -248,7 +248,7 @@ class BridgeCore:
         if self.state == DISPENSING and now >= self._deadline_at:
             self._log("no %s within %.0f s" % (DONE_LINE, self.deadline))
             self._finish("TIMEOUT", "deadline")
-        elif self.state == RECOVERING and now >= self._recover_until:
+        elif self.state == RECOVERING and now >= self._recover_until and self._serial_ok():
             self.state = READY
             self._log("ready (no '%s' within %.0f s)" % (READY_LINE, self.recover_sec))
 

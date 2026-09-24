@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 Guidance for working on this repo. The facts below were verified while
-building the idle, details and payment story sets (IDLE-01…10, DET-01…03,
-PAY-01…06; Sept 2026, Godot 4.7.2).
+building the idle, details, payment and dispensing story sets (IDLE-01…10,
+DET-01…03, PAY-01…06, DSP-01…06; Sept 2026, Godot 4.7.2).
 Read [README.md](README.md) for how to run things. This file covers how to
 change things without re-learning the same lessons.
 
@@ -24,25 +24,34 @@ eventual target.
 ```
 autoload/      ConfigManager (first!), OrderState, Nav, OrderCounter, RazorpayManager, Bridge,
                DevCapture (always last)
-scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing = STUB,
+scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing,
                maintenance);
                scene_paths.gd = ScenePaths constants
 ui/            components/ (brand_header, product_card, footer_bar, connectivity_status, chip,
-               allergen_banner, nutrition_tile, step_indicator), theme/palette.gd (Palette),
+               allergen_banner, nutrition_tile, step_indicator, status_badge), theme/palette.gd (Palette),
                format.gd (Fmt), gallery/ (dev only; shows every component)
 config/        local_settings.json (strings, timing, api), default_config.json (offline fallback catalog)
 assets/        fonts (OFL), generated theme/, images/flavors/, video/ (.ogv only)
+hardware/      firmware/VM_code.ino (+ host_stub/), bridge/udprxtx.py (+ test) (.gdignore'd)
 mockserver/    stdlib Python mock backend: routes.json, responses/<route>/*.json, assets/ (.gdignore'd)
 tests/         TestRunner.tscn + test_case.gd + unit/test_*.gd
 tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd,
-               udp_monitor.py (prints bridge UDP traffic on 4242/4243)
+               udp_monitor.py (prints app→bridge UDP on 4242), fake_dispense_bridge.py (Level 0),
+               fake_arduino_serial.py (Level 1), check_firmware.sh, test_fakes.py
 ```
 
 ## Commands (run from repo root)
 
 - `tools/run_tests.sh [--filter=x]`: all GDScript tests. Starts its own mock on
   **:8788**, and fails on any `SCRIPT ERROR`, not just on failed asserts.
-- `python3 -m unittest mockserver/test_server.py`: mock server tests.
+- `python3 -m unittest mockserver/test_server.py hardware/bridge/test_udprxtx.py tools/test_fakes.py`:
+  all Python tests (mock server, bridge, fakes + automated Level 1).
+- `tools/check_firmware.sh`: `clang++ -fsyntax-only` of the sketch against
+  stub headers. Not an AVR compile (`arduino-cli` isn't installed).
+- `python3 tools/fake_dispense_bridge.py --mode done|timeout|reject|silent --delay N`:
+  Level 0 stand-in for the bridge. `python3 tools/fake_arduino_serial.py
+  --time-scale 0.1 --link <path> [--fault never_done|silent|disconnect]` +
+  `python3 hardware/bridge/udprxtx.py --serial <path> --recover-sec 3`: Level 1.
 - `tools/check_boot.sh`: 5 s headless boot, fails on script or parse errors.
 - `tools/screenshot.sh <res://Scene.tscn|main> [out.png] [delay] [flavor id]`:
   real-time capture (540×960) into `.screenshots/`. The 4th arg passes
@@ -51,8 +60,9 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
   [--fullscreen] [--no-mock] [-- godot args]`: dev launch with the mock on
   **:8787**. `--scenario` switches the *config* route only; switch payment
   outcomes with `mockserver/scenario.sh <name> '/v1/payments/qr_codes/{qr_id}/payments'`.
-- `python3 tools/udp_monitor.py`: see exactly what the app sends the bridge.
-  It can't run alongside the real bridge (port conflict).
+- `python3 tools/udp_monitor.py`: see exactly what the app sends the bridge
+  (4242). It can't run alongside the real or fake bridge (port conflict), and
+  it can't watch 4245 while the app runs (the app binds it).
 - `godot --headless --path . --script res://tools/build_theme.gd`: regenerate
   the theme after changing `palette.gd` or type sizes.
 - After adding assets, run `godot --headless --path . --import` (run_tests does
@@ -61,7 +71,7 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
 ## Definition of done for any change
 
 `tools/run_tests.sh` → `ALL TESTS PASSED`, `tools/check_boot.sh` → `BOOT OK`,
-`python3 -m unittest mockserver/test_server.py` → `OK` when the mock changed,
+the Python tests (`mockserver/`, `hardware/bridge/`, `tools/test_fakes.py`) → `OK` when any Python changed, `tools/check_firmware.sh` when the sketch changed,
 and for UI changes a screenshot compared against the relevant PDF page.
 **Look at the screenshot**: the stuck-maintenance race and the six-card
 overflow were both found this way. Story work is one commit per story
@@ -89,10 +99,10 @@ overflow were both found this way. Story work is one commit per story
   details re-resolves the flavor by id and bails to the listing if it's gone
   or sold out.
 - **Payment rules (Milestone 2):**
-  - The hopper goes to the bridge **only after payment succeeds**: `P<hopper>`
-    and `B<n>` on 4242, a **wall-clock** gap (`bridge.result_gap_sec`), then
-    `Y` on 4243. Cancel, failure and expiry send `X`. The current bridge
-    drops an early `Y`.
+  - The hopper goes to the bridge **only after payment succeeds**, as one
+    datagram `ORDER <order_id> P<hopper> B<n>` on 4242
+    (`Bridge.send_order_paid`). Cancel, failure and expiry send
+    `CANCEL <order_id>`. Port 4243, `Y`/`X` and the gap are gone (protocol v2).
   - **Cancel race:** Cancel does one final `check_now()` and dispenses if the
     payment is already captured.
   - Leaving the payment screen by any path except PAID calls
@@ -110,6 +120,27 @@ overflow were both found this way. Story work is one commit per story
     `dev_run.sh`) = real Razorpay with the hand-written
     `razorpay_credentials.cfg`. Mock mode never touches the real file.
     Mock Razorpay routes use the **same paths** as the real API.
+- **Dispensing rules (Milestone 4, protocol table in
+  `devdocs/stories/dispensing/README.md`):**
+  - Results come back on 4245 as `DONE|TIMEOUT|REJECTED <order_id> [reason]`.
+    The **`Bridge` autoload** owns that socket for the app's lifetime and
+    caches results per order. A scene reads `Bridge.get_result(id)` on entry
+    *and* listens to `result_received`, because a reply can arrive before the
+    scene loads. Don't move the socket into a scene.
+  - A refused `send_order_paid` records a local `REJECTED … bad_order`, so the
+    dispensing screen fails at once. Payment navigates to dispensing either way.
+  - The dispensing screen is lime in every state. Anything but `DONE`, or no
+    result within `timing.dispense_safety_cap_sec` (130), shows
+    `dispensing_timeout`. No refund logic. No maintenance check.
+  - Timing chain: firmware cycle ≈ 68–78 s < bridge `--deadline` 110 <
+    app cap 130. Keep cap > deadline if you retune.
+  - The bridge is stdlib-only Python 3.9 (no `match`, no `X | Y` hints). All
+    policy lives in `BridgeCore` (no I/O, fake clock in tests). It rejects
+    orders while dispensing or recovering (after each cycle until `Home
+    reached`, max `--recover-sec`), and never blocks without a deadline.
+  - Firmware changes are minimal and marked `// M4:`. Keep `Home reached`,
+    `STATUS:DONE` and the `FAULT:` texts exact: the bridge matches them.
+    Hoppers 5–6 are `-1` placeholders that fail safe.
 - **Allergens:** the banner is hidden when the list is empty. Never render
   "allergen-free"; the data only says nothing was declared. The nutrition
   section hides when absent (the bundled config has none), and missing keys
@@ -180,9 +211,9 @@ any change to `RazorpayManager` or the create payload.
    log.
 6. **Payment:** if Razorpay test mode offers a way to simulate paying a test
    UPI QR (dashboard or test tooling, per current Razorpay docs), do it and
-   confirm `Payment received` → the dispensing stub, with
-   `python3 tools/udp_monitor.py` showing `P<hopper>`, `B2`, then `Y` about
-   0.3 s later. If there's no way to simulate it, record that; the capture
+   confirm `Payment received` → the dispensing screen, with
+   `python3 tools/udp_monitor.py` showing `ORDER <order_id> P<hopper> B2`
+   (or run `tools/fake_dispense_bridge.py` to see it through to DONE). If there's no way to simulate it, record that; the capture
    path is covered by the mock (`paid`, `paid_after_3`).
 7. **Record** the results in `devdocs/stories/payment/SIGNOFF.md` (Part B
    table) and mark Milestone 2 done in plan §0/§5 once creation and close are
@@ -276,8 +307,11 @@ any change to `RazorpayManager` or the create payload.
 - **Scene tests with real autoloads** (payment): point `RazorpayManager` at
   the mock (`base_url`, `credentials_path`, poll timings, then
   `reload_credentials()`) and `Bridge` at ephemeral `PacketPeerUDP.bind(0)`
-  listeners (`connect_sockets()`). Restore both in `after_each` with
-  `configure_from_settings()`. Tests never bind 4242/4243.
+  listeners (`order_port` + `connect_sockets()`; for results
+  `listen_port = 0` + `listen()`, then send datagrams to
+  `get_listen_port()`). Restore both in `after_each` with
+  `configure_from_settings()`. Tests bind only ephemeral ports (the autoload
+  itself binds 4245 at boot and only warns if it's taken).
 - **Real-flow walkthroughs:** to verify navigation without dry-run and without
   a human, use a temporary scene that adds a persistent `Node` to `root`
   (so it survives scene changes), calls `Nav.go(IDLE)`, then injects taps with
@@ -285,7 +319,11 @@ any change to `RazorpayManager` or the create payload.
   viewport × (window size / 1080×1920). Useful viewport tap points: attract
   anywhere (540,960), first listing card (300,650), Proceed (700,1800),
   payment Cancel (540,1805). Capture with
-  `get_viewport().get_texture().get_image()`. Run `tools/udp_monitor.py`
+  `get_viewport().get_texture().get_image()` after two `process_frame`s,
+  **not** `await RenderingServer.frame_post_draw`: that never fires once
+  macOS stops drawing a hidden or occluded window, and the walker hangs.
+  In that case captures are also a stale frame (every shot identical), so
+  compare the md5s and re-run. Run `tools/udp_monitor.py`
   alongside to record bridge traffic, and read the mock's `last_body` from
   `/__mock/state` for what was sent to "Razorpay". **Wait ~1.5 s before
   `quit()`** so fire-and-forget requests (QR close) actually go out. Waits
@@ -293,7 +331,8 @@ any change to `RazorpayManager` or the create payload.
   SIGNOFF.
 - **Capturing screens that need an order:** `tools/screenshot.sh <scene> <out>
   <delay> <flavor id>` → `DevCapture --select=<id>` sets the flavor, price,
-  base (`water`), a fresh ULID and order number 42. It selects from whatever
+  base (`water`), a fresh ULID, order number 42 and a dummy transaction id
+  (so dispensing opens in its blending state). It selects from whatever
   catalog is loaded at boot, so before the first fetch lands that's the
   cache or the bundled default (no volume/nutrition). A missing meta line in
   a capture can be this, not a bug.
@@ -347,13 +386,30 @@ any change to `RazorpayManager` or the create payload.
   "bad substitution"), and an unquoted `$var` isn't word-split (use
   `${=var}`). Scripts in `tools/` have a bash shebang and are fine; this bites
   inline one-liners.
+- `socat`, `pyserial` and `arduino-cli` aren't installed. Serial fakes use
+  Python `pty` pairs. **PTY gotcha:** with `O_NONBLOCK` and `VMIN=0`, macOS
+  returns `b''` for "no data", which looks like EOF. Use `VMIN=1` (EAGAIN =
+  no data, `b''` = closed). Keep the fake's slave fd open and raw, or the
+  pty echoes the fake's own output back to it.
+- Temporary walker/capture scenes live in an untracked folder (e.g.
+  `tmp_capture/`). Delete it before finishing, and never `git add -A`.
 - There's no `timeout` binary on macOS; use Godot's `--quit-after N` (with
   `--max-fps` for real-time pacing).
 
 ## Open items carried forward
 
-- The plan (§2.1.3, §3.3) and `VM_code.ino` still assume 4 motors; hoppers 5–6
-  need firmware and wiring work.
+- **Motors 5–6 wiring:** `hardware/firmware/VM_code.ino` has `-1`
+  placeholder pins, positions and durations (`TODO(wiring)`). Until they're
+  wired, a real machine's catalog must not enable flavors on hoppers 5–6.
+- **Milestone 4 Levels 2/3 pending hardware** (steps in the dispensing
+  SIGNOFF), including the first real AVR compile. Then retune the timing
+  chain from measured cycles.
+- **Refund policy** for paid-but-failed dispenses: undecided (support
+  message only).
+- **Stuck board (Milestone 5):** after a `TIMEOUT` the bridge accepts the
+  next order after `--recover-sec`, even if the board is stuck in
+  `homeAxis()`. Needs `FAULT:HOMING_TIMEOUT` and a maintenance flip.
+- `hardware/pos/pinelabs.py` (inert port, plan §5 M4) not done.
 - The plan doc quotes the old Razorpay key ID. Rotate the key as the plan
   says.
 - Not yet verified by hand: the editor F5 path, and a manual tap-through of the
@@ -362,9 +418,8 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- `scenes/dispensing/` is a stub. Next: Milestone 4 (bridge rewrite with an
-  atomic order message, DONE/TIMEOUT on 4245, dispensing + complete screens,
-  PDF p5, firmware motors 5–6), then sale reporting (M6, `order_id` in the
-  payload).
+- Next: Milestone 5 (telemetry, `STATUS:*` stages, bounded homing) and
+  Milestone 6 (sale reporting with `order_id`, fired on DONE/TIMEOUT from the
+  dispensing screen).
 - Flavor PNGs from the old build have heavy padding and render small; crop
   them.

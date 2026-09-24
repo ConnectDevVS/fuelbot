@@ -139,6 +139,19 @@ class CoreTests(unittest.TestCase):
         h.core.on_link_restored()
         self.assertEqual(h.core.state, udprxtx.RECOVERING)
 
+    def test_not_ready_while_link_down(self):
+        h = CoreHarness().ready()
+        h.serial_ok = False
+        h.core.on_link_lost()
+        h.clock.now += 100
+        h.core.tick()
+        self.assertEqual(h.core.state, udprxtx.RECOVERING, "no READY without a serial link")
+        h.serial_ok = True
+        h.core.on_link_restored()
+        h.clock.now += 20
+        h.core.tick()
+        self.assertEqual(h.core.state, udprxtx.READY)
+
     def test_recover_timeout(self):
         h = CoreHarness(recover_sec=15)
         h.clock.now += 14.9
