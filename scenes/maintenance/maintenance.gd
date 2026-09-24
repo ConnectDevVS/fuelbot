@@ -24,6 +24,10 @@ func _ready() -> void:
 	timer.timeout.connect(_render_live)
 	add_child(timer)
 	_render()
+	# The flag can clear between idle's redirect and this scene connecting to
+	# maintenance_changed (e.g. a fast boot fetch overriding a cached flag).
+	if not ConfigManager.is_in_maintenance():
+		Nav.go_idle.call_deferred()
 
 
 func _on_maintenance_changed(enabled: bool, _message_text: String) -> void:

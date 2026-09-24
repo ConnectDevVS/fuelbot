@@ -74,3 +74,9 @@ func test_static_cells() -> void:
 	_open()
 	assert_eq(_scene.get_cell_value("diag_payments"), "DISABLED", "payments")
 	assert_true(_scene.get_cell_value("diag_firmware").begins_with("0.1.0 (godot 4."), "firmware")
+
+
+func test_already_cleared_on_entry_returns_to_idle() -> void:
+	_open()
+	await wait_frames(2)
+	assert_eq(Nav.last_requested, ScenePaths.IDLE, "not in maintenance, so back to idle")
