@@ -59,6 +59,9 @@ data, so it's omitted. Colour overrides go through
     have changed).
   - `ConfigManager.connectivity_changed`: re-render the network and heartbeat
     cells.
+- After the first render, if `not ConfigManager.is_in_maintenance()`, call
+  `Nav.go_idle.call_deferred()`. The flag can clear between idle's redirect and
+  this scene connecting to the signal (found during execution).
 - A 1 s `Timer` refreshes the header clock, `flagged_at` "ago" and the
   heartbeat.
 - **No interaction.** The scene consumes no input and has no buttons (plan

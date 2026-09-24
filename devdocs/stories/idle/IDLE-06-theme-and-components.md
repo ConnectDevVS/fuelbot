@@ -89,22 +89,22 @@ Theme (`default_font = body_400`, `default_font_size = 34`, Label
 |-----------|-----------|-------------|----------------|
 | `DisplayXL` | Label | display_900 / 128, `line_spacing ≈ -36` (tune to a 118 px line pitch) | TEXT |
 | `DisplayL` | Label | display_900 / 100, `line_spacing ≈ -24` (tune to a 96 px line pitch) | TEXT |
-| `Heading` | Label | heading_800 / 46 | TEXT |
-| `HeadingDim` | Label | heading_800 / 46 | TEXT_DIM (sold-out name) |
+| `Heading` | Label | heading_800 / 42 | TEXT |
+| `HeadingDim` | Label | heading_800 / 42 | TEXT_DIM (sold-out name) |
 | `Body` | Label | body_400 / 34 | TEXT_MUTED |
 | `BodyStrong` | Label | body_600 / 34 | TEXT_MUTED |
 | `Mono` | Label | mono_500 / 24 | TEXT_DIM |
 | `MonoMuted` | Label | mono_500 / 26 | TEXT_MUTED |
 | `MonoAccent` | Label | mono_500 / 26 | ACCENT |
 | `MonoWarning` | Label | mono_500 / 26 | WARNING |
-| `MonoValue` | Label | mono_500 / 30 | TEXT |
+| `MonoValue` | Label | mono_500 / 27 | TEXT |
 | `Clock` | Label | mono_500 / 32 | TEXT |
 | `Price` | Label | display_900 / 60 | ACCENT |
 | `PriceSoldOut` | Label | display_900 / 60 | TEXT_DIM |
 | `LogoText` | Label | display_900 / 42 | ON_ACCENT |
 | `BadgeText` | Label | mono_500 / 20 | ON_ACCENT |
 | `LogoTile` | PanelContainer | — | bg ACCENT, radius 22 |
-| `CardPanel` | PanelContainer | — | bg SURFACE, border 2 BORDER, radius 28, content margin 36 |
+| `CardPanel` | PanelContainer | — | bg SURFACE, border 2 BORDER, radius 28, content margin 32 |
 | `CardPanelPopular` | PanelContainer | — | like CardPanel, border **4 ACCENT**, `shadow_color` ACCENT @ 25% alpha, `shadow_size 12` |
 | `HeroPanel` | PanelContainer | — | bg SURFACE_RAISED, radius 28, margin 0 |
 | `BadgePanel` | PanelContainer | — | bg ACCENT, radius 6, margins 12/6 |
@@ -152,8 +152,8 @@ then an expanding spacer, then the right slot.
 `custom_minimum_size.y = 424`):
 ```
 CardPanel / CardPanelPopular
-└─ VBox (separation 14)
-   ├─ ImageArea (Control, min height 176, clip_contents)
+└─ VBox (separation 10)
+   ├─ ImageArea (Control, min height 160, clip_contents)
    │   ├─ TextureRect   expand_mode IGNORE_SIZE, stretch KEEP_ASPECT_CENTERED, full rect
    │   ├─ Placeholder   Label LogoText-style on SURFACE_RAISED, shown when the image is missing
    │   └─ Badge         BadgePanel > BadgeText, anchored top-left, hidden when badge == null

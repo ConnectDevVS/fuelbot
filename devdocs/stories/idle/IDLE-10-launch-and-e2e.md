@@ -19,7 +19,10 @@ devdocs/stories/idle/SIGNOFF.md  # filled-in checklist + screenshots list (creat
 
 ## Spec
 
-### `tools/dev_run.sh [--scenario=<name>] [--editor] [--fullscreen] [--no-mock]`
+### `tools/dev_run.sh [--scenario=<name>] [--editor] [--fullscreen] [--no-mock] [-- <godot user args>]`
+
+Arguments after `--` are forwarded to Godot, e.g.
+`-- --capture=/abs/out.png` for a scripted launch check.
 
 1. `set -euo pipefail`, `cd` to the repo root, `GODOT="${GODOT:-godot}"`.
    Check that `$GODOT --version` reports `4.7` and that `python3` exists.

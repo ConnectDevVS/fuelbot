@@ -112,7 +112,12 @@ centred `Label` saying `FuelBot — skeleton`, plus `idle.gd`
 
 ### Test harness
 
-`tests/test_case.gd`, the base class for every test file:
+`tests/test_case.gd`, the base class for every test file. As executed, the
+wait helper became `watch_signal(obj, sig)` (starts recording immediately)
+plus `wait_until(state, timeout)`, because calling a coroutine without `await`
+returns no awaitable handle in Godot 4. `run_tests.sh` also fails on any
+`SCRIPT ERROR`, since a script error aborts a test before its asserts run.
+The original sketch:
 
 ```gdscript
 class_name TestCase
