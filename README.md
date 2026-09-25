@@ -128,6 +128,28 @@ Order a drink: after "Enjoy your shake", the machine is out of service for
 20 s, then back on the attract screen. Details:
 [devdocs/stories/telemetry/README.md](devdocs/stories/telemetry/README.md).
 
+## Sales and the dead-bridge check
+
+Every paid order produces one sale record (what was charged, and whether the
+drink was dispensed: `success`, `timeout`, `rejected` or `no_response`). It's
+kept in `user://sales_queue.json` until the backend (`api.base_url +
+api.sales_path`; the mock: `/fuelbot/sales`) accepts it, so no sale is lost
+offline.
+
+If the hardware bridge stops sending its 10 s heartbeat for 30 s, the machine
+goes out of service (`BRIDGE_DOWN`) and comes back by itself when the bridge
+returns. This check is **off in development** by default, so the app runs
+without a bridge. To try it:
+
+```bash
+python3 tools/fake_dispense_bridge.py --mode done     # terminal 1 (sends heartbeats)
+tools/dev_run.sh --bridge-check                       # terminal 2; then stop the bridge (Ctrl+C)
+```
+
+About 60–90 s later (30 s after the last heartbeat, and not before 60 s from
+app start) the out-of-service screen appears. Restart the bridge and it's
+back on the attract screen within seconds.
+
 ## Local machine state (`user://`)
 
 On macOS this is `~/Library/Application Support/Godot/app_userdata/FuelBot/`.
