@@ -8,12 +8,14 @@ const DispensingScene := preload("res://scenes/dispensing/Dispensing.tscn")
 const QUEUE := "user://test_fault/queue.json"
 
 var _snap: Dictionary
+var _prev_queue := ""
 var _scene: Control
 var _sender: PacketPeerUDP
 var _reply: PacketPeerUDP
 
 
 func before_each() -> void:
+	_prev_queue = TelemetryReporter.queue_path
 	_snap = snapshot_app_state()
 	ConfigManager.remote_maintenance_enabled = false
 	ConfigManager.set_local_hardware_fault(false)
@@ -43,7 +45,7 @@ func after_each() -> void:
 	_reply.close()
 	TelemetryReporter._applied_fault = null
 	restore_app_state(_snap)
-	TelemetryReporter.queue_path = TelemetryReporter.QUEUE_PATH
+	TelemetryReporter.queue_path = _prev_queue   # the runner's test queue, never the real one
 	TelemetryReporter.configure_from_settings()
 	Bridge.configure_from_settings()
 

@@ -11,7 +11,8 @@
     "order_port": 4242,
     "listen_host": "127.0.0.1",
     "listen_port": 4245,
-    "telemetry_port": 4246
+    "telemetry_port": 4246,
+    "require_heartbeat": true
   },
   "payments": {
     "allow_live_keys": false,
@@ -67,6 +68,7 @@
     "diag_unknown": "—",
     "fault_homing_timeout": "Carriage did not reach its home position",
     "fault_unknown": "Hardware fault",
+    "fault_bridge_down": "Hardware controller not responding",
 
     "back": "Back",
 
@@ -129,6 +131,8 @@
     "dispense_safety_cap_sec": 130,
     "dispensing_done_return_sec": 6,
     "dispensing_error_return_sec": 10,
-    "telemetry_retry_interval_sec": 60
+    "telemetry_retry_interval_sec": 60,
+    "bridge_heartbeat_timeout_sec": 30,
+    "bridge_startup_grace_sec": 60
   }
 }

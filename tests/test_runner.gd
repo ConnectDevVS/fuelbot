@@ -4,6 +4,8 @@ extends Node
 
 const TEST_DIR := "res://tests/unit"
 const WATCHDOG_SEC := 180.0
+const TEST_API := "http://127.0.0.1:8788/fuelbot"   # run_tests.sh's mock
+const TEST_QUEUE := "user://test_runner/telemetry_queue.json"
 
 var _filter := ""
 
@@ -20,7 +22,24 @@ func _ready() -> void:
 		get_tree().quit(2))
 	add_child(watchdog)
 	watchdog.start()
+	_isolate_app()
+
 	_run.call_deferred()
+
+
+## Tests must never touch the developer's environment: the dev override (loaded at boot)
+## points the backend at the dev mock (:8787) and the reporters at the real user:// queues.
+func _isolate_app() -> void:
+	ConfigManager.local_settings.api.base_url = TEST_API
+	DirAccess.make_dir_recursive_absolute(TEST_QUEUE.get_base_dir())
+	DirAccess.remove_absolute(TEST_QUEUE)
+	TelemetryReporter.queue_path = TEST_QUEUE
+	TelemetryReporter.start_queue()
+	# No bridge runs during tests: without this the dead-bridge watchdog (SAL-02) would
+	# take the test process out of service mid-run. Its own tests switch it back on.
+	ConfigManager.local_settings.get("bridge", {})["require_heartbeat"] = false
+	TelemetryReporter.require_heartbeat = false
+	TelemetryReporter.reset_watchdog()
 
 
 func _test_files() -> PackedStringArray:
