@@ -65,6 +65,7 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-25 | **One sale record for every paid order** with `dispensing_result` `success`/`timeout`/`rejected`/`no_response` + `dispensing_reason`, recorded by the dispensing screen once the outcome is known; `order_id` is the dedupe key | A sale is a billing fact (money was taken); failed dispenses are exactly what refunds and reconciliation need | §3.12, sales README |
 | 2026-09-25 | **Local faults are a set of codes** (`HOMING_TIMEOUT`, `BRIDGE_DOWN`), each with its start time; clearing one never clears another; the maintenance footer for local faults says "BACK IN SERVICE AUTOMATICALLY" | Faults overlap; a self-clearing fault shouldn't say "exit via remote console" | §3.10, §3.11 |
 | 2026-09-25 | **Tests are isolated from the dev environment:** the runner points the backend at the test mock and the reporters at test-only queues, and disables the dead-bridge watchdog | Tests had posted to the developer's dev mock via the dev override | CLAUDE.md |
+| 2026-09-25 | **Maintenance diagnostics show the bridge** (BRIDGE status + BRIDGE HEARTBEAT) next to the server heartbeat; **the 60 s dead-bridge startup grace is accepted** (product owner) | A technician must tell a dead bridge from a server outage; no false alarms at boot | §3.11, sales README |
 
 ## 1. Context
 

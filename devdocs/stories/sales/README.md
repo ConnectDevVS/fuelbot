@@ -83,6 +83,16 @@ Made while writing this set:
 9. **Timings are settings:** `timing.bridge_heartbeat_timeout_sec` (30) and
    `timing.bridge_startup_grace_sec` (60).
 
+Made by the product owner after the sign-off (2026-09-25):
+
+10. **The maintenance diagnostics get a bridge row:** **BRIDGE**
+    (`RESPONDING` / `NOT RESPONDING` / `NOT SEEN`) and **BRIDGE HEARTBEAT**
+    ("x s ago" / "never"), next to the server's LAST HEARTBEAT, which is
+    unchanged. A technician can tell a dead bridge from a server outage.
+11. **The 60 s startup grace is accepted as is:** in the first 60 s after an
+    app start, a dead bridge doesn't block orders yet, in exchange for no
+    false alarms while the bridge starts.
+
 ## Sale record (POST `api.base_url + api.sales_path`, header `X-Tenant-Id`)
 
 ```json

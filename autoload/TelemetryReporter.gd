@@ -70,6 +70,11 @@ func is_bridge_down() -> bool:
 	return _bridge_down_since_msec >= 0
 
 
+## Seconds since the last bridge heartbeat, or -1.0 if none has been seen since start.
+func bridge_heartbeat_age_sec() -> float:
+	return -1.0 if _last_heartbeat_msec < 0 else (Time.get_ticks_msec() - _last_heartbeat_msec) / 1000.0
+
+
 ## (Re)creates the queue from queue_path and flushes whatever is on disk (flush-on-boot).
 func start_queue() -> void:
 	if queue:

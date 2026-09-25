@@ -83,14 +83,15 @@ responding`). Both were compared against PDF page 6's layout.
 ## Observations (for review, not changed)
 
 - **"LAST HEARTBEAT" in the maintenance diagnostics** is the *server*
-  heartbeat (config poll). Shown next to `BRIDGE_DOWN` it can mislead a
-  technician. Consider renaming it "LAST SERVER CONTACT", or adding a
-  "BRIDGE" row.
+  heartbeat (config poll). **Resolved (product owner):** a bridge row was
+  added (**BRIDGE** `RESPONDING` / `NOT RESPONDING` / `NOT SEEN`, **BRIDGE
+  HEARTBEAT** "x s ago"); test `test_maintenance_shows_bridge_row`,
+  screenshot `.screenshots/Maintenance-bridge-row.png`.
 - **Startup grace window.** Within the first 60 s after an app start, a dead
   bridge doesn't block orders yet (the mid-order and Level 1 runs show
-  attract until 60 s). A customer who orders in that window still pays and
-  fails. That was the chosen trade-off against false alarms at boot;
-  Milestone 8's systemd ordering (bridge first) makes it rare.
+  attract until 60 s). **Accepted by the product owner** as the trade-off
+  against false alarms at boot. Milestone 8's systemd ordering (bridge
+  first) makes it rare.
 - **Dev machines:** the restored dev override has no `require_heartbeat`
   key, so the watchdog defaults to **on** for an app started outside
   `dev_run.sh` (e.g. editor F5) until `tools/dev_run.sh` or `dev_setup.gd`

@@ -478,8 +478,9 @@ any change to `RazorpayManager` or the create payload.
 - **Milestone 5 Levels 2/3 pending hardware** (steps in the telemetry
   SIGNOFF): unplug the limit switch, watch the fault, retries and auto-clear.
 - ~~Dead bridge~~: built in Milestone 6 (`BRIDGE_DOWN`, see the rules above).
-- **Maintenance "LAST HEARTBEAT"** is the *server* heartbeat; next to
-  `BRIDGE_DOWN` it can mislead a technician (sales SIGNOFF observation).
+- Maintenance diagnostics: "LAST HEARTBEAT" is the *server*; the BRIDGE /
+  BRIDGE HEARTBEAT row (from `TelemetryReporter`) is the hardware bridge.
+  The 60 s dead-bridge startup grace is accepted as is (product owner).
 - ~~Maintenance footer~~: local faults now say "BACK IN SERVICE AUTOMATICALLY"
   (Milestone 6).
 - **Homing past the switch:** after a broken-switch fault the carriage can sit

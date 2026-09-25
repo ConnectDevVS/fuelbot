@@ -3,7 +3,8 @@ extends Control
 ## Returns to idle when ConfigManager reports maintenance has cleared.
 
 const CELLS := ["diag_machine_id", "diag_site", "diag_flagged_by", "diag_flagged_at",
-	"diag_firmware", "diag_network", "diag_last_heartbeat", "diag_payments"]
+	"diag_firmware", "diag_network", "diag_last_heartbeat", "diag_payments",
+	"diag_bridge", "diag_bridge_heartbeat"]
 
 var _clock: Label
 var _message: Label
@@ -110,6 +111,14 @@ func _render_live() -> void:
 	net.add_theme_color_override("font_color", Palette.SUCCESS if online else Palette.WARNING)
 	var beat := ConfigManager.last_successful_fetch_unix
 	_values.diag_last_heartbeat.text = ConfigManager.get_message("diag_never") if beat == 0.0 else Fmt.ago(now - beat)
+	# The hardware bridge (separate from the server heartbeat above), SAL-02.
+	var age := TelemetryReporter.bridge_heartbeat_age_sec()
+	var bridge: Label = _values.diag_bridge
+	var bridge_key := "maintenance_bridge_down" if TelemetryReporter.is_bridge_down() \
+		else ("maintenance_bridge_unseen" if age < 0.0 else "maintenance_bridge_ok")
+	bridge.text = ConfigManager.get_message(bridge_key)
+	bridge.add_theme_color_override("font_color", Palette.SUCCESS if bridge_key == "maintenance_bridge_ok" else Palette.WARNING)
+	_values.diag_bridge_heartbeat.text = ConfigManager.get_message("diag_never") if age < 0.0 else Fmt.ago(age)
 
 
 # --- Layout ------------------------------------------------------------------

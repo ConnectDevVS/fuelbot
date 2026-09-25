@@ -3,6 +3,7 @@ extends TestCase
 ## user://test_dead/). Short timings; the watchdog is only on inside these tests.
 
 const QUEUE := "user://test_dead/queue.json"
+const MaintenanceScene := preload("res://scenes/maintenance/Maintenance.tscn")
 
 var _snap: Dictionary
 var _prev_queue := ""
@@ -122,3 +123,23 @@ func test_non_heartbeat_events_dont_count() -> void:
 		_send({"v": 1, "event_type": "machine_ok", "cleared": "HOMING_TIMEOUT"})
 		await wait_seconds(0.2)
 	assert_true(TelemetryReporter.is_bridge_down(), "only heartbeats keep the bridge up")
+
+
+func test_maintenance_shows_bridge_row() -> void:
+	Nav.dry_run = true
+	_watch(5.0, 0.0)   # long enough to see RESPONDING; shortened below to force an outage
+	var scene: Control = MaintenanceScene.instantiate()
+	ConfigManager.set_local_hardware_fault(true, "HOMING_TIMEOUT")   # keep the screen up
+	add_child(scene)
+	await wait_frames(2)
+	assert_eq(scene.get_cell_value("diag_bridge"), ConfigManager.get_message("maintenance_bridge_unseen"), "before any heartbeat")
+	assert_eq(scene.get_cell_value("diag_bridge_heartbeat"), ConfigManager.get_message("diag_never"), "never")
+	_heartbeat()
+	await wait_seconds(1.2)   # the screen refreshes live values every second
+	assert_eq(scene.get_cell_value("diag_bridge"), ConfigManager.get_message("maintenance_bridge_ok"), "responding")
+	assert_true(scene.get_cell_value("diag_bridge_heartbeat").ends_with("ago"), "heartbeat age shown")
+	TelemetryReporter.heartbeat_timeout_sec = 0.3   # no more heartbeats: time out
+	await wait_seconds(1.2)
+	assert_true(TelemetryReporter.is_bridge_down(), "down")
+	assert_eq(scene.get_cell_value("diag_bridge"), ConfigManager.get_message("maintenance_bridge_down"), "not responding")
+	scene.queue_free()
