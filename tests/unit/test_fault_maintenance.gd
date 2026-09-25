@@ -152,3 +152,11 @@ func test_remote_wins() -> void:
 	await _ok()
 	assert_true(ConfigManager.is_in_maintenance(), "remote still on")
 	assert_eq(ConfigManager.get_maintenance_info().source, "remote", "remote message and diagnostics")
+
+
+func test_homing_ok_keeps_other_fault() -> void:
+	ConfigManager.set_local_hardware_fault(true, "BRIDGE_DOWN")
+	await _fault()
+	await _ok()
+	assert_true(ConfigManager.is_in_maintenance(), "BRIDGE_DOWN still active")
+	assert_eq(ConfigManager.local_faults.keys(), ["BRIDGE_DOWN"], "only homing cleared")

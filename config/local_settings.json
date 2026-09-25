@@ -54,6 +54,7 @@
     "maintenance_faults_title": "ACTIVE FAULTS ({count})",
     "maintenance_service": "SERVICE: {phone}",
     "maintenance_exit_hint": "EXIT VIA REMOTE CONSOLE ONLY",
+    "maintenance_exit_hint_local": "BACK IN SERVICE AUTOMATICALLY",
     "diag_machine_id": "MACHINE ID",
     "diag_site": "SITE",
     "diag_flagged_by": "FLAGGED BY",

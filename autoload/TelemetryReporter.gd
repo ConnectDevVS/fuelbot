@@ -24,7 +24,7 @@ var _listener := PacketPeerUDP.new()
 var _listening := false
 var _listen_warned := false
 var _next_listen_try_msec := 0
-var _applied_fault: Variant = null   # last value pushed to ConfigManager (heartbeats don't churn)
+var _applied_fault: Variant = null   # last homing value pushed to ConfigManager (heartbeats don't churn)
 
 
 func _ready() -> void:
@@ -130,8 +130,9 @@ func _apply_health(fault: Variant) -> void:
 		return
 	_applied_fault = code
 	if code == null:
-		print("[Telemetry] machine healthy: clearing the local hardware fault")
-		ConfigManager.set_local_hardware_fault(false)
+		print("[Telemetry] machine healthy: clearing the homing fault")
+		for known in LOCAL_MAINTENANCE_FAULTS:   # only our own codes, never e.g. BRIDGE_DOWN
+			ConfigManager.set_local_hardware_fault(false, known)
 	else:
 		push_warning("[Telemetry] machine fault %s: out of service until the board homes" % code)
 		ConfigManager.set_local_hardware_fault(true, code)

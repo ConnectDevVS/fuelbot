@@ -32,7 +32,8 @@ tests/unit/test_config_manager.gd, test_fault_maintenance.gd, test_maintenance_s
   - `true` + code: add it (the time is kept if already present);
   - `false` + code: remove only that code;
   - `false` and no code: clear all of them;
-  - `true` with no code: add `"UNKNOWN"`.
+  - `true` with no code: an anonymous fault (key `""`), counted but not
+    listed (the existing behaviour).
   - It emits `maintenance_changed` only when `is_in_maintenance()` or the
     message actually changes (existing rule).
 - `get_maintenance_info()` (local source): `faults` lists every active code

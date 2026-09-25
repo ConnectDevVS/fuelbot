@@ -70,8 +70,9 @@ Made while writing this set:
    code)` API is kept: `false` with a code clears that code, and `false`
    without one clears all of them.
 7. **Maintenance footer for local faults** says the machine comes back by
-   itself: `maintenance_exit_hint_local` = "RETURNS TO SERVICE AUTOMATICALLY
-   ONCE FIXED". The remote-maintenance footer ("EXIT VIA REMOTE CONSOLE
+   itself: `maintenance_exit_hint_local` = "BACK IN SERVICE AUTOMATICALLY"
+   (a longer first draft overflowed the footer; the hint now wraps rather
+   than widening the page). The remote-maintenance footer ("EXIT VIA REMOTE CONSOLE
    ONLY") is unchanged. *Proposed wording; the product owner can change the
    string in `local_settings.json`.*
 8. **The dead-bridge check is off in development by default:**

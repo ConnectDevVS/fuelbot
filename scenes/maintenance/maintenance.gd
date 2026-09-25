@@ -12,6 +12,7 @@ var _faults_panel: PanelContainer
 var _faults_title: Label
 var _faults_list: VBoxContainer
 var _service: Label
+var _exit_hint: Label
 
 
 func _ready() -> void:
@@ -56,6 +57,10 @@ func is_faults_visible() -> bool:
 	return _faults_panel.visible
 
 
+func get_exit_hint_text() -> String:
+	return _exit_hint.text
+
+
 func _render() -> void:
 	var info := ConfigManager.get_maintenance_info()
 	var tenant := ConfigManager.get_tenant()
@@ -85,6 +90,9 @@ func _render() -> void:
 	var phone: String = tenant.get("support_phone", "")
 	_service.visible = phone != ""
 	_service.text = ConfigManager.get_message("maintenance_service", {"phone": phone})
+	# A local fault clears by itself (telemetry decision 1); remote maintenance doesn't.
+	_exit_hint.text = ConfigManager.get_message(
+		"maintenance_exit_hint_local" if info.source == "local" else "maintenance_exit_hint")
 	_render_live()
 
 
@@ -189,7 +197,12 @@ func _build() -> void:
 	_service = _label("MonoMuted", "")
 	footer_row.add_child(_service)
 	footer_row.add_child(_expander())
-	footer_row.add_child(_label("Mono", ConfigManager.get_message("maintenance_exit_hint")))
+	_exit_hint = _label("Mono", "")
+	# Wraps instead of widening the page if the (editable) copy is long.
+	_exit_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_exit_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_exit_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	footer_row.add_child(_exit_hint)
 
 
 func _build_diagnostics() -> PanelContainer:
