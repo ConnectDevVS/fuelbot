@@ -31,9 +31,18 @@ var config_loaded := false
 var is_online := false
 var last_successful_fetch_unix := 0.0
 var remote_maintenance_enabled := false
-var local_hardware_fault_active := false
-var local_hardware_fault_code := ""   # e.g. "HOMING_TIMEOUT" (set by TelemetryReporter, TEL-06)
-var local_hardware_fault_since := ""  # UTC ISO time the local fault was first set
+## Active local (Bucket C) faults: code -> UTC ISO time first set, oldest first
+## (e.g. "HOMING_TIMEOUT", "BRIDGE_DOWN"). "" = a fault set without a code (not listed).
+var local_faults: Dictionary = {}
+## Convenience view of local_faults (kept for existing callers and tests).
+var local_hardware_fault_active: bool:
+	get:
+		return not local_faults.is_empty()
+	set(value):
+		if not value:
+			local_faults.clear()
+		elif local_faults.is_empty():
+			local_faults[""] = Time.get_datetime_string_from_system(true) + "Z"
 
 var _default_tenant: Dictionary = {}
 var _http_boot: HTTPRequest
@@ -42,6 +51,7 @@ var _poll_timer: Timer
 var _poll_in_flight := false
 var _last_emitted_active := false
 var _last_emitted_message := ""
+var _last_emitted_faults := ""   # local fault codes: a new/cleared fault re-renders maintenance
 
 
 func _ready() -> void:
@@ -186,30 +196,34 @@ func get_maintenance_info() -> Dictionary:
 			"faults": m.get("faults", []),
 		}
 	if local_hardware_fault_active:
+		var faults: Array = []
+		for code in local_faults:
+			if code != "":
+				faults.append({"code": code, "description": _fault_description(code)})
 		return {
 			"active": true,
 			"source": "local",
 			"message": default_message,
 			"flagged_by": get_message("maintenance_local_fault_by"),
-			"flagged_at": local_hardware_fault_since,
-			"faults": [] if local_hardware_fault_code == "" else [{
-				"code": local_hardware_fault_code,
-				"description": _fault_description(local_hardware_fault_code),
-			}],
+			"flagged_at": local_faults.values()[0],   # the oldest
+			"faults": faults,
 		}
 	return {"active": false, "source": "", "message": default_message,
 		"flagged_by": "", "flagged_at": "", "faults": []}
 
 
-## Bucket C machine faults (plan §3.10). code (e.g. "HOMING_TIMEOUT") is shown on the
-## maintenance screen's fault list.
+## Bucket C machine faults (plan §3.10), tracked per code (sales README decision 6):
+##   true + code  -> add it (keeps its original time if already set)
+##   false + code -> clear only that code; false without a code -> clear all
+## Out of service while any is set; the maintenance screen lists the coded ones.
 func set_local_hardware_fault(active: bool, code: String = "") -> void:
-	if active and not local_hardware_fault_active:
-		local_hardware_fault_since = Time.get_datetime_string_from_system(true) + "Z"
-	local_hardware_fault_active = active
-	local_hardware_fault_code = code if active else ""
-	if not active:
-		local_hardware_fault_since = ""
+	if active:
+		if not local_faults.has(code):
+			local_faults[code] = Time.get_datetime_string_from_system(true) + "Z"
+	elif code == "":
+		local_faults.clear()
+	else:
+		local_faults.erase(code)
 	_emit_maintenance_if_changed()
 
 
@@ -414,10 +428,13 @@ func _apply_remote_maintenance(raw: Variant) -> void:
 func _emit_maintenance_if_changed() -> void:
 	var active := is_in_maintenance()
 	var message: String = get_maintenance_info().message
-	if active == _last_emitted_active and (not active or message == _last_emitted_message):
+	var faults := ",".join(PackedStringArray(local_faults.keys()))
+	if active == _last_emitted_active and (not active or (message == _last_emitted_message
+			and faults == _last_emitted_faults)):
 		return
 	_last_emitted_active = active
 	_last_emitted_message = message
+	_last_emitted_faults = faults
 	maintenance_changed.emit(active, message)
 
 

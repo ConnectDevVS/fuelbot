@@ -1,8 +1,9 @@
 # CLAUDE.md
 
 Guidance for working on this repo. The facts below were verified while
-building the idle, details, payment, dispensing and telemetry story sets
-(IDLE-01…10, DET-01…03, PAY-01…06, DSP-01…06, TEL-01…07; Sept 2026, Godot 4.7.2).
+building the idle, details, payment, dispensing, telemetry and sales story
+sets (IDLE-01…10, DET-01…03, PAY-01…06, DSP-01…06, TEL-01…07, SAL-01…04;
+Sept 2026, Godot 4.7.2).
 Read [README.md](README.md) for how to run things. This file covers how to
 change things without re-learning the same lessons.
 
@@ -23,7 +24,7 @@ eventual target.
 
 ```
 autoload/      ConfigManager (first!), OrderState, Nav, OrderCounter, RazorpayManager, Bridge,
-               TelemetryReporter, DevCapture (always last)
+               TelemetryReporter, SalesReporter, DevCapture (always last)
 core/          report_queue.gd (ReportQueue: durable outbound POST queue; telemetry now, sales in M6)
 scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing,
                maintenance);
@@ -64,7 +65,7 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
   real-time capture (540×960) into `.screenshots/`. The 4th arg passes
   `--select=<id>` to `DevCapture` so details/payment can be launched directly.
 - `tools/dev_run.sh [--scenario=x] [--payments=mock|razorpay-test] [--editor]
-  [--fullscreen] [--no-mock] [--skip-port-check] [-- godot args]`: dev launch with the mock on
+  [--fullscreen] [--no-mock] [--skip-port-check] [--bridge-check] [-- godot args]`: dev launch with the mock on
   **:8787**. `--scenario` switches the *config* route only; switch payment
   outcomes with `mockserver/scenario.sh <name> '/v1/payments/qr_codes/{qr_id}/payments'`.
 - **One app, one bridge.** Only one process can listen on 4245 (bridge
@@ -169,12 +170,28 @@ overflow were both found this way. Story work is one commit per story
     (`core/`): written to disk before the network, one POST in flight, retry
     timer, flush on boot, 4xx (not 408/429) dropped, capped. Don't write a
     second queue for sales in M6: reuse it.
-  - `HOMING_TIMEOUT` is the only local maintenance fault built so far
-    (`BRIDGE_DOWN` is decided, see Open items). `TelemetryReporter`
-    sets `ConfigManager.set_local_hardware_fault(true, code)` and clears it
-    on `machine_ok` or a healthy heartbeat: **auto-clear, always** (product
+  - Local maintenance faults are a **set of codes** (`ConfigManager.local_faults`,
+    code → start time): `HOMING_TIMEOUT` (from the board) and `BRIDGE_DOWN`
+    (no bridge heartbeat for `timing.bridge_heartbeat_timeout_sec` = 30 s,
+    after `bridge_startup_grace_sec` = 60 s). Each clears only its own code:
+    `set_local_hardware_fault(false, code)`. **Auto-clear, always** (product
     owner). Idle stays the only enforcement point; an order in progress
-    finishes first.
+    finishes first. The watchdog is `bridge.require_heartbeat`: on in
+    production, off in dev by default (`dev_setup --bridge-check=off|on`,
+    `dev_run --bridge-check`).
+- **Sale rules (Milestone 6, `devdocs/stories/sales/README.md`):** every paid
+  order gets exactly one sale record (`SalesReporter`, via `ReportQueue`,
+  `api.sales_path`), recorded by the dispensing screen when the outcome is
+  known: `success` / `timeout` / `rejected` / `no_response` + reason. Build it
+  from `SalesReporter.sale_from_order_state()` (committed prices, never the
+  live catalog), and never on the payment screen.
+- **Tests never touch the dev environment.** The test process loads the dev
+  override (backend → the dev mock on :8787), so `tests/test_runner.gd`
+  re-points the backend at the test mock (:8788) and the reporters at
+  `user://test_runner/` queues, and turns off the dead-bridge watchdog. A
+  test that swaps a reporter's `queue_path` restores the previous value,
+  never the real `QUEUE_PATH`. A new reporter or queue needs the same
+  treatment in `_isolate_app()`.
   - The board never resets in a loop on a homing fault: it retries after 1,
     2, 4 and 8 min, then every 10 min, and refuses commands (`FAULT:NOT_HOMED`).
     The bridge also refuses orders while faulted (`REJECTED machine_fault`).
@@ -460,16 +477,12 @@ any change to `RazorpayManager` or the create payload.
   maintenance, orders refused while faulted).
 - **Milestone 5 Levels 2/3 pending hardware** (steps in the telemetry
   SIGNOFF): unplug the limit switch, watch the fault, retries and auto-clear.
-- **Dead bridge → out of service: decided, not built yet** (Milestone 6 set;
-  plan §0 and §3.10). No heartbeat for 30 s → local fault `BRIDGE_DOWN` →
-  maintenance after any order in progress; auto-clears when heartbeats
-  resume; `bridge_down`/`bridge_up` posted; 60 s grace after app start; a
-  setting turns it off for development without a bridge. `ConfigManager`'s
-  single local fault must become a set of codes first (homing + bridge can
-  overlap). Until it's built, a dead bridge means every paying customer is
-  charged and gets the failure screen after the 130 s cap.
-- **Maintenance footer** says "EXIT VIA REMOTE CONSOLE ONLY", which is wrong
-  for a local fault that clears itself.
+- ~~Dead bridge~~: built in Milestone 6 (`BRIDGE_DOWN`, see the rules above).
+- Maintenance diagnostics: "LAST HEARTBEAT" is the *server*; the BRIDGE /
+  BRIDGE HEARTBEAT row (from `TelemetryReporter`) is the hardware bridge.
+  The 60 s dead-bridge startup grace is accepted as is (product owner).
+- ~~Maintenance footer~~: local faults now say "BACK IN SERVICE AUTOMATICALLY"
+  (Milestone 6).
 - **Homing past the switch:** after a broken-switch fault the carriage can sit
   beyond home, and the next successful homing zeroes there (M4 homing
   behaviour). Check at Level 2.
@@ -482,7 +495,8 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- Next: Milestone 6 (sale reporting with `order_id`, fired on DONE/TIMEOUT from
-  the dispensing screen, via `ReportQueue`).
+- Next: Milestone 7 (crop the flavor PNGs, port `pinelabs.py` inert), then
+  Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
+- **Real sales/telemetry backends:** only the mock exists (settings change).
 - Flavor PNGs from the old build have heavy padding and render small; crop
   them.

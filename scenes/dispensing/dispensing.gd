@@ -61,6 +61,7 @@ func _process(_delta: float) -> void:
 					"order_id": OrderState.order_id, "hopper": int(OrderState.selected_flavor.get("hopper", 0)),
 					"result": "NO_RESPONSE", "reason": "safety_cap", "stages": [], "fault": null,
 					"duration_ms": int(elapsed * 1000)}, "app")
+				_report_sale("no_response", "safety_cap")
 				_enter(State.FAILED)
 		State.DONE, State.FAILED:
 			var left_sec := maxi(_return_at_msec - now, 0) / 1000.0
@@ -85,10 +86,18 @@ func _on_result(order_id: String, kind: String, reason: String) -> void:
 	if order_id != OrderState.order_id or state != State.BLENDING:
 		return
 	if kind == "DONE":
+		_report_sale("success", "")
 		_enter(State.DONE)
 	else:
 		push_warning("[Dispensing] order %s %s %s" % [order_id, kind, reason])
+		_report_sale("timeout" if kind == "TIMEOUT" else "rejected", reason)
 		_enter(State.FAILED)
+
+
+## The order was paid: record the sale now that the outcome is known (SAL-03), before the
+## return to idle resets OrderState. SalesReporter ignores a repeat for the same order.
+func _report_sale(result: String, reason: String) -> void:
+	SalesReporter.report_sale(SalesReporter.sale_from_order_state(result, reason))
 
 
 func _enter(new_state: State) -> void:

@@ -3,6 +3,7 @@
     "base_url": "https://example.invalid/fuelbot",
     "config_path": "/config",
     "telemetry_path": "/telemetry",
+    "sales_path": "/sales",
     "request_timeout_sec": 10,
     "razorpay_base_url": "https://api.razorpay.com"
   },
@@ -11,7 +12,8 @@
     "order_port": 4242,
     "listen_host": "127.0.0.1",
     "listen_port": 4245,
-    "telemetry_port": 4246
+    "telemetry_port": 4246,
+    "require_heartbeat": true
   },
   "payments": {
     "allow_live_keys": false,
@@ -54,6 +56,7 @@
     "maintenance_faults_title": "ACTIVE FAULTS ({count})",
     "maintenance_service": "SERVICE: {phone}",
     "maintenance_exit_hint": "EXIT VIA REMOTE CONSOLE ONLY",
+    "maintenance_exit_hint_local": "BACK IN SERVICE AUTOMATICALLY",
     "diag_machine_id": "MACHINE ID",
     "diag_site": "SITE",
     "diag_flagged_by": "FLAGGED BY",
@@ -62,10 +65,16 @@
     "diag_network": "NETWORK",
     "diag_last_heartbeat": "LAST HEARTBEAT",
     "diag_payments": "PAYMENTS",
+    "diag_bridge": "BRIDGE",
+    "diag_bridge_heartbeat": "BRIDGE HEARTBEAT",
+    "maintenance_bridge_ok": "RESPONDING",
+    "maintenance_bridge_down": "NOT RESPONDING",
+    "maintenance_bridge_unseen": "NOT SEEN",
     "diag_never": "never",
     "diag_unknown": "—",
     "fault_homing_timeout": "Carriage did not reach its home position",
     "fault_unknown": "Hardware fault",
+    "fault_bridge_down": "Hardware controller not responding",
 
     "back": "Back",
 
@@ -128,6 +137,8 @@
     "dispense_safety_cap_sec": 130,
     "dispensing_done_return_sec": 6,
     "dispensing_error_return_sec": 10,
-    "telemetry_retry_interval_sec": 60
+    "telemetry_retry_interval_sec": 60,
+    "bridge_heartbeat_timeout_sec": 30,
+    "bridge_startup_grace_sec": 60
   }
 }

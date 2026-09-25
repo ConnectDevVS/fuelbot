@@ -7,6 +7,7 @@ const ROUTE := "/fuelbot/telemetry"
 const QUEUE := "user://test_tel/queue.json"
 
 var _snap: Dictionary
+var _prev_queue := ""
 var _tenant := ""
 var _sender: PacketPeerUDP
 var _order_peer: PacketPeerUDP
@@ -14,6 +15,7 @@ var _scene: Control
 
 
 func before_each() -> void:
+	_prev_queue = TelemetryReporter.queue_path
 	await mock_reset()
 	_snap = snapshot_app_state()
 	_tenant = ConfigManager.tenant_id
@@ -44,7 +46,7 @@ func after_each() -> void:
 	_order_peer.close()
 	ConfigManager.tenant_id = _tenant
 	restore_app_state(_snap)
-	TelemetryReporter.queue_path = TelemetryReporter.QUEUE_PATH
+	TelemetryReporter.queue_path = _prev_queue   # the runner's test queue, never the real one
 	TelemetryReporter.configure_from_settings()
 	Bridge.configure_from_settings()
 

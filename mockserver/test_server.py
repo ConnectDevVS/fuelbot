@@ -201,6 +201,17 @@ class MockServerTest(unittest.TestCase):
             self._scenario(scenario, path)
             self.assertEqual(self._request(path, data=b"{}", tenant="t-1")[0], code, scenario)
 
+    def test_sales_route(self):
+        path = "/fuelbot/sales"
+        sale = {"order_id": "01J8Z6Q4M9X3T7C2V5B8N1K4RD", "charged_price": 75, "dispensing_result": "success"}
+        self.assertEqual(self._request(path, data=json.dumps(sale).encode())[0], 400, "needs X-Tenant-Id")
+        status, text = self._request(path, data=json.dumps(sale).encode(), tenant="t-1")
+        self.assertEqual((status, json.loads(text)), (201, {"ok": True}))
+        self.assertEqual(self._state()["last_body"][path], sale)
+        for scenario, code in (("server_error", 500), ("bad_request", 400)):
+            self._scenario(scenario, path)
+            self.assertEqual(self._request(path, data=b"{}", tenant="t-1")[0], code, scenario)
+
     def test_config_route_unchanged_by_auth(self):
         self.assertEqual(self._request(CONFIG)[0], 400)
         self.assertEqual(self._config()[0], 200)

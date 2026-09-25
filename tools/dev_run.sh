@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # One-command dev launch: mock backend + dev provisioning + the kiosk app.
 # Usage: tools/dev_run.sh [--scenario=<name>] [--payments=mock|razorpay-test] [--editor] [--fullscreen]
-#                         [--no-mock] [--skip-port-check] [-- <godot user args>]
+#                         [--no-mock] [--skip-port-check] [--bridge-check] [-- <godot user args>]
+# --bridge-check turns on the dead-bridge watchdog (out of service after 30 s without a
+# bridge heartbeat); off by default so the app runs without a bridge.
 # Refuses to start if another program (usually a second copy of the app, e.g. the
 # game running inside the Godot editor) already listens on the bridge result port
 # (4245): the bridge's DONE would go to that copy, and this one would show
@@ -11,7 +13,7 @@ cd "$(dirname "$0")/.."
 GODOT="${GODOT:-godot}"
 MOCK_PORT=8787
 
-scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock" port_check=1
+scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock" port_check=1 bridge_check="off"
 passthrough=()
 while [[ $# -gt 0 ]]; do
 	arg="$1"
@@ -24,6 +26,7 @@ while [[ $# -gt 0 ]]; do
 		--fullscreen) fullscreen=1 ;;
 		--no-mock) no_mock=1 ;;
 		--skip-port-check) port_check=0 ;;
+		--bridge-check) bridge_check="on" ;;
 		*) echo "unknown option: $arg" >&2; exit 2 ;;
 	esac
 done
@@ -98,12 +101,17 @@ if [[ $no_mock -eq 0 ]]; then
 	if [[ -n "$scenario" ]]; then
 		MOCK_PORT=$MOCK_PORT mockserver/scenario.sh "$scenario" >/dev/null
 	fi
-	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" >.dev_setup.log 2>&1; then
+	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" --bridge-check="$bridge_check" >.dev_setup.log 2>&1; then
 		cat .dev_setup.log >&2
 		exit 1
 	fi
 else
 	"$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --clear >/dev/null 2>&1
+	if [[ "$bridge_check" == "off" ]]; then
+		# Offline dev has no bridge either: keep the dead-bridge watchdog off.
+		user_dir="$("$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --print-dir 2>/dev/null | sed -n 's/^user data dir: //p' | head -1)"
+		[[ -n "$user_dir" ]] && printf '{"bridge": {"require_heartbeat": false}}\n' >"$user_dir/local_settings.override.json"
+	fi
 fi
 
 cat <<BANNER
@@ -113,6 +121,7 @@ cat <<BANNER
  Scenario     : ${scenario:-$([[ $no_mock -eq 1 ]] && echo "-" || echo "current")}
  Payments     : $([[ $no_mock -eq 1 ]] && echo "-" || echo "$payments")
  Bridge       : $bridge_note
+ Bridge check : $bridge_check (dead bridge -> out of service after 30 s)
  Switch live  : mockserver/scenario.sh maintenance_on | reset
  User data    : $("$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --print-dir 2>/dev/null | sed -n 's/^user data dir: //p' | head -1)
 ────────────────────────────────────────────────────────────

@@ -2,12 +2,14 @@ extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
 ##     [--tenant=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
-##     [--payments=mock|razorpay-test] [--clear] [--print-dir]
+##     [--payments=mock|razorpay-test] [--bridge-check=off|on] [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
 ##   + razorpay_base_url -> mock server. Your real razorpay_credentials.cfg is never touched.
 ## --payments=razorpay-test: real Razorpay (test mode) using razorpay_credentials.cfg.
 ##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
+## --bridge-check=off (default): no dead-bridge watchdog, so the app runs without a bridge.
+##   on: out of service after 30 s without a bridge heartbeat (run a real or fake bridge).
 
 const TENANT_PATH := "user://tenant_id.txt"
 const OVERRIDE_PATH := "user://local_settings.override.json"
@@ -22,6 +24,7 @@ func _initialize() -> void:
 	var api := "http://127.0.0.1:8787/fuelbot"
 	var poll := 10.0
 	var payments := "mock"
+	var bridge_check := "off"
 	var clear := false
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--tenant="):
@@ -34,6 +37,8 @@ func _initialize() -> void:
 			payments = "mock"
 		elif arg.begins_with("--payments="):
 			payments = arg.trim_prefix("--payments=")
+		elif arg.begins_with("--bridge-check="):
+			bridge_check = arg.trim_prefix("--bridge-check=")
 		elif arg == "--clear":
 			clear = true
 		elif arg == "--print-dir":
@@ -53,9 +58,15 @@ func _initialize() -> void:
 		quit(2)
 		return
 
+	if bridge_check not in ["off", "on"]:
+		printerr("unknown --bridge-check=%s (use off or on)" % bridge_check)
+		quit(2)
+		return
+
 	var override := {
 		"api": {"base_url": api},
 		"timing": {"maintenance_poll_interval_sec": poll},
+		"bridge": {"require_heartbeat": bridge_check == "on"},
 	}
 	if payments == "mock":
 		override.api["razorpay_base_url"] = _origin(api)
@@ -73,7 +84,7 @@ func _initialize() -> void:
 
 	_write(TENANT_PATH, tenant)
 	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
-	print("tenant=%s api=%s poll=%ss payments=%s" % [tenant, api, poll, payments])
+	print("tenant=%s api=%s poll=%ss payments=%s bridge-check=%s" % [tenant, api, poll, payments, bridge_check])
 	quit(0)
 
 

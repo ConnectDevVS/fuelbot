@@ -3,7 +3,8 @@ extends Control
 ## Returns to idle when ConfigManager reports maintenance has cleared.
 
 const CELLS := ["diag_machine_id", "diag_site", "diag_flagged_by", "diag_flagged_at",
-	"diag_firmware", "diag_network", "diag_last_heartbeat", "diag_payments"]
+	"diag_firmware", "diag_network", "diag_last_heartbeat", "diag_payments",
+	"diag_bridge", "diag_bridge_heartbeat"]
 
 var _clock: Label
 var _message: Label
@@ -12,6 +13,7 @@ var _faults_panel: PanelContainer
 var _faults_title: Label
 var _faults_list: VBoxContainer
 var _service: Label
+var _exit_hint: Label
 
 
 func _ready() -> void:
@@ -56,6 +58,10 @@ func is_faults_visible() -> bool:
 	return _faults_panel.visible
 
 
+func get_exit_hint_text() -> String:
+	return _exit_hint.text
+
+
 func _render() -> void:
 	var info := ConfigManager.get_maintenance_info()
 	var tenant := ConfigManager.get_tenant()
@@ -85,6 +91,9 @@ func _render() -> void:
 	var phone: String = tenant.get("support_phone", "")
 	_service.visible = phone != ""
 	_service.text = ConfigManager.get_message("maintenance_service", {"phone": phone})
+	# A local fault clears by itself (telemetry decision 1); remote maintenance doesn't.
+	_exit_hint.text = ConfigManager.get_message(
+		"maintenance_exit_hint_local" if info.source == "local" else "maintenance_exit_hint")
 	_render_live()
 
 
@@ -102,6 +111,14 @@ func _render_live() -> void:
 	net.add_theme_color_override("font_color", Palette.SUCCESS if online else Palette.WARNING)
 	var beat := ConfigManager.last_successful_fetch_unix
 	_values.diag_last_heartbeat.text = ConfigManager.get_message("diag_never") if beat == 0.0 else Fmt.ago(now - beat)
+	# The hardware bridge (separate from the server heartbeat above), SAL-02.
+	var age := TelemetryReporter.bridge_heartbeat_age_sec()
+	var bridge: Label = _values.diag_bridge
+	var bridge_key := "maintenance_bridge_down" if TelemetryReporter.is_bridge_down() \
+		else ("maintenance_bridge_unseen" if age < 0.0 else "maintenance_bridge_ok")
+	bridge.text = ConfigManager.get_message(bridge_key)
+	bridge.add_theme_color_override("font_color", Palette.SUCCESS if bridge_key == "maintenance_bridge_ok" else Palette.WARNING)
+	_values.diag_bridge_heartbeat.text = ConfigManager.get_message("diag_never") if age < 0.0 else Fmt.ago(age)
 
 
 # --- Layout ------------------------------------------------------------------
@@ -189,7 +206,12 @@ func _build() -> void:
 	_service = _label("MonoMuted", "")
 	footer_row.add_child(_service)
 	footer_row.add_child(_expander())
-	footer_row.add_child(_label("Mono", ConfigManager.get_message("maintenance_exit_hint")))
+	_exit_hint = _label("Mono", "")
+	# Wraps instead of widening the page if the (editable) copy is long.
+	_exit_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_exit_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_exit_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	footer_row.add_child(_exit_hint)
 
 
 func _build_diagnostics() -> PanelContainer:

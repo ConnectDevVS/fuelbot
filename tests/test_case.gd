@@ -166,9 +166,7 @@ func snapshot_app_state() -> Dictionary:
 		"config": ConfigManager.current_config.duplicate(true),
 		"settings": ConfigManager.local_settings.duplicate(true),
 		"remote": ConfigManager.remote_maintenance_enabled,
-		"local": ConfigManager.local_hardware_fault_active,
-		"local_code": ConfigManager.local_hardware_fault_code,
-		"local_since": ConfigManager.local_hardware_fault_since,
+		"local_faults": ConfigManager.local_faults.duplicate(),
 		"emitted_active": ConfigManager._last_emitted_active,
 		"emitted_message": ConfigManager._last_emitted_message,
 	}
@@ -178,9 +176,7 @@ func restore_app_state(snap: Dictionary) -> void:
 	ConfigManager.current_config = snap.config
 	ConfigManager.local_settings = snap.settings
 	ConfigManager.remote_maintenance_enabled = snap.remote
-	ConfigManager.local_hardware_fault_active = snap.local
-	ConfigManager.local_hardware_fault_code = snap.local_code
-	ConfigManager.local_hardware_fault_since = snap.local_since
+	ConfigManager.local_faults = snap.local_faults
 	ConfigManager._last_emitted_active = snap.emitted_active
 	ConfigManager._last_emitted_message = snap.emitted_message
 	Nav.dry_run = false

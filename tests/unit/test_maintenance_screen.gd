@@ -80,3 +80,22 @@ func test_already_cleared_on_entry_returns_to_idle() -> void:
 	_open()
 	await wait_frames(2)
 	assert_eq(Nav.last_requested, ScenePaths.IDLE, "not in maintenance, so back to idle")
+
+
+func test_footer_local_vs_remote() -> void:
+	ConfigManager.set_local_hardware_fault(true, "HOMING_TIMEOUT")
+	_open()
+	assert_eq(_scene.get_exit_hint_text(), ConfigManager.get_message("maintenance_exit_hint_local"), "local: comes back by itself")
+	ConfigManager.remote_maintenance_enabled = true
+	ConfigManager.maintenance_changed.emit(true, "remote")
+	assert_eq(_scene.get_exit_hint_text(), ConfigManager.get_message("maintenance_exit_hint"), "remote wins")
+
+
+func test_long_footer_does_not_widen_page() -> void:
+	ConfigManager.local_settings.messages.maintenance_exit_hint_local = "A VERY LONG FOOTER HINT THAT WOULD NEVER FIT ON ONE LINE NEXT TO THE SERVICE PHONE"
+	ConfigManager.set_local_hardware_fault(true, "HOMING_TIMEOUT")
+	_open()
+	await wait_frames(3)
+	var hint: Control = _scene._exit_hint
+	assert_true(hint.get_global_rect().end.x <= 1080.5, "hint inside the frame (%s)" % hint.get_global_rect())
+	assert_true(_scene.size.x <= 1080.5, "page not widened (%s)" % _scene.size)

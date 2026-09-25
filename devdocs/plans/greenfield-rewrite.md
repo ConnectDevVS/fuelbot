@@ -18,6 +18,8 @@ hardware (Levels 0 and 1). Levels 2/3 are pending a board**
 **Milestone 5 (telemetry + machine faults) is built and verified on the
 firmware simulator and at Levels 0/1; Levels 2/3 are pending hardware**
 ([telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md)).
+**Milestone 6 (sale reporting + dead bridge) is built and verified at Levels
+0/1, including §7 steps 9 and 10** ([sales SIGNOFF](../stories/sales/SIGNOFF.md)).
 Per-milestone status is in Section 5. Work is executed as story sets under
 `devdocs/stories/`. Each set's README lists its detailed decisions, and its
 `SIGNOFF.md` records the verification evidence.
@@ -59,7 +61,11 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-24 | **`ReportQueue`** (`core/`): durable, one in flight, retry timer, flush on boot, drop 4xx (not 408/429), cap 5 000 records; reused by M6 sales | An unbounded queue on an SD card, or a poison record, is worse than a bounded loss | §3.8, §3.12 |
 | 2026-09-24 | Telemetry endpoint = `api.base_url` + `api.telemetry_path`; the app stamps `event_id` (ULID), `tenant_id`, UTC `timestamp` (+`Z`; Godot omits it) and order context from `Bridge`; the app posts `NO_RESPONSE` itself at the safety cap | Settings, not consts (M1 rule); the bridge can't know Razorpay or tenant data | §3.8 |
 | 2026-09-24 | **Firmware host simulator** (`hardware/firmware/host_sim/`): the real sketch runs against a simulated board in tests | Behavioural firmware checks before any board exists | §6 |
-| 2026-09-24 | **Dead bridge → out of service** (product owner; to build in the Milestone 6 set): no `bridge_status` heartbeat for **30 s** → local fault `BRIDGE_DOWN` → maintenance after any order in progress; **auto-clears** when heartbeats resume; `bridge_down`/`bridge_up` events posted. **60 s grace after app start**; a setting disables it for development. `ConfigManager`'s local fault becomes a **set** of codes (homing and bridge faults can overlap) | With the bridge dead, every paying customer is charged and gets the failure screen after the 130 s cap, and the machine looks healthy meanwhile | §3.10, §5 M6 |
+| 2026-09-24 | **Dead bridge → out of service** (product owner; *built 2026-09-25 in the Milestone 6 set*): no `bridge_status` heartbeat for **30 s** → local fault `BRIDGE_DOWN` → maintenance after any order in progress; **auto-clears** when heartbeats resume; `bridge_down`/`bridge_up` events posted. **60 s grace after app start**; a setting disables it for development. `ConfigManager`'s local fault becomes a **set** of codes (homing and bridge faults can overlap) | With the bridge dead, every paying customer is charged and gets the failure screen after the 130 s cap, and the machine looks healthy meanwhile | §3.10, §5 M6 |
+| 2026-09-25 | **One sale record for every paid order** with `dispensing_result` `success`/`timeout`/`rejected`/`no_response` + `dispensing_reason`, recorded by the dispensing screen once the outcome is known; `order_id` is the dedupe key | A sale is a billing fact (money was taken); failed dispenses are exactly what refunds and reconciliation need | §3.12, sales README |
+| 2026-09-25 | **Local faults are a set of codes** (`HOMING_TIMEOUT`, `BRIDGE_DOWN`), each with its start time; clearing one never clears another; the maintenance footer for local faults says "BACK IN SERVICE AUTOMATICALLY" | Faults overlap; a self-clearing fault shouldn't say "exit via remote console" | §3.10, §3.11 |
+| 2026-09-25 | **Tests are isolated from the dev environment:** the runner points the backend at the test mock and the reporters at test-only queues, and disables the dead-bridge watchdog | Tests had posted to the developer's dev mock via the dev override | CLAUDE.md |
+| 2026-09-25 | **Maintenance diagnostics show the bridge** (BRIDGE status + BRIDGE HEARTBEAT) next to the server heartbeat; **the 60 s dead-bridge startup grace is accepted** (product owner) | A technician must tell a dead bridge from a server outage; no false alarms at boot | §3.11, sales README |
 
 ## 1. Context
 
@@ -898,7 +904,7 @@ flag:**
   cycle's re-homing step; either way, the carriage position for the *next*
   order is unreliable, so it sets the local fault flag rather than only
   being logged.
-- **`BRIDGE_DOWN`** *(decided 2026-09-24, built in the Milestone 6 set)*: no
+- **`BRIDGE_DOWN`** *(decided 2026-09-24, built 2026-09-25, sales set SAL-02)*: no
   `bridge_status` heartbeat for 30 s (after a 60 s grace from app start).
   Without the bridge nothing can dispense, so taking payment would only
   charge customers for drinks the machine can't make. It auto-clears when
@@ -978,6 +984,14 @@ returns to idle (success, failure, or inactivity timeout all already route
 there).
 
 ### 3.12 Sale reporting — `SalesReporter.gd`
+
+*(2026-09-25: built in Milestone 6; the [sales story set](../stories/sales/README.md)
+is the as-built spec. Differences from the text below: **every paid order**
+gets exactly one sale, with `dispensing_result` = `success` | `timeout` |
+`rejected` | `no_response` plus `dispensing_reason`, `currency` and
+`payment_method`; it's recorded by the dispensing screen when the outcome is
+known; the queue is the shared `ReportQueue` (4xx dropped, capped), and the
+URL is `api.base_url + api.sales_path`, not a const.)*
 
 **New autoload `autoload/SalesReporter.gd`** (separate from `ConfigManager`
 — a distinct concern, an outbound write path with its own local
@@ -1174,7 +1188,7 @@ fuelbot/ (repo root)
 │   ├── DevCapture.gd            ✓ dev-only screenshots, always last
 │   ├── RazorpayManager.gd       ✓ rewritten clean, single implementation
 │   ├── Bridge.gd                ✓ UDP to the hardware bridge: ORDER/CANCEL out, results in on 4245
-│   ├── SalesReporter.gd         # M6 (will reuse core/report_queue.gd)
+│   ├── SalesReporter.gd         ✓ one sale per paid order via core/report_queue.gd
 │   └── TelemetryReporter.gd     ✓ 4246 events → enrich → ReportQueue; machine faults → maintenance
 ├── core/report_queue.gd         ✓ durable outbound JSON queue (class_name ReportQueue)
 ├── scenes/
@@ -1229,7 +1243,7 @@ existing external reference (docs, muscle memory) to preserve.
 | 3 — Idle, listing, details, payment screens | ✅ Idle, listing, details and payment screens done | [idle](../stories/idle/SIGNOFF.md), [details](../stories/details/SIGNOFF.md) |
 | 4 — Hardware bridge + dispensing | 🟡 Built; **Level 0 + Level 1 PASS** (fake bridge; real bridge + fake Arduino). **Level 2/3 pending hardware**; motors 5–6 are fail-safe placeholders pending wiring | [dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md) |
 | 5 — Telemetry | 🟡 Built; **firmware simulator + Level 0 + Level 1 PASS**; Level 2/3 pending hardware; the telemetry backend is the mock | [telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md) |
-| 6 — Maintenance + sale reporting | Maintenance screen/poll ✅ done early (idle set); sale reporting not started | [idle SIGNOFF](../stories/idle/SIGNOFF.md) |
+| 6 — Maintenance + sale reporting | ✅ Done in software: maintenance (idle set) re-verified, extended to several local faults; sale reporting and dead-bridge → out of service built; Level 0/1 and §7 steps 9–10 PASS. Real sales backend pending | [idle](../stories/idle/SIGNOFF.md), [sales](../stories/sales/SIGNOFF.md) SIGNOFFs |
 | 7 — Asset migration | Partly done: flavor images, video, fonts ported. The flavor PNGs need padding trimmed | [assets/ASSETS.md](../../assets/ASSETS.md) |
 | 8 — Raspberry Pi | Not started | — |
 
@@ -1301,6 +1315,7 @@ existing external reference (docs, muscle memory) to preserve.
 **Milestone 6 — Maintenance mode + sale reporting**
 - `scenes/maintenance/` per Section 3.11; `autoload/SalesReporter.gd` per
   Section 3.12 (reusing `core/report_queue.gd`).
+- *(Built 2026-09-25: [sales story set](../stories/sales/README.md).)*
 - *(Added 2026-09-24)* **Dead bridge → out of service** (`BRIDGE_DOWN`, §3.10):
   heartbeat timeout 30 s, 60 s startup grace, auto-clear, dev setting, and
   local faults as a set.
