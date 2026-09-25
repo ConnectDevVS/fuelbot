@@ -3,6 +3,7 @@
     "base_url": "https://example.invalid/fuelbot",
     "config_path": "/config",
     "telemetry_path": "/telemetry",
+    "sales_path": "/sales",
     "request_timeout_sec": 10,
     "razorpay_base_url": "https://api.razorpay.com"
   },

@@ -34,6 +34,13 @@
       "scenarios_dir": "responses/telemetry",
       "default_scenario": "default",
       "require_tenant_header": true
+    },
+    {
+      "method": "POST",
+      "path": "/fuelbot/sales",
+      "scenarios_dir": "responses/sales",
+      "default_scenario": "default",
+      "require_tenant_header": true
     }
   ]
 }

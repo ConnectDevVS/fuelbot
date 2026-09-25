@@ -6,6 +6,7 @@ const TEST_DIR := "res://tests/unit"
 const WATCHDOG_SEC := 180.0
 const TEST_API := "http://127.0.0.1:8788/fuelbot"   # run_tests.sh's mock
 const TEST_QUEUE := "user://test_runner/telemetry_queue.json"
+const TEST_SALES_QUEUE := "user://test_runner/sales_queue.json"
 
 var _filter := ""
 
@@ -35,6 +36,9 @@ func _isolate_app() -> void:
 	DirAccess.remove_absolute(TEST_QUEUE)
 	TelemetryReporter.queue_path = TEST_QUEUE
 	TelemetryReporter.start_queue()
+	DirAccess.remove_absolute(TEST_SALES_QUEUE)
+	SalesReporter.queue_path = TEST_SALES_QUEUE
+	SalesReporter.start_queue()
 	# No bridge runs during tests: without this the dead-bridge watchdog (SAL-02) would
 	# take the test process out of service mid-run. Its own tests switch it back on.
 	ConfigManager.local_settings.get("bridge", {})["require_heartbeat"] = false
