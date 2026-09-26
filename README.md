@@ -193,6 +193,10 @@ On Linux it is `~/.local/share/godot/app_userdata/FuelBot/`.
 | `order_counter.txt` | the app | next display order number |
 | `image_cache/` | the app | downloaded flavor images + `index.json` (flavor → last good file) |
 
+Tests and `tools/check_boot.sh` never use these: they boot **sandboxed**,
+with their own state under `user://sandbox/` (and `user://test_*`), no tenant
+and no override.
+
 `tools/dev_setup.gd -- --clear` removes the provisioning, cache and credential
 files and the image cache (not the order counter), which resets the app to a fresh machine with no
 network. None of these files are ever committed.

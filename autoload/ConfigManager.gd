@@ -8,12 +8,18 @@ extends Node
 ## - maintenance flag: refreshed live, every timing.maintenance_poll_interval_sec.
 ##
 ## Registered FIRST in [autoload]: later autoloads read tenant_id/current_config.
+##
+## Sandbox (tests, tools/check_boot.sh): when the main scene is tests/TestRunner.tscn or the
+## user args contain --sandbox, every machine-state file lives under user://sandbox/ instead
+## (no tenant, no dev override, no config cache), so the process never fetches, posts or
+## writes anything of the developer's. Autoloads map their default paths via user_path().
 
 signal config_ready(config: Dictionary)
 signal maintenance_changed(enabled: bool, message: String)
 signal connectivity_changed(online: bool)
 
 const MAX_HOPPER := 6
+const SANDBOX_DIR := "user://sandbox"
 
 # Overridable for tests: plain vars, not consts.
 var tenant_id_path := "user://tenant_id.txt"
@@ -22,6 +28,8 @@ var default_config_path := "res://config/default_config.json"
 var local_settings_path := "res://config/local_settings.json"
 var local_settings_override_path := "user://local_settings.override.json"
 var auto_boot := true
+## True for the test runner and --sandbox boots; decided once, from the command line.
+var sandboxed := is_sandbox_run()
 
 var tenant_id: String = ""
 var current_config: Dictionary = {}
@@ -56,7 +64,28 @@ var _last_emitted_faults := ""   # local fault codes: a new/cleared fault re-ren
 
 func _ready() -> void:
 	if auto_boot:
+		if sandboxed:
+			tenant_id_path = user_path(tenant_id_path)
+			cache_path = user_path(cache_path)
+			local_settings_override_path = user_path(local_settings_override_path)
+			DirAccess.make_dir_recursive_absolute(SANDBOX_DIR)   # HTTPRequest.download_file needs it
+			print("[ConfigManager] sandboxed: machine state under %s" % SANDBOX_DIR)
 		boot()
+
+
+static func is_sandbox_run() -> bool:
+	for arg in OS.get_cmdline_args():
+		if arg.ends_with("tests/TestRunner.tscn"):
+			return true
+	return OS.get_cmdline_user_args().has("--sandbox")
+
+
+## A machine-state path, moved under user://sandbox/ in a sandboxed run
+## ("user://order_counter.txt" -> "user://sandbox/order_counter.txt"). Other paths are unchanged.
+func user_path(path: String) -> String:
+	if not sandboxed or not path.begins_with("user://") or path.begins_with(SANDBOX_DIR + "/"):
+		return path
+	return SANDBOX_DIR.path_join(path.trim_prefix("user://"))
 
 
 func boot() -> void:

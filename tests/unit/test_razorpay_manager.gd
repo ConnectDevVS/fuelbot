@@ -36,6 +36,7 @@ func _make(key_id: String = "mock_key", key_secret: String = "mock_secret") -> N
 	add_child(rzp)
 	rzp.base_url = MOCK_ORIGIN
 	rzp.credentials_path = CREDS
+	rzp.image_path = DIR + "/qr.png"   # never the real user://qr_current.png
 	rzp.poll_interval_sec = 0.2
 	rzp.poll_timeout_sec = 5.0
 	rzp.qr_expiry_sec = 180.0

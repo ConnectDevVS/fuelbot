@@ -64,7 +64,7 @@ func _ready() -> void:
 
 func configure_from_settings() -> void:
 	var cfg: Dictionary = ConfigManager.local_settings.get("images", {})
-	cache_dir = String(cfg.get("cache_dir", "user://image_cache"))
+	cache_dir = ConfigManager.user_path(String(cfg.get("cache_dir", "user://image_cache")))
 	max_bytes = int(cfg.get("max_bytes", 2097152))
 	max_px = int(cfg.get("max_px", 2048))
 	download_timeout_sec = float(cfg.get("download_timeout_sec", 30))
