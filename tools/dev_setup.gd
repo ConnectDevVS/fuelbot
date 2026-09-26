@@ -17,6 +17,7 @@ const CACHE_PATH := "user://config_cache.json"
 const CREDS_PATH := "user://razorpay_credentials.cfg"
 const MOCK_CREDS_PATH := "user://razorpay_credentials.mock.cfg"
 const QR_PATH := "user://qr_current.png"
+const IMAGE_CACHE_DIR := "user://image_cache"
 
 
 func _initialize() -> void:
@@ -51,6 +52,11 @@ func _initialize() -> void:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
+		if DirAccess.dir_exists_absolute(IMAGE_CACHE_DIR):
+			for file in DirAccess.get_files_at(IMAGE_CACHE_DIR):
+				DirAccess.remove_absolute(IMAGE_CACHE_DIR.path_join(file))
+			DirAccess.remove_absolute(IMAGE_CACHE_DIR)
+			print("removed ", IMAGE_CACHE_DIR)
 		quit(0)
 		return
 	if payments not in ["mock", "razorpay-test"]:

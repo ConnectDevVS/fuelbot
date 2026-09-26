@@ -31,6 +31,8 @@ assets/images/flavors/*.png                      # trimmed output
 assets/ASSETS.md                                 # note the trim and how to re-run it
 tests/unit/test_flavor_image_screens.gd
 tests/unit/test_config_fixtures.gd               # bundled images are trimmed and within the spec
+mockserver/responses/config/images_url_only.json # added while executing: coffee has no bundled image
+                                                 #   and its URL 404s -> the placeholder, deterministically
 ```
 
 ## Spec
