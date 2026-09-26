@@ -114,6 +114,9 @@ overflow were both found this way. Story work is one commit per story
   details re-resolves the flavor by id and bails to the listing if it's gone
   or sold out.
 - **Payment rules (Milestone 2):**
+  - **UPI QR only** (Razorpay). Card payments are not supported (product
+    owner, 2026-09-26): don't add card or POS code. The old Pine Labs script
+    in `fuelbotsource_og/` is deliberately not ported.
   - The hopper goes to the bridge **only after payment succeeds**, as one
     datagram `ORDER <order_id> P<hopper> B<n>` on 4242
     (`Bridge.send_order_paid`). Cancel, failure and expiry send
@@ -486,7 +489,6 @@ any change to `RazorpayManager` or the create payload.
 - **Homing past the switch:** after a broken-switch fault the carriage can sit
   beyond home, and the next successful homing zeroes there (M4 homing
   behaviour). Check at Level 2.
-- `hardware/pos/pinelabs.py` (inert port, plan §5 M4) not done.
 - The plan doc quotes the old Razorpay key ID. Rotate the key as the plan
   says.
 - Not yet verified by hand: the editor F5 path, and a manual tap-through of the
@@ -495,7 +497,7 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- Next: Milestone 7 (flavor images from S3, plan §3.14; port `pinelabs.py` inert), then
+- Next: Milestone 7 (flavor images from S3, plan §3.14), then
   Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
 - **Real sales/telemetry backends:** only the mock exists (settings change).
 - **Flavor images from S3 (Milestone 7, decided 2026-09-26, not built):** the

@@ -69,6 +69,7 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-26 | **Flavor images come from AWS S3 via the config API** (product owner): each flavor carries `image_url`, an S3 object URL returned by the config backend. The bundled `res://` images stay only as the offline fallback | Images change with the catalog, without an app release | §3.1, §3.14, §5 M7 |
 | 2026-09-26 | **An image's file name changes every time it's updated** (product owner). The app caches by the URL's **file name** (as the ad video does, §3.13), so a new name = a new download and the same name = never re-downloaded, even if the query string (e.g. a presigned signature) differs | No version field or content check needed; works with presigned URLs and any HTTP caching in between | §3.14 |
 | 2026-09-26 | **Milestone 7's "crop the padded PNGs" becomes "flavor images from S3":** download + cache + fallback, automatic trim of transparent padding, a written image spec for the content team | With images served remotely, hand-cropping bundled files no longer matters; auto-trim protects against padded uploads too | §3.14, §5 M7 |
+| 2026-09-26 | **Card payments are not supported** (product owner): payments are **UPI QR only** (Razorpay). The old Pine Labs POS script (`pinelabs.py`, `transactions.xlsx`) is **not ported**, reversing rewrite decision 2.2.2; the `hardware/pos/` folder is dropped | It was dead code in the old build with nothing wired to it; carrying it forward only adds maintenance and confusion | §2.2, §4, §5 M4/M7, §8 |
 
 ## 1. Context
 
@@ -182,10 +183,12 @@ old tree stays untouched as reference at
 
 1. **Fresh sibling directory**, git-initialized from the first commit — not
    an in-place rewrite of `fuelbotsource`.
-2. **`pinelabs.py` ported forward, inactive** — moved into the new structure
-   as-is, still unwired (nothing sends to its UDP port), not deleted. It's a
-   self-contained alternate (Pine Labs POS) payment backend, currently dead
-   code — not imported anywhere, nothing feeds its UDP port.
+2. ~~**`pinelabs.py` ported forward, inactive**~~ *(reversed 2026-09-26: card
+   payments are not supported; payments are UPI QR only. The old Pine Labs
+   POS script and its `transactions.xlsx` are **not ported**; they stay only
+   in the old, read-only `fuelbotsource_og/`.)* It was a self-contained
+   alternate (Pine Labs POS) payment backend, dead code in the old build:
+   not imported anywhere, nothing fed its UDP port.
 3. **Port the *working* Razorpay logic** (the inline implementation
    currently in `second.gd` — correct `qr_codes` endpoint, live UDP wiring)
    into a single clean `RazorpayManager` autoload. **Discard** the existing
@@ -1286,8 +1289,7 @@ fuelbot/ (repo root)
 │   └── video/                   ✓ idle_ad_default.ogv
 ├── hardware/                    ✓ (.gdignore'd)
 │   ├── firmware/VM_code.ino     ✓ + host_sim/ (simulator; tools/check_firmware.sh)
-│   ├── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
-│   └── pos/{pinelabs.py, transactions.xlsx}   # ported, inert (not yet)
+│   └── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
 ├── mockserver/                  ✓ replaces tools/mock_config_server.py: stdlib server + JSON scenarios
 ├── tests/                       ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
 ├── tools/
@@ -1370,8 +1372,9 @@ existing external reference (docs, muscle memory) to preserve.
 - `hardware/firmware/VM_code.ino`, `hardware/bridge/udprxtx.py`,
   `scenes/dispensing/` (one screen; no `scenes/complete/`) per Section 3.7.
   *(Built 2026-09-24: [dispensing story set](../stories/dispensing/README.md).)*
-- `hardware/pos/pinelabs.py` + `transactions.xlsx`: ported forward inert,
-  unwired, per decision 2.2.2.
+- ~~`hardware/pos/pinelabs.py` + `transactions.xlsx`: ported forward inert~~
+  *(dropped 2026-09-26: card payments are not supported, decision 2.2.2
+  reversed).*
 - Verify (Section 7, steps 5, 7, 8): hopper-vs-position check, real
   `STATUS:DONE`/`TIMEOUT` on the serial monitor, safety cap (130 s; decision log).
 
@@ -1412,8 +1415,6 @@ existing external reference (docs, muscle memory) to preserve.
   one); the written image spec. This replaces "crop the padded flavor
   PNGs": the bundled PNGs are only the offline fallback now, and auto-trim
   covers them too.
-- Port `hardware/pos/pinelabs.py` + `transactions.xlsx` inert (carried from
-  Milestone 4).
 - Copy over only assets actually referenced by the kept scenes — grep each
   new `.tscn` for its real `res://` texture paths before copying, rather
   than bulk-copying the old asset dump. Inventory flagged several images
@@ -1593,5 +1594,6 @@ still no CI. The manual steps below remain the acceptance checklist; steps
   planned but deferred to whenever that hardware is sourced (Section 3.9).
 - Enclosure over-temperature monitoring — considered and explicitly
   dropped, not just deferred.
-- Activating Pine Labs as a real payment path (ported inert only).
+- **Card payments of any kind** *(updated 2026-09-26)*: payments are UPI QR
+  only. The old Pine Labs POS script is not ported.
 - Struck-through actual/offer price UI (data flows through, no new Label).
