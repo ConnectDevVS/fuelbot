@@ -1,9 +1,9 @@
 # CLAUDE.md
 
 Guidance for working on this repo. The facts below were verified while
-building the idle, details, payment, dispensing, telemetry and sales story
-sets (IDLE-01…10, DET-01…03, PAY-01…06, DSP-01…06, TEL-01…07, SAL-01…04;
-Sept 2026, Godot 4.7.2).
+building the idle, details, payment, dispensing, telemetry, sales and images
+story sets (IDLE-01…10, DET-01…03, PAY-01…06, DSP-01…06, TEL-01…07, SAL-01…04,
+IMG-01…04; Sept 2026, Godot 4.7.2).
 Read [README.md](README.md) for how to run things. This file covers how to
 change things without re-learning the same lessons.
 
@@ -24,7 +24,7 @@ eventual target.
 
 ```
 autoload/      ConfigManager (first!), OrderState, Nav, OrderCounter, RazorpayManager, Bridge,
-               TelemetryReporter, SalesReporter, DevCapture (always last)
+               TelemetryReporter, SalesReporter, FlavorImages, DevCapture (always last)
 core/          report_queue.gd (ReportQueue: durable outbound POST queue; telemetry now, sales in M6)
 scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing,
                maintenance);
@@ -33,13 +33,16 @@ ui/            components/ (brand_header, product_card, footer_bar, connectivity
                allergen_banner, nutrition_tile, step_indicator, status_badge), theme/palette.gd (Palette),
                format.gd (Fmt), gallery/ (dev only; shows every component)
 config/        local_settings.json (strings, timing, api), default_config.json (offline fallback catalog)
-assets/        fonts (OFL), generated theme/, images/flavors/, video/ (.ogv only)
+assets/        fonts (OFL), generated theme/, images/flavors/ (offline fallbacks, trimmed), video/ (.ogv only)
 hardware/      firmware/VM_code.ino (+ host_sim/ simulator, test_firmware.py), bridge/udprxtx.py (+ test) (.gdignore'd)
-mockserver/    stdlib Python mock backend: routes.json, responses/<route>/*.json, assets/ (.gdignore'd)
+mockserver/    stdlib Python mock backend: routes.json, responses/<route>/*.json, assets/ (+ flavors/ from
+               make_flavor_images.py) (.gdignore'd)
 tests/         TestRunner.tscn + test_case.gd + unit/test_*.gd
 tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd,
                udp_monitor.py (prints app→bridge UDP on 4242), fake_dispense_bridge.py (Level 0),
-               fake_arduino_serial.py (Level 1), check_firmware.sh, test_fakes.py
+               fake_arduino_serial.py (Level 1), check_firmware.sh, test_fakes.py,
+               trim_flavor_images.gd (bundled fallbacks → trimmed, ≤ 600×800)
+devdocs/       plans/, stories/<set>/, image-spec.md (flavor images, for the content team)
 ```
 
 ## Commands (run from repo root)
@@ -81,7 +84,11 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
 - `godot --headless --path . --script res://tools/build_theme.gd`: regenerate
   the theme after changing `palette.gd` or type sizes.
 - After adding assets, run `godot --headless --path . --import` (run_tests does
-  this).
+  this). A new or replaced bundled flavor image: first
+  `godot --headless --path . --script res://tools/trim_flavor_images.gd`
+  (idempotent).
+- `python3 mockserver/make_flavor_images.py`: regenerate the mock "S3" images
+  (commit the output; `test_server.py` checks they match pixel for pixel).
 
 ## Definition of done for any change
 
@@ -114,6 +121,9 @@ overflow were both found this way. Story work is one commit per story
   details re-resolves the flavor by id and bails to the listing if it's gone
   or sold out.
 - **Payment rules (Milestone 2):**
+  - **UPI QR only** (Razorpay). Card payments are not supported (product
+    owner, 2026-09-26): don't add card or POS code. The old Pine Labs script
+    in `fuelbotsource_og/` is deliberately not ported.
   - The hopper goes to the bridge **only after payment succeeds**, as one
     datagram `ORDER <order_id> P<hopper> B<n>` on 4242
     (`Bridge.send_order_paid`). Cancel, failure and expiry send
@@ -185,13 +195,33 @@ overflow were both found this way. Story work is one commit per story
   known: `success` / `timeout` / `rejected` / `no_response` + reason. Build it
   from `SalesReporter.sale_from_order_state()` (committed prices, never the
   live catalog), and never on the payment screen.
+- **Flavor image rules (Milestone 7, `devdocs/stories/images/README.md`):**
+  - `image_url` (S3) is what's shown; the bundled `image` (`res://`) is only
+    the offline fallback, optional when `image_url` is set. `image_url` must be
+    `https://` (plain `http://` only for `127.0.0.1`/`localhost`). The cache
+    key is the URL's **file name** (`ConfigManager.image_file_name()`, query
+    ignored). A changed image **always** has a new name (product owner).
+  - **Every image site uses `FlavorImages.get_texture(flavor)`** (current →
+    previous for that flavor → bundled → `null` = placeholder) and swaps on
+    `FlavorImages.flavor_image_ready(id)`. Never `load()` a flavor image
+    yourself; `user://` files aren't imported, so `load()` can't read them.
+  - The image GET sends **no `X-Tenant-Id`** and no credentials. Downloads run
+    one at a time from `config_ready`, retry every
+    `timing.image_retry_interval_sec`, and clean up only after a clean pass on
+    a backend catalog. `image_download_failed` goes out once per file + reason
+    per run, and never carries the URL (presigned signatures).
 - **Tests never touch the dev environment.** The test process loads the dev
   override (backend → the dev mock on :8787), so `tests/test_runner.gd`
   re-points the backend at the test mock (:8788) and the reporters at
   `user://test_runner/` queues, and turns off the dead-bridge watchdog. A
   test that swaps a reporter's `queue_path` restores the previous value,
   never the real `QUEUE_PATH`. A new reporter or queue needs the same
-  treatment in `_isolate_app()`.
+  treatment in `_isolate_app()`. `FlavorImages` is stopped there
+  (`stop()`: no auto sync, no retry) and pointed at
+  `user://test_runner/image_cache`; tests that download use a **fresh
+  instance** with its own folder. Known leak (existing): the test process's
+  `ConfigManager` boots before the runner, so each run makes one config GET to
+  the dev mock and rewrites the real `user://config_cache.json`.
   - The board never resets in a loop on a homing fault: it retries after 1,
     2, 4 and 8 min, then every 10 min, and refuses commands (`FAULT:NOT_HOMED`).
     The bridge also refuses orders while faulted (`REJECTED machine_fault`).
@@ -350,6 +380,16 @@ any change to `RazorpayManager` or the create payload.
   (`get_local_port()`). Use it for UDP tests. To test timing between sends,
   timestamp the sender's own `sent` signal, not packet receipt: drain loops
   add frame-sized jitter (a 200 ms gap measured as 126 ms).
+- **Decode downloaded images by signature, not extension:**
+  `FlavorImages.decode(bytes)` (`load_png/jpg/webp_from_buffer`). A corrupt
+  PNG prints engine `ERROR:` lines (expected in the image tests). JPEG decodes
+  as RGB8, so `get_used_rect()` is the full image; a fully transparent image
+  gives a zero-size rect.
+- **`Image.resize()` (Lanczos) can leave fully transparent edge rows**: trim
+  again after resizing (why `trim_flavor_images.gd` trims twice).
+- `HTTPRequest.body_size_limit` → `RESULT_BODY_SIZE_LIMIT_EXCEEDED` (7) with an
+  empty body; a closed port → `RESULT_CANT_CONNECT` (2); a 404 is result 0,
+  code 404. Always set `timeout`: without it, a request can hang.
 - A `JSON.parse_string` failure prints an engine `ERROR:` line. That's
   expected in the corrupt-cache/malformed tests, and `check_boot.sh`
   deliberately doesn't match it.
@@ -420,6 +460,12 @@ any change to `RazorpayManager` or the create payload.
   `extends` + `body_patch` deep-merge, and arrays of `{id}` objects merge by
   id. Files are re-read on every request.
 - Add routes in `routes.json`; `server.py` has no route-specific code.
+- Assets: `/__mock/assets/<path>` serves subfolders; `?delay_ms=N` delays
+  (max 10 s); `/__mock/state` has `asset_counts` (per path, 404s included;
+  JSON floats in GDScript) and `asset_last_tenant`. Image config scenarios:
+  `images_v2`, `images_broken`, `images_url_only` (see mockserver/README.md).
+  Mock `image_url`s use `{{origin}}`; `load_mock_config()` fills it in with the
+  test mock's origin.
 - Missing `X-Tenant-Id` → 400 (config route). Missing/empty Basic auth → 401
   (Razorpay routes; any `id:secret` passes). Admin endpoints: `/__mock/state`,
   `/__mock/scenario`, `/__mock/reset` (`mockserver/scenario.sh`).
@@ -486,7 +532,6 @@ any change to `RazorpayManager` or the create payload.
 - **Homing past the switch:** after a broken-switch fault the carriage can sit
   beyond home, and the next successful homing zeroes there (M4 homing
   behaviour). Check at Level 2.
-- `hardware/pos/pinelabs.py` (inert port, plan §5 M4) not done.
 - The plan doc quotes the old Razorpay key ID. Rotate the key as the plan
   says.
 - Not yet verified by hand: the editor F5 path, and a manual tap-through of the
@@ -495,8 +540,12 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- Next: Milestone 7 (crop the flavor PNGs, port `pinelabs.py` inert), then
-  Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
+- Next: Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
+  Also check WebP/PNG decoding and HTTPS to S3 on the Pi's export template.
 - **Real sales/telemetry backends:** only the mock exists (settings change).
-- Flavor PNGs from the old build have heavy padding and render small; crop
-  them.
+- ~~Flavor images from S3~~: built in Milestone 7 (images SIGNOFF, §7 step
+  4b against the mock). **Pending the backend team:** the real S3 bucket and
+  the config API's `image_url` field; the content team follows
+  `devdocs/image-spec.md`.
+- `tools/check_boot.sh` is a real boot: with a dev mock up, it fills the real
+  `user://image_cache/` like any dev launch.

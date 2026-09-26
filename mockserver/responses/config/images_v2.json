@@ -1,0 +1,9 @@
+{
+  "description": "Guava's image updated: a new file name (v2, 2 bands), served slowly (3 s) so the previous image shows meanwhile",
+  "extends": "default",
+  "body_patch": {
+    "flavors": [
+      {"id": "guava", "image_url": "{{origin}}/__mock/assets/flavors/prymor_guava-20260927a.png?delay_ms=3000"}
+    ]
+  }
+}

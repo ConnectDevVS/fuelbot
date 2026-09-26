@@ -150,6 +150,34 @@ About 60–90 s later (30 s after the last heartbeat, and not before 60 s from
 app start) the out-of-service screen appears. Restart the bridge and it's
 back on the attract screen within seconds.
 
+## Flavor images (S3)
+
+Each flavor's picture comes from the catalog's `image_url` (an AWS S3 URL in
+production). The app downloads each image once, trims its transparent
+border, and keeps it in `user://image_cache/` under the URL's file name.
+A new file name means a new download; a known one is never downloaded again.
+Until an image is cached, the screens show the flavor's previous image, then
+the bundled one (`assets/images/flavors/`), then a placeholder. A finished
+download swaps in without leaving the screen. Details:
+[devdocs/stories/images/README.md](devdocs/stories/images/README.md); rules
+for whoever uploads images: [devdocs/image-spec.md](devdocs/image-spec.md).
+
+In dev, the mock serves generated images (coloured cups; the white bands show
+the version) from `mockserver/assets/flavors/`. The catalog is read at boot,
+so switch the scenario, then restart the app:
+
+```bash
+mockserver/scenario.sh images_v2         # guava gets a new file name (served in 3 s): old image, then new
+mockserver/scenario.sh images_broken     # a 404, a corrupt file, a too-wide image: old images stay
+mockserver/scenario.sh images_url_only   # coffee has no bundled fallback and its URL 404s: placeholder
+mockserver/scenario.sh default
+curl -s http://127.0.0.1:8787/__mock/state   # asset_counts: what the app downloaded
+```
+
+Failures are logged (`[Images] …`), retried every 10 minutes, and reported
+once per file as a telemetry `image_download_failed` event. To start from an
+empty cache, delete `user://image_cache/` (or `tools/dev_setup.gd -- --clear`).
+
 ## Local machine state (`user://`)
 
 On macOS this is `~/Library/Application Support/Godot/app_userdata/FuelBot/`.
@@ -163,9 +191,10 @@ On Linux it is `~/.local/share/godot/app_userdata/FuelBot/`.
 | `razorpay_credentials.cfg` | you, by hand (test keys) | Razorpay key id + secret; never touched by mock mode |
 | `razorpay_credentials.mock.cfg` | `dev_setup` (mock mode) | mock keys, selected via the override |
 | `order_counter.txt` | the app | next display order number |
+| `image_cache/` | the app | downloaded flavor images + `index.json` (flavor → last good file) |
 
 `tools/dev_setup.gd -- --clear` removes the provisioning, cache and credential
-files (not the order counter), which resets the app to a fresh machine with no
+files and the image cache (not the order counter), which resets the app to a fresh machine with no
 network. None of these files are ever committed.
 
 ## Kiosk

@@ -102,9 +102,16 @@ const MOCK_CONFIG_DIR := "res://mockserver/responses/config"
 
 
 ## A mock scenario's body, resolved like the mock server does (extends +
-## body_patch), then normalised by ConfigManager.
+## body_patch, {{origin}} -> the test mock), then normalised by ConfigManager.
 func load_mock_config(scenario: String = "default") -> Dictionary:
-	return ConfigManager.normalise(_resolve_mock_body(scenario))
+	return ConfigManager.normalise(mock_body_with_origin(scenario))
+
+
+## A mock scenario's raw body as the test mock would serve it (not normalised).
+func mock_body_with_origin(scenario: String) -> Dictionary:
+	var text := JSON.stringify(_resolve_mock_body(scenario)).replace("{{origin}}", MOCK_ORIGIN)
+	var data = JSON.parse_string(text)
+	return data if data is Dictionary else {}
 
 
 func _resolve_mock_body(scenario: String) -> Dictionary:

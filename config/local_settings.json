@@ -15,6 +15,12 @@
     "telemetry_port": 4246,
     "require_heartbeat": true
   },
+  "images": {
+    "cache_dir": "user://image_cache",
+    "max_bytes": 2097152,
+    "max_px": 2048,
+    "download_timeout_sec": 30
+  },
   "payments": {
     "allow_live_keys": false,
     "credentials_path": "user://razorpay_credentials.cfg"
@@ -139,6 +145,7 @@
     "dispensing_error_return_sec": 10,
     "telemetry_retry_interval_sec": 60,
     "bridge_heartbeat_timeout_sec": 30,
-    "bridge_startup_grace_sec": 60
+    "bridge_startup_grace_sec": 60,
+    "image_retry_interval_sec": 600
   }
 }

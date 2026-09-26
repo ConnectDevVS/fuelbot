@@ -41,6 +41,7 @@ func _ready() -> void:
 	_build()
 	_render(OrderState.selected_flavor)
 	ConfigManager.config_ready.connect(_on_config_ready)
+	FlavorImages.flavor_image_ready.connect(_on_flavor_image_ready)
 	_inactivity = Timer.new()
 	_inactivity.one_shot = true
 	_inactivity.wait_time = maxf(ConfigManager.get_timing("detail_screen_inactivity_sec", 60.0), 0.05)
@@ -58,11 +59,7 @@ func _input(event: InputEvent) -> void:
 
 func _render(flavor: Dictionary) -> void:
 	_flavor = flavor
-	var path: String = flavor.get("image", "")
-	var texture: Texture2D = load(path) if path != "" and ResourceLoader.exists(path) else null
-	_image.texture = texture
-	_image.visible = texture != null
-	_placeholder.visible = texture == null
+	_apply_image()
 	_placeholder.text = String(ConfigManager.get_tenant().get("logo_text", ""))
 
 	_name.text = String(flavor.get("name", ""))
@@ -101,6 +98,24 @@ func _render(flavor: Dictionary) -> void:
 			var n := int(nutrition[spec[0]])
 			value = ConfigManager.get_message("nutrition_grams", {"value": n}) if spec[2] else str(n)
 		_tiles[i].set_value(value, ConfigManager.get_message(spec[1]), spec[3])
+
+
+func get_image_texture() -> Texture2D:
+	return _image.texture
+
+
+## Plan §3.14 show order (FlavorImages); the placeholder when there's nothing to show.
+func _apply_image() -> void:
+	var texture := FlavorImages.get_texture(_flavor)
+	_image.texture = texture
+	_image.visible = texture != null
+	_placeholder.visible = texture == null
+
+
+## A finished download swaps the image in place: no re-render, the order is untouched.
+func _on_flavor_image_ready(flavor_id: String) -> void:
+	if flavor_id == String(_flavor.get("id", "")):
+		_apply_image()
 
 
 func _on_config_ready(_config: Dictionary) -> void:

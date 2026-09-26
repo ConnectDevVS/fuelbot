@@ -7,6 +7,7 @@ const WATCHDOG_SEC := 180.0
 const TEST_API := "http://127.0.0.1:8788/fuelbot"   # run_tests.sh's mock
 const TEST_QUEUE := "user://test_runner/telemetry_queue.json"
 const TEST_SALES_QUEUE := "user://test_runner/sales_queue.json"
+const TEST_IMAGE_CACHE := "user://test_runner/image_cache"
 
 var _filter := ""
 
@@ -29,7 +30,8 @@ func _ready() -> void:
 
 
 ## Tests must never touch the developer's environment: the dev override (loaded at boot)
-## points the backend at the dev mock (:8787) and the reporters at the real user:// queues.
+## points the backend at the dev mock (:8787), the reporters at the real user:// queues and
+## FlavorImages at the real user://image_cache.
 func _isolate_app() -> void:
 	ConfigManager.local_settings.api.base_url = TEST_API
 	DirAccess.make_dir_recursive_absolute(TEST_QUEUE.get_base_dir())
@@ -41,6 +43,14 @@ func _isolate_app() -> void:
 	SalesReporter.start_queue()
 	# No bridge runs during tests: without this the dead-bridge watchdog (SAL-02) would
 	# take the test process out of service mid-run. Its own tests switch it back on.
+	# Flavor images (IMG-02): never download from the dev mock or write the real image cache.
+	# The boot's config_ready can't have arrived yet (it's deferred or an HTTP reply).
+	FlavorImages.stop()
+	DirAccess.make_dir_recursive_absolute(TEST_IMAGE_CACHE)
+	for file in DirAccess.get_files_at(TEST_IMAGE_CACHE):
+		DirAccess.remove_absolute(TEST_IMAGE_CACHE.path_join(file))
+	FlavorImages.cache_dir = TEST_IMAGE_CACHE
+	FlavorImages.reload_index()
 	ConfigManager.local_settings.get("bridge", {})["require_heartbeat"] = false
 	TelemetryReporter.require_heartbeat = false
 	TelemetryReporter.reset_watchdog()
