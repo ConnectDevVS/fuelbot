@@ -23,6 +23,24 @@ curl http://127.0.0.1:8790/healthz
 
 `npm run dev` restarts on file changes.
 
+## Data
+
+```sh
+npm run seed     # tenant "powerfuel", machine "machine-042", the mock's six flavors
+npm run import-config -- --tenant=<id> --machine=<id> [--tenant-name="…"] [--strip-image-urls] config.json
+```
+
+`import-config` takes an app config (the kiosk's schema, or a mock scenario
+file without `extends`) and stores it as the tenant's products plus the
+machine's menu. It refuses a config the app would reject and prints the
+app's error text. Both can be re-run; they update in place.
+
+Check it the way a machine does:
+
+```sh
+curl -H 'X-Tenant-Id: powerfuel' -H 'X-Machine-Id: machine-042' http://127.0.0.1:8790/fuelbot/config
+```
+
 ## Tests
 
 ```sh

@@ -2,6 +2,7 @@
 import express from 'express';
 import { pingDb } from './db.js';
 import { HttpError } from './errors.js';
+import { kioskRouter } from './routes/kiosk.js';
 
 export function createApp({ settings }) {
   const app = express();
@@ -27,6 +28,8 @@ export function createApp({ settings }) {
     await pingDb();
     res.json({ ok: true });
   });
+
+  app.use('/fuelbot', kioskRouter());
 
   app.use((req, res) => res.status(404).json({ error: 'not_found' }));
 
