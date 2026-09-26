@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # One-command dev launch: mock backend + dev provisioning + the kiosk app.
 # Usage: tools/dev_run.sh [--scenario=<name>] [--payments=mock|razorpay-test] [--editor] [--fullscreen]
-#                         [--no-mock] [--skip-port-check] [--bridge-check] [-- <godot user args>]
+#                         [--no-mock] [--skip-port-check] [--bridge-check] [--backend=mock|server]
+#                         [-- <godot user args>]
+# --backend=server: the config/telemetry/sales API is the real backend (server/, on :8790; start it
+# first: cd server && npm run db, npm run seed, npm start). Razorpay stays on the mock.
 # --bridge-check turns on the dead-bridge watchdog (out of service after 30 s without a
 # bridge heartbeat); off by default so the app runs without a bridge.
 # Refuses to start if another program (usually a second copy of the app, e.g. the
@@ -12,8 +15,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 GODOT="${GODOT:-godot}"
 MOCK_PORT=8787
+SERVER_PORT=8790
 
-scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock" port_check=1 bridge_check="off"
+scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock" port_check=1 bridge_check="off" backend="mock"
 passthrough=()
 while [[ $# -gt 0 ]]; do
 	arg="$1"
@@ -27,6 +31,7 @@ while [[ $# -gt 0 ]]; do
 		--no-mock) no_mock=1 ;;
 		--skip-port-check) port_check=0 ;;
 		--bridge-check) bridge_check="on" ;;
+		--backend=*) backend="${arg#--backend=}" ;;
 		*) echo "unknown option: $arg" >&2; exit 2 ;;
 	esac
 done
@@ -36,6 +41,17 @@ if ! command -v "$GODOT" >/dev/null 2>&1 || ! "$GODOT" --version 2>/dev/null | g
 	exit 1
 fi
 command -v python3 >/dev/null 2>&1 || { echo "dev_run: python3 not found" >&2; exit 1; }
+case "$backend" in
+	mock) api_args=() ;;
+	server)
+		[[ $no_mock -eq 0 ]] || { echo "dev_run: --backend=server needs the mock for Razorpay (drop --no-mock)" >&2; exit 2; }
+		if ! curl -sf "http://127.0.0.1:$SERVER_PORT/healthz" >/dev/null 2>&1; then
+			echo "dev_run: no backend server on :$SERVER_PORT. Start it: cd server && npm run db, npm run seed, npm start" >&2
+			exit 1
+		fi
+		api_args=(--api="http://127.0.0.1:$SERVER_PORT/fuelbot" --razorpay-api="http://127.0.0.1:$MOCK_PORT") ;;
+	*) echo "dev_run: unknown --backend=$backend (use mock or server)" >&2; exit 2 ;;
+esac
 
 # UDP ports from local_settings.bridge (+ the user:// override, if any).
 read -r order_port listen_port < <(python3 - <<'PY'
@@ -101,7 +117,7 @@ if [[ $no_mock -eq 0 ]]; then
 	if [[ -n "$scenario" ]]; then
 		MOCK_PORT=$MOCK_PORT mockserver/scenario.sh "$scenario" >/dev/null
 	fi
-	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" --bridge-check="$bridge_check" >.dev_setup.log 2>&1; then
+	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" --bridge-check="$bridge_check" ${api_args[@]+"${api_args[@]}"} >.dev_setup.log 2>&1; then
 		cat .dev_setup.log >&2
 		exit 1
 	fi
@@ -118,6 +134,7 @@ cat <<BANNER
 ────────────────────────────────────────────────────────────
  FuelBot dev run
  Mock backend : $([[ $no_mock -eq 1 ]] && echo "disabled (offline, bundled default config)" || echo "http://127.0.0.1:$MOCK_PORT  (log: .mock.log)")
+ Backend API  : $([[ "$backend" == "server" ]] && echo "real server http://127.0.0.1:$SERVER_PORT/fuelbot (tenant powerfuel, machine machine-042; Razorpay on the mock)" || echo "the mock")
  Scenario     : ${scenario:-$([[ $no_mock -eq 1 ]] && echo "-" || echo "current")}
  Payments     : $([[ $no_mock -eq 1 ]] && echo "-" || echo "$payments")
  Bridge       : $bridge_note

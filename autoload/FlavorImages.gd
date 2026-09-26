@@ -349,7 +349,10 @@ func _cleanup() -> void:
 		if name != "":
 			keep[name] = true
 	var removed: PackedStringArray = []
-	for file in DirAccess.get_files_at(cache_dir):
+	# No folder yet (a catalog without image_urls never downloads): nothing to clean.
+	var files := DirAccess.get_files_at(cache_dir) if DirAccess.dir_exists_absolute(cache_dir) \
+		else PackedStringArray()
+	for file in files:
 		if not keep.has(file):
 			DirAccess.remove_absolute(cache_dir.path_join(file))
 			_textures.erase(file)

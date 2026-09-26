@@ -2,10 +2,11 @@ extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
 ##     [--tenant=powerfuel] [--machine=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
-##     [--payments=mock|razorpay-test] [--bridge-check=off|on] [--clear] [--print-dir]
+##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
-##   + razorpay_base_url -> mock server. Your real razorpay_credentials.cfg is never touched.
+##   + razorpay_base_url -> mock server (the --api origin, or --razorpay-api when the config API
+##   is the real backend server). Your real razorpay_credentials.cfg is never touched.
 ## --payments=razorpay-test: real Razorpay (test mode) using razorpay_credentials.cfg.
 ##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
 ## --bridge-check=off (default): no dead-bridge watchdog, so the app runs without a bridge.
@@ -27,6 +28,7 @@ func _initialize() -> void:
 	var api := "http://127.0.0.1:8787/fuelbot"
 	var poll := 10.0
 	var payments := "mock"
+	var razorpay_api := ""
 	var bridge_check := "off"
 	var clear := false
 	for arg in OS.get_cmdline_user_args():
@@ -42,6 +44,8 @@ func _initialize() -> void:
 			payments = "mock"
 		elif arg.begins_with("--payments="):
 			payments = arg.trim_prefix("--payments=")
+		elif arg.begins_with("--razorpay-api="):
+			razorpay_api = arg.trim_prefix("--razorpay-api=")
 		elif arg.begins_with("--bridge-check="):
 			bridge_check = arg.trim_prefix("--bridge-check=")
 		elif arg == "--clear":
@@ -79,7 +83,7 @@ func _initialize() -> void:
 		"bridge": {"require_heartbeat": bridge_check == "on"},
 	}
 	if payments == "mock":
-		override.api["razorpay_base_url"] = _origin(api)
+		override.api["razorpay_base_url"] = razorpay_api if razorpay_api != "" else _origin(api)
 		override["payments"] = {"credentials_path": MOCK_CREDS_PATH}
 		var cfg := ConfigFile.new()
 		cfg.set_value("razorpay", "key_id", "mock_key")

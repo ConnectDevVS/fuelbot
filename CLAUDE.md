@@ -72,8 +72,9 @@ devdocs/       plans/, stories/<set>/, image-spec.md (flavor images, for the con
   real-time capture (540×960) into `.screenshots/`. The 4th arg passes
   `--select=<id>` to `DevCapture` so details/payment can be launched directly.
 - `tools/dev_run.sh [--scenario=x] [--payments=mock|razorpay-test] [--editor]
-  [--fullscreen] [--no-mock] [--skip-port-check] [--bridge-check] [-- godot args]`: dev launch with the mock on
-  **:8787**. `--scenario` switches the *config* route only; switch payment
+  [--fullscreen] [--no-mock] [--skip-port-check] [--bridge-check] [--backend=mock|server] [-- godot args]`: dev launch with the mock on
+  **:8787**. `--backend=server` sends config/telemetry/sales to the real backend
+  (`server/`, :8790, start it first; see server/CLAUDE.md), Razorpay stays on the mock. `--scenario` switches the *config* route only; switch payment
   outcomes with `mockserver/scenario.sh <name> '/v1/payments/qr_codes/{qr_id}/payments'`.
 - **One app, one bridge.** Only one process can listen on 4245 (bridge
   results) or 4242 (orders). A second app copy (typically the editor's F5

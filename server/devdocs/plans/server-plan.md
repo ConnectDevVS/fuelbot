@@ -10,10 +10,12 @@ decision-log entry.
 
 ## 0. Status & decision log
 
-**Status (2026-09-26).** Planning. A scaffold exists in `server/`
-(uncommitted: settings, Mongoose connection, `/healthz`, test harness).
-Nothing is deployed. The kiosk app still talks to the mock
-(`mockserver/`), which stays as the app's test backend.
+**Status (2026-09-26).** **S0 and S1 done** ([kiosk-api SIGNOFF](../stories/kiosk-api/SIGNOFF.md)):
+the three kiosk endpoints serve real data, and the app sends its machine id
+and keeps 401/403 records. The real app has run end to end against the
+server (`tools/dev_run.sh --backend=server`). Next: S2 (users, sessions,
+RBAC). Nothing is deployed. The mock (`mockserver/`) stays as the app's test
+backend.
 
 **Decision log.** Newest last. Sections are edited in place; this list is
 the index.
@@ -201,7 +203,7 @@ event table):
 
 | `event_type` | Source | Fields besides the common ones |
 |---|---|---|
-| `dispense_cycle` | bridge / app | `order_id`, `hopper`, `base`, `result` (`DONE`/`TIMEOUT`/`REJECTED`/`NO_RESPONSE`), `reason`, `stages: [{stage, t_offset_ms}]`, `fault`, `duration_ms`, `transaction_id`, `flavor_id`, `base_id`, `order_number` |
+| `dispense_cycle` | bridge / app | `order_id`, `hopper`, `base` (the `B<n>` number, e.g. `2`), `result` (`DONE`/`TIMEOUT`/`REJECTED`/`NO_RESPONSE`), `reason`, `stages: [{stage, t_offset_ms}]`, `fault`, `duration_ms`, `transaction_id`, `flavor_id`, `base_id`, `order_number` |
 | `machine_fault` | bridge | `fault` (e.g. `HOMING_TIMEOUT`), `order_id` or null |
 | `machine_ok` | bridge | `cleared` (the code) |
 | `bridge_down` | app | `silent_sec` |
@@ -399,8 +401,8 @@ index is an open question (§9).
 | `event_id`, `event_type` | String, required |
 | `v` | Number |
 | `source` | String (`bridge`/`app`) |
-| `order_id`, `transaction_id`, `flavor_id`, `base_id`, `base`, `result`, `reason`, `fault`, `cleared`, `file_name` | String (`fault` may be null) |
-| `order_number`, `hopper`, `duration_ms`, `silent_sec`, `down_sec` | Number |
+| `order_id`, `transaction_id`, `flavor_id`, `base_id`, `result`, `reason`, `fault`, `cleared`, `file_name` | String (`fault` may be null) |
+| `order_number`, `hopper`, `base`, `duration_ms`, `silent_sec`, `down_sec` | Number |
 | `stages` | [`{stage: String, t_offset_ms: Number}`] |
 | `timestamp`, `tenant_id`, `machine_id`, `body_tenant_id`, `body_machine_id`, `ts`, `received_at`, `machine_known`, `extra` | as for `Sale` |
 

@@ -17,7 +17,7 @@ const common = (type, extra = {}) => ({
 // Every event type the app posts (telemetry README event table, plan §3.3).
 const SAMPLE_EVENTS = () => [
   common('dispense_cycle', {
-    order_id: '01J8Z6Q4M9X3T7C2V5B8N1K4RD', hopper: 1, base: 'B2', result: 'DONE', reason: '',
+    order_id: '01J8Z6Q4M9X3T7C2V5B8N1K4RD', hopper: 1, base: 2, result: 'DONE', reason: '',
     stages: [{ stage: 'HOMING_START', t_offset_ms: 0 }, { stage: 'DONE', t_offset_ms: 44050 }],
     fault: null, duration_ms: 44050, transaction_id: 'pay_1', flavor_id: 'guava', base_id: 'water', order_number: 4821,
   }),

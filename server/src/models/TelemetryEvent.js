@@ -17,7 +17,7 @@ const TelemetryEventSchema = new mongoose.Schema({
   transaction_id: String,
   flavor_id: String,
   base_id: String,
-  base: String,
+  base: Number,                            // the bridge's B<n> number (e.g. 2 = water)
   result: String,
   reason: String,
   fault: { type: String, default: undefined },

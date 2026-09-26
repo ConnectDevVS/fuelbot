@@ -255,6 +255,17 @@ func test_cleanup_after_success() -> void:
 	assert_eq(_index(), {"guava": GUAVA}, "index entry for a flavor no longer in the catalog dropped")
 
 
+## A catalog with no image_url (only bundled images) never creates the cache folder; cleanup
+## must not try to list it (the engine prints an ERROR for a missing folder).
+func test_cleanup_without_cache_folder() -> void:
+	_make("no_folder")
+	DirAccess.remove_absolute(fi.cache_dir)
+	assert_false(DirAccess.dir_exists_absolute(fi.cache_dir), "no folder")
+	var bundled_only := {"id": "guava", "enabled": true, "image": "res://assets/images/flavors/prymor_guava.png"}
+	assert_true(await _sync([bundled_only]), "pass ok")
+	assert_false(DirAccess.dir_exists_absolute(fi.cache_dir), "still no folder")
+
+
 func test_no_cleanup_after_failure_or_default() -> void:
 	_make("no_cleanup")
 	var f := FileAccess.open(fi.cache_dir.path_join("old-20250101a.png"), FileAccess.WRITE)

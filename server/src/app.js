@@ -16,7 +16,8 @@ export function createApp({ settings }) {
       const start = process.hrtime.bigint();
       res.on('finish', () => {
         const ms = Number(process.hrtime.bigint() - start) / 1e6;
-        console.log(`[http] ${req.method} ${req.path} ${res.statusCode} ${ms.toFixed(1)}ms`);
+        const path = req.originalUrl.split('?')[0];
+        console.log(`[http] ${req.method} ${path} ${res.statusCode} ${ms.toFixed(1)}ms`);
       });
       next();
     });

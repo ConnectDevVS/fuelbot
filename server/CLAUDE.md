@@ -16,6 +16,11 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `npm run db`: local persistent MongoDB on 27017 (data in `.data/`).
 - `npm start` / `npm run dev` (watch): the server on **:8790**. It reads
   `.env` if present (see `.env.example`).
+- `npm run seed`: tenant `powerfuel`, machine `machine-042` (the mock's
+  catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
+- **The real app against this server:** start db + seed + server, then
+  `tools/dev_run.sh --backend=server` from the repo root (config, telemetry and
+  sales go to :8790; Razorpay stays on the mock).
 
 ## Rules
 
@@ -37,10 +42,15 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `createApp({settings})` takes its dependencies; tests build one per
   file (`test/helpers.js`).
 - `server/.gdignore` keeps Godot out of `node_modules/`. Don't remove it.
-- Don't touch `mockserver/`: it stays the app's test backend.
+- `mockserver/` stays the app's test backend. Server work never depends on it at
+  runtime (tests read its JSON as contract fixtures); app stories may add scenarios.
 
 ## Gotchas
 
+- **Check field types against what the app and bridge really send**, not the
+  docs' prose: `dispense_cycle.base` is the bridge's number (`2`), not `"B2"`.
+  A wrong type isn't lost (it lands in `extra`), but it's invisible to
+  queries. After a schema change, grep `extra` in a real run.
 - Mongoose's default connection is per process. That works because
   `node --test` runs each test file in its own process. Keep
   `startServer()`/`stop()` in `before`/`after` of the file, not per test.
