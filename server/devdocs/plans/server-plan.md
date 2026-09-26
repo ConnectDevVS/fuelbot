@@ -182,8 +182,12 @@ Where each part comes from:
   rupees (ints). A product appears at most once per menu. If the app's
   rules change, this list and `server/src/catalog/validate.js` change in
   the same commit.
-- Empty optional fields are left out rather than sent as `""`: `image_url`
-  absent means "use the bundled image".
+- Fields that were never set are left out (`image_url` absent means "use
+  the bundled image"). `null` is kept where the app allows it
+  (`offer_price`, `badge`, `flagged_by`, `flagged_at`, `idle_video_url`).
+- **Dates are `YYYY-MM-DDTHH:MM:SSZ`, with no milliseconds.** The app's
+  parser (`Fmt.iso_to_unix`) rejects `…:00.000Z`, which JavaScript's
+  `toISOString()` produces, so the server strips the milliseconds.
 - **404** `unknown_machine` if the machine isn't registered, or belongs to
   another tenant. **403** `machine_disabled` / `tenant_disabled`. The app
   treats any non-200 as "offline" and keeps its cached catalog, which is

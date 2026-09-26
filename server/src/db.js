@@ -1,5 +1,6 @@
 // MongoDB via Mongoose. Models live in src/models/ (strict schemas, plan §4.1).
 import mongoose from 'mongoose';
+import './models/index.js';
 
 mongoose.set('strict', true);
 mongoose.set('strictQuery', true);

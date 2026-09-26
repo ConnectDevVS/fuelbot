@@ -1,14 +1,7 @@
 // The Express app. createApp() takes its dependencies so tests can build one per suite.
 import express from 'express';
 import { pingDb } from './db.js';
-
-export class HttpError extends Error {
-  constructor(status, message, details) {
-    super(message);
-    this.status = status;
-    this.details = details;
-  }
-}
+import { HttpError } from './errors.js';
 
 export function createApp({ settings }) {
   const app = express();

@@ -39,9 +39,41 @@ export async function startServer(env = {}) {
   };
 }
 
-/** The mock's default catalog body (mockserver/responses/config/default.json), image URLs made https. */
-export function mockCatalog() {
-  const file = new URL('../../mockserver/responses/config/default.json', import.meta.url);
-  const text = fs.readFileSync(file, 'utf8').replaceAll('{{origin}}/__mock/assets', 'https://cdn.example.com');
-  return JSON.parse(text).body;
+const isIdList = (v) => Array.isArray(v) && v.length > 0
+  && v.every((x) => x !== null && typeof x === 'object' && 'id' in x);
+
+/** mockserver/server.py deep_merge: objects recurse, arrays of {id} merge by id, else replace. */
+function deepMerge(base, patch) {
+  const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  if (isObj(base) && isObj(patch)) {
+    const out = structuredClone(base);
+    for (const [k, v] of Object.entries(patch)) out[k] = k in out ? deepMerge(out[k], v) : structuredClone(v);
+    return out;
+  }
+  if (isIdList(base) && isIdList(patch)) {
+    const out = structuredClone(base);
+    for (const item of patch) {
+      const i = out.findIndex((x) => x.id === item.id);
+      if (i >= 0) out[i] = deepMerge(out[i], item);
+      else out.push(structuredClone(item));
+    }
+    return out;
+  }
+  return structuredClone(patch);
+}
+
+export const MOCK_ORIGIN = 'https://cdn.example.com';
+
+/**
+ * A mock config scenario's body (mockserver/responses/config/<name>.json), with extends/body_patch
+ * resolved like the mock and {{origin}} replaced by MOCK_ORIGIN (https, so the app accepts it).
+ */
+export function mockConfig(name = 'default') {
+  const load = (n) => {
+    const file = new URL(`../../mockserver/responses/config/${n}.json`, import.meta.url);
+    const env = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!env.extends) return env.body;
+    return deepMerge(load(env.extends), env.body_patch ?? {});
+  };
+  return JSON.parse(JSON.stringify(load(name)).replaceAll('{{origin}}', MOCK_ORIGIN));
 }
