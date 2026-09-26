@@ -7,6 +7,10 @@ const MAX_NUMBER := 9999
 var counter_path := "user://order_counter.txt"
 
 
+func _ready() -> void:
+	counter_path = ConfigManager.user_path(counter_path)
+
+
 ## Returns the next number and persists the one after it (1..9999, wrapping).
 func next() -> int:
 	var value := 1

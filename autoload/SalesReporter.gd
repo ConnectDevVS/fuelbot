@@ -16,6 +16,7 @@ var _reported: Array[String] = []
 
 func _ready() -> void:
 	if auto_configure:
+		queue_path = ConfigManager.user_path(queue_path)
 		start_queue()
 
 

@@ -29,9 +29,10 @@ func _ready() -> void:
 	_run.call_deferred()
 
 
-## Tests must never touch the developer's environment: the dev override (loaded at boot)
-## points the backend at the dev mock (:8787), the reporters at the real user:// queues and
-## FlavorImages at the real user://image_cache.
+## Tests must never touch the developer's environment. The autoloads already booted
+## sandboxed (ConfigManager.is_sandbox_run(): no tenant, no dev override, no config cache, all
+## machine state under user://sandbox/). Here: the backend -> the test mock, the reporters ->
+## fresh per-run queues, FlavorImages -> a per-run cache with no automatic downloads.
 func _isolate_app() -> void:
 	ConfigManager.local_settings.api.base_url = TEST_API
 	DirAccess.make_dir_recursive_absolute(TEST_QUEUE.get_base_dir())

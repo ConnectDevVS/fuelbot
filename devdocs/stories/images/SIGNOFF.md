@@ -74,16 +74,20 @@ through with S3 images.** Not verified: a real S3 bucket and WebP on the Pi
 
 ## Observations (for review, not changed)
 
-- **Tests still touch the real `config_cache.json`** (existing, not images):
+- **Resolved after the sign-off (branch `fix/test-boot-isolation`):** tests
+  and `check_boot.sh` now boot sandboxed (`user://sandbox/`), with no config
+  GET, no config-cache or order-counter writes, and no QR image rewrite in the
+  real `user://`. It also found and removed six stray `image_download_failed`
+  events that this sign-off's final `check_boot.sh` had queued in the real
+  telemetry queue. Original note: **tests still touch the real `config_cache.json`** (existing, not images):
   the test process's `ConfigManager` boots with the real paths and the dev
   override before the runner can isolate it. It makes one config GET to the dev
   mock and rewrites `user://config_cache.json` (seen in the isolation check:
   the cache pointed at the stand-in mock afterwards; restored). No image
   downloads follow, because `FlavorImages` is stopped first. Fixing it
   means letting `ConfigManager` skip its automatic boot under the test runner.
-- **`tools/check_boot.sh` is a real 5 s boot:** with a dev mock running, it
-  downloads the images into the real `user://image_cache/`, like any dev
-  launch.
+- **`tools/check_boot.sh` was a real 5 s boot** (downloads into the real image
+  cache, telemetry into the real queue); now sandboxed, see above.
 - **The bundled images now fill the card** (trimmed), so the bundled and S3
   images look alike. This is a visible change from the earlier, padded look.
 

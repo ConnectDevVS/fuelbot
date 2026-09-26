@@ -63,7 +63,8 @@ devdocs/       plans/, stories/<set>/, image-spec.md (flavor images, for the con
   telemetry and heartbeats). `python3 tools/fake_arduino_serial.py
   --time-scale 0.1 --link <path> [--fault never_done|silent|disconnect|homing_timeout|homing_flaky]` +
   `python3 hardware/bridge/udprxtx.py --serial <path> --recover-sec 3`: Level 1.
-- `tools/check_boot.sh`: 5 s headless boot, fails on script or parse errors.
+- `tools/check_boot.sh`: 5 s headless boot, **sandboxed** (`-- --sandbox`), fails on
+  script or parse errors.
 - `tools/screenshot.sh <res://Scene.tscn|main> [out.png] [delay] [flavor id]`:
   real-time capture (540×960) into `.screenshots/`. The 4th arg passes
   `--select=<id>` to `DevCapture` so details/payment can be launched directly.
@@ -210,18 +211,26 @@ overflow were both found this way. Story work is one commit per story
     `timing.image_retry_interval_sec`, and clean up only after a clean pass on
     a backend catalog. `image_download_failed` goes out once per file + reason
     per run, and never carries the URL (presigned signatures).
-- **Tests never touch the dev environment.** The test process loads the dev
-  override (backend → the dev mock on :8787), so `tests/test_runner.gd`
-  re-points the backend at the test mock (:8788) and the reporters at
-  `user://test_runner/` queues, and turns off the dead-bridge watchdog. A
+- **Tests never touch the dev environment.** The test process (and
+  `check_boot.sh`, via `-- --sandbox`) boots **sandboxed**:
+  `ConfigManager.is_sandbox_run()` is true when the main scene is
+  `tests/TestRunner.tscn` or the user args contain `--sandbox`, and then every
+  machine-state path moves under `user://sandbox/` (no tenant, no dev override,
+  no config cache, so no fetch). **A new autoload that keeps a `user://` file
+  maps its default through `ConfigManager.user_path(path)` in `_ready()`**
+  (as `OrderCounter`, `RazorpayManager`, the reporters and `FlavorImages` do).
+  On top of that, `tests/test_runner.gd` points the backend at the test mock
+  (:8788) and the reporters at `user://test_runner/` queues, and turns off the
+  dead-bridge watchdog. A test's **fresh instance** of an autoload script keeps
+  the real default paths, so it must set its own (e.g. `rzp.image_path`). A
   test that swaps a reporter's `queue_path` restores the previous value,
   never the real `QUEUE_PATH`. A new reporter or queue needs the same
   treatment in `_isolate_app()`. `FlavorImages` is stopped there
   (`stop()`: no auto sync, no retry) and pointed at
   `user://test_runner/image_cache`; tests that download use a **fresh
-  instance** with its own folder. Known leak (existing): the test process's
-  `ConfigManager` boots before the runner, so each run makes one config GET to
-  the dev mock and rewrites the real `user://config_cache.json`.
+  instance** with its own folder. Verify isolation by fingerprinting the real
+  `user://` (md5 + mtime, minus `test_*`/`sandbox/`) and counting a stand-in
+  dev mock's requests around `run_tests.sh && check_boot.sh`: both unchanged.
   - The board never resets in a loop on a homing fault: it retries after 1,
     2, 4 and 8 min, then every 10 min, and refuses commands (`FAULT:NOT_HOMED`).
     The bridge also refuses orders while faulted (`REJECTED machine_fault`).
@@ -547,5 +556,6 @@ any change to `RazorpayManager` or the create payload.
   4b against the mock). **Pending the backend team:** the real S3 bucket and
   the config API's `image_url` field; the content team follows
   `devdocs/image-spec.md`.
-- `tools/check_boot.sh` is a real boot: with a dev mock up, it fills the real
-  `user://image_cache/` like any dev launch.
+- `tools/screenshot.sh` is still a real (unsandboxed) boot, on purpose: it
+  captures what the dev environment shows, so it uses the dev tenant, mock,
+  caches and queues like any dev launch.

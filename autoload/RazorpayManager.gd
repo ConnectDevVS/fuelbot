@@ -24,6 +24,7 @@ var poll_interval_sec := 3.0
 var poll_timeout_sec := 180.0
 var qr_expiry_sec := 180.0
 var request_timeout_sec := 10.0
+var image_path := IMAGE_PATH   # sandboxed runs move it under user://sandbox/
 
 var _mode := ""
 var _auth_header := ""
@@ -54,7 +55,8 @@ func configure_from_settings() -> void:
 	var payments: Dictionary = ConfigManager.local_settings.get("payments", {})
 	base_url = String(api.get("razorpay_base_url", "https://api.razorpay.com"))
 	request_timeout_sec = float(api.get("request_timeout_sec", 10))
-	credentials_path = String(payments.get("credentials_path", "user://razorpay_credentials.cfg"))
+	credentials_path = ConfigManager.user_path(String(payments.get("credentials_path", "user://razorpay_credentials.cfg")))
+	image_path = ConfigManager.user_path(IMAGE_PATH)
 	allow_live_keys = bool(payments.get("allow_live_keys", false))
 	poll_interval_sec = ConfigManager.get_timing("payment_poll_interval_sec", 3.0)
 	poll_timeout_sec = ConfigManager.get_timing("payment_poll_timeout_sec", 180.0)
@@ -189,7 +191,7 @@ func _on_create_completed(result: int, code: int, _headers: PackedStringArray, b
 	if _aborted:
 		close_qr()
 		return
-	_http_image.download_file = IMAGE_PATH
+	_http_image.download_file = image_path
 	if _http_image.request(String(data.image_url)) != OK:
 		qr_create_failed.emit("image_download")
 		close_qr()
@@ -199,8 +201,8 @@ func _on_image_completed(result: int, code: int, _headers: PackedStringArray, _b
 	if _aborted:
 		close_qr()
 		return
-	var ok := result == HTTPRequest.RESULT_SUCCESS and code == 200 and FileAccess.file_exists(IMAGE_PATH) \
-		and FileAccess.get_file_as_bytes(IMAGE_PATH).size() > 0
+	var ok := result == HTTPRequest.RESULT_SUCCESS and code == 200 and FileAccess.file_exists(image_path) \
+		and FileAccess.get_file_as_bytes(image_path).size() > 0
 	if not ok:
 		qr_create_failed.emit("image_download")
 		close_qr()
@@ -208,7 +210,7 @@ func _on_image_completed(result: int, code: int, _headers: PackedStringArray, _b
 	_poll_deadline_msec = Time.get_ticks_msec() + int(poll_timeout_sec * 1000)
 	_poll_timer.wait_time = maxf(poll_interval_sec, 0.05)
 	_poll_timer.start()
-	qr_created.emit(_qr_id, IMAGE_PATH, _amount_rupees)
+	qr_created.emit(_qr_id, image_path, _amount_rupees)
 
 
 func _on_poll_tick() -> void:

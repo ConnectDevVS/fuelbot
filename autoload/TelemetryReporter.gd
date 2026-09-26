@@ -38,6 +38,7 @@ var _bridge_down_since_msec := -1        # -1 = the bridge is considered up
 
 func _ready() -> void:
 	if auto_configure:
+		queue_path = ConfigManager.user_path(queue_path)
 		configure_from_settings()
 
 
