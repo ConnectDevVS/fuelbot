@@ -43,6 +43,7 @@ func report_sale(sale: Dictionary) -> bool:
 		_reported.pop_front()
 	var record := sale.duplicate(true)
 	record["tenant_id"] = ConfigManager.tenant_id
+	record["machine_id"] = ConfigManager.machine_id
 	record["timestamp"] = Time.get_datetime_string_from_system(true) + "Z"   # Godot omits the Z
 	print("[Sales] order %s %s %s" % [order_id, record.get("dispensing_result"), record.get("dispensing_reason")])
 	queue.enqueue(record)

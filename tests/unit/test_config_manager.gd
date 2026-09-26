@@ -37,10 +37,28 @@ func _make_cm(tenant: String = "t-test", timeout_sec: int = 2) -> Node:
 	cm = load("res://autoload/ConfigManager.gd").new()
 	cm.auto_boot = false
 	cm.tenant_id_path = tenant_path
+	cm.machine_id_path = DIR + "/machine_id.txt"
 	cm.cache_path = CACHE
 	cm.local_settings_override_path = DIR + "/override.json"
 	add_child(cm)
 	return cm
+
+
+## Server plan §3.1: X-Machine-Id on backend calls when the machine id is provisioned.
+func test_machine_id_header() -> void:
+	_write(DIR + "/machine_id.txt", "machine-042\n")
+	_make_cm()
+	assert_true(await _boot(cm), "booted")
+	assert_eq(cm.machine_id, "machine-042", "read and trimmed")
+	var headers: PackedStringArray = cm.get_backend_headers()
+	assert_true(headers.has("X-Tenant-Id: t-test"), "tenant header")
+	assert_true(headers.has("X-Machine-Id: machine-042"), "machine header")
+	DirAccess.remove_absolute(DIR + "/machine_id.txt")
+	_make_cm()
+	assert_true(await _boot(cm), "booted without a machine id")
+	assert_eq(cm.machine_id, "", "none")
+	for h in cm.get_backend_headers():
+		assert_false(String(h).begins_with("X-Machine-Id"), "no empty machine header")
 
 
 func _write(path: String, text: String) -> void:

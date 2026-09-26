@@ -1,0 +1,5 @@
+{
+  "description": "HTTP 401: machine not identified or its key refused (the app keeps the record and retries)",
+  "status": 401,
+  "body": {"error": "machine_key_invalid"}
+}

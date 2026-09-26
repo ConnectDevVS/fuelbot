@@ -1,7 +1,7 @@
 extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
-##     [--tenant=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
+##     [--tenant=powerfuel] [--machine=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
 ##     [--payments=mock|razorpay-test] [--bridge-check=off|on] [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
@@ -12,6 +12,7 @@ extends SceneTree
 ##   on: out of service after 30 s without a bridge heartbeat (run a real or fake bridge).
 
 const TENANT_PATH := "user://tenant_id.txt"
+const MACHINE_PATH := "user://machine_id.txt"
 const OVERRIDE_PATH := "user://local_settings.override.json"
 const CACHE_PATH := "user://config_cache.json"
 const CREDS_PATH := "user://razorpay_credentials.cfg"
@@ -21,7 +22,8 @@ const IMAGE_CACHE_DIR := "user://image_cache"
 
 
 func _initialize() -> void:
-	var tenant := "machine-042"
+	var tenant := "powerfuel"
+	var machine := "machine-042"
 	var api := "http://127.0.0.1:8787/fuelbot"
 	var poll := 10.0
 	var payments := "mock"
@@ -30,6 +32,8 @@ func _initialize() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--tenant="):
 			tenant = arg.trim_prefix("--tenant=")
+		elif arg.begins_with("--machine="):
+			machine = arg.trim_prefix("--machine=")
 		elif arg.begins_with("--api="):
 			api = arg.trim_prefix("--api=")
 		elif arg.begins_with("--poll="):
@@ -48,7 +52,7 @@ func _initialize() -> void:
 			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
-		for path in [TENANT_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
+		for path in [TENANT_PATH, MACHINE_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
@@ -89,8 +93,10 @@ func _initialize() -> void:
 		return
 
 	_write(TENANT_PATH, tenant)
+	_write(MACHINE_PATH, machine)
 	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
-	print("tenant=%s api=%s poll=%ss payments=%s bridge-check=%s" % [tenant, api, poll, payments, bridge_check])
+	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s" % [
+		tenant, machine, api, poll, payments, bridge_check])
 	quit(0)
 
 

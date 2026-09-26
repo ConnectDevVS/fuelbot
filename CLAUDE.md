@@ -182,7 +182,8 @@ overflow were both found this way. Story work is one commit per story
     `Bridge.get_order_context()`, then queues.
   - Anything that must reach a backend goes through `ReportQueue`
     (`core/`): written to disk before the network, one POST in flight, retry
-    timer, flush on boot, 4xx (not 408/429) dropped, capped. Don't write a
+    timer, flush on boot, 4xx dropped except 408/429 and **401/403 (kept: the
+    machine isn't identified or authorised yet, server plan §3.5)**, capped. Don't write a
     second queue for sales in M6: reuse it.
   - Local maintenance faults are a **set of codes** (`ConfigManager.local_faults`,
     code → start time): `HOMING_TIMEOUT` (from the board) and `BRIDGE_DOWN`
@@ -266,7 +267,12 @@ overflow were both found this way. Story work is one commit per story
 - **Hoppers are 1..`ConfigManager.MAX_HOPPER` (6)**, unique among enabled
   flavors. `enabled:false` hides a flavor; `sold_out:true` shows it greyed and
   not tappable. Use `ConfigManager.is_orderable()`.
-- Credentials and provisioning files (`tenant_id.txt`,
+- **Machine identity (server plan §3.1, §3.7):** `user://tenant_id.txt` is the
+  tenant (a company, e.g. `powerfuel`); `user://machine_id.txt` is this machine
+  (`machine-042`), sent as `X-Machine-Id` on backend calls only (never the
+  image GET or Razorpay), stamped on sales/telemetry and in the QR notes, and
+  shown as MACHINE ID on maintenance. `dev_setup.gd --tenant= --machine=`.
+- Credentials and provisioning files (`tenant_id.txt`, `machine_id.txt`,
   `razorpay_credentials.cfg`, `razorpay_credentials.mock.cfg`, `*.local.cfg`,
   overrides) live in `user://` and are gitignored. Never commit a key.
 - **The old build's `fuelbotsource_og/second.gd` contains a live Razorpay

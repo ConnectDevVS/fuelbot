@@ -4,6 +4,8 @@ extends RefCounted
 ## (devdocs/stories/telemetry/TEL-05; Milestone 6's SalesReporter reuses it).
 ## - Durable before network: every change is written to disk atomically (tmp + rename).
 ## - 2xx: removed. 408/429/5xx/connection error: kept and retried on a timer.
+## - 401/403: kept and retried. The machine isn't identified or authorised yet (no machine id or
+##   key, a revoked key): fixing the provisioning must not cost records (server plan §3.5).
 ##   Other 4xx: dropped with an error (a record the backend rejects would block forever).
 ## - Capped at max_records: the oldest is dropped with a warning.
 ## - An empty URL or headers (e.g. no tenant yet): nothing is sent, the record waits.
@@ -85,6 +87,9 @@ func _on_completed(result: int, code: int, _headers: PackedStringArray, _body: P
 		_save()
 		delivered.emit(sent)
 		flush()
+	elif result == HTTPRequest.RESULT_SUCCESS and (code == 401 or code == 403):
+		push_warning("%s backend refused this machine (HTTP %d: check its machine id/key); %d queued, will retry" % [
+			_log_tag, code, _records.size()])
 	elif result == HTTPRequest.RESULT_SUCCESS and code >= 400 and code < 500 and code != 408 and code != 429:
 		var bad: Dictionary = _records.pop_front()
 		_save()

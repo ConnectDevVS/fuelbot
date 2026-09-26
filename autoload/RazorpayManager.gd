@@ -130,6 +130,7 @@ func create_qr(amount_rupees: int, order_id: String, order_number: int, descript
 			"order_id": order_id,
 			"order_number": str(order_number),
 			"tenant_id": ConfigManager.tenant_id,
+			"machine_id": ConfigManager.machine_id,
 		},
 	}
 	var err := _http_create.request(_url("/v1/payments/qr_codes"),

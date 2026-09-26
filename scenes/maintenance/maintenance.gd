@@ -67,7 +67,7 @@ func _render() -> void:
 	var tenant := ConfigManager.get_tenant()
 	var unknown := ConfigManager.get_message("diag_unknown")
 	_message.text = info.message
-	_values.diag_machine_id.text = ConfigManager.tenant_id if ConfigManager.tenant_id != "" else unknown
+	_values.diag_machine_id.text = ConfigManager.machine_id if ConfigManager.machine_id != "" else unknown
 	_values.diag_site.text = tenant.get("site", "") if tenant.get("site", "") != "" else unknown
 	_values.diag_flagged_by.text = info.flagged_by if info.flagged_by != "" else unknown
 	var v := Engine.get_version_info()

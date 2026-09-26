@@ -89,6 +89,30 @@ func test_drop_on_400() -> void:
 	assert_eq(dropped.args[1], "rejected_400", "why")
 
 
+## Server plan §3.5: a machine the backend doesn't recognise yet (no machine id, a revoked key)
+## keeps its records until it's fixed, instead of dropping them like other 4xx.
+func test_keep_on_401_and_403() -> void:
+	for scenario in ["unauthorized", "forbidden"]:
+		await mock_reset()
+		await mock_scenario(scenario, ROUTE)
+		var q := _queue()
+		var dropped := watch_signal(q, &"dropped")
+		q.enqueue({"id": 11})
+		var deadline := Time.get_ticks_msec() + 3000
+		while await _count() < 2 and Time.get_ticks_msec() < deadline:
+			await wait_seconds(0.1)
+		assert_true(await _count() >= 2, "%s: retried" % scenario)
+		assert_eq(q.size(), 1, "%s: kept" % scenario)
+		assert_eq(dropped.count, 0, "%s: never dropped" % scenario)
+		await mock_scenario("default", ROUTE)
+		assert_true(await _wait_size(q, 0, 2.0), "%s: sent once accepted" % scenario)
+		_host.queue_free()
+		_host = Node.new()
+		add_child(_host)
+		_n += 1
+		_path = "%s/q%d.json" % [DIR, _n]
+
+
 func test_order_preserved() -> void:
 	await mock_scenario("server_error", ROUTE)
 	var q := _queue()

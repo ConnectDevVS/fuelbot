@@ -80,6 +80,8 @@ func test_modes() -> void:
 
 func test_happy_path_paid_after_3() -> void:
 	await mock_scenario("paid_after_3", PAYMENTS)
+	var prev_machine := ConfigManager.machine_id
+	ConfigManager.machine_id = "m-qr"
 	_make()
 	var created := watch_signal(rzp, &"qr_created")
 	var paid := watch_signal(rzp, &"payment_received")
@@ -93,6 +95,8 @@ func test_happy_path_paid_after_3() -> void:
 	var body: Dictionary = (await mock_state()).last_body[CREATE]
 	assert_eq(int(body.payment_amount), 7500, "paise")
 	assert_eq(body.notes.order_id, ORDER_ID, "order id in notes")
+	assert_eq(body.notes.machine_id, "m-qr", "machine id in notes")
+	ConfigManager.machine_id = prev_machine
 	assert_eq(body.usage, "single_use", "usage")
 	assert_eq(body.type, "upi_qr", "type")
 	var ahead: float = float(body.close_by) - Time.get_unix_time_from_system()
