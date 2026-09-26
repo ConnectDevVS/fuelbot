@@ -17,6 +17,9 @@ eventual target.
   README with decisions and deviations from the plan, plus a `SIGNOFF.md`.
   Check the idle set's README "Decisions & deviations" before assuming the plan
   text is current.
+- **Backend (`server/`, Node/Express/MongoDB):** its own rules in
+  [server/CLAUDE.md](server/CLAUDE.md). The kiosk ↔ backend API contract is
+  owned by [server/devdocs/plans/server-plan.md](server/devdocs/plans/server-plan.md) §3.
 - Designs: `designs/GMRFuelBot-OnDevice-SsampleScreens.pdf` (6 raster pages;
   render with PyMuPDF in a scratch venv; poppler isn't installed).
 
