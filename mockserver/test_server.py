@@ -4,12 +4,15 @@ import json
 import os
 import sys
 import threading
+import time
+import zlib
 import unittest
 import urllib.error
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import server  # noqa: E402
+import make_flavor_images  # noqa: E402
 
 CONFIG = "/fuelbot/config"
 SCENARIO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "responses", "config")
@@ -138,6 +141,7 @@ class MockServerTest(unittest.TestCase):
             self.assertTrue(all(1 <= h <= 6 for h in hoppers), name)
             for f in flavors:
                 self.assertTrue(f["image"].startswith("res://assets/images/flavors/"), name)
+                self.assertTrue(f["image_url"].startswith("{{origin}}/__mock/assets/flavors/"), name)
 
 
     # --- Razorpay mock (PAY-02) -------------------------------------------------
@@ -187,6 +191,64 @@ class MockServerTest(unittest.TestCase):
         self.assertEqual(ctype, "image/png")
         self.assertTrue(body.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertEqual(self._request("/__mock/assets/../server.py", raw=True)[0], 404)
+
+    # --- Flavor images (IMG-01) ------------------------------------------------
+
+    GUAVA = "/__mock/assets/flavors/prymor_guava-20260926a.png"
+
+    def test_flavor_asset_subfolder(self):
+        status, body, ctype = self._request(self.GUAVA, raw=True)
+        self.assertEqual((status, ctype), (200, "image/png"))
+        self.assertTrue(body.startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertEqual(self._request("/__mock/assets/flavors/nope-1.png", raw=True)[0], 404)
+        self.assertEqual(self._request("/__mock/assets/flavors/../../server.py", raw=True)[0], 404)
+
+    def test_asset_counts(self):
+        self._request(self.GUAVA, raw=True)
+        self._request(self.GUAVA + "?sig=abc", raw=True)
+        self._request("/__mock/assets/flavors/nope-1.png", raw=True)
+        state = self._state()
+        self.assertEqual(state["asset_counts"], {"flavors/prymor_guava-20260926a.png": 2, "flavors/nope-1.png": 1})
+        self.assertIsNone(state["asset_last_tenant"])
+        self._request(self.GUAVA, tenant="t-1", raw=True)
+        self.assertEqual(self._state()["asset_last_tenant"], "t-1")
+        self._post("/__mock/reset", {})
+        self.assertEqual(self._state()["asset_counts"], {})
+
+    def test_asset_delay_ms(self):
+        plain = self._request(self.GUAVA, raw=True)[1]
+        started = time.monotonic()
+        status, body, _ = self._request(self.GUAVA + "?delay_ms=300", raw=True)
+        self.assertGreaterEqual(time.monotonic() - started, 0.3)
+        self.assertEqual((status, body), (200, plain))
+
+    def test_default_image_urls_point_at_existing_assets(self):
+        for name in ("default", "images_v2"):
+            env = server.load_scenario("responses/config", name)
+            for f in env["body"]["flavors"]:
+                url = f["image_url"]
+                prefix = "{{origin}}/__mock/assets/"
+                self.assertTrue(url.startswith(prefix), url)
+                rel = url[len(prefix):].split("?", 1)[0]
+                self.assertTrue(os.path.isfile(os.path.join(server.ASSETS, rel)), "%s: %s" % (name, rel))
+
+    def test_generated_images_are_reproducible(self):
+        def pixels(data):
+            """IHDR + decompressed IDAT (independent of the zlib build's compressed bytes)."""
+            if not data.startswith(b"\x89PNG"):
+                return data
+            out, pos = [], 8
+            while pos < len(data):
+                length = int.from_bytes(data[pos:pos + 4], "big")
+                tag, chunk = data[pos + 4:pos + 8], data[pos + 8:pos + 8 + length]
+                if tag in (b"IHDR", b"IDAT"):
+                    out.append(chunk if tag == b"IHDR" else zlib.decompress(chunk))
+                pos += 12 + length
+            return b"".join(out)
+
+        for name, data in make_flavor_images.images().items():
+            with open(os.path.join(server.ASSETS, "flavors", name), "rb") as f:
+                self.assertEqual(pixels(f.read()), pixels(data), name)
 
     def test_telemetry_route(self):
         path = "/fuelbot/telemetry"

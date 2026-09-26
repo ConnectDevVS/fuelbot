@@ -1,5 +1,5 @@
 {
-  "description": "PowerFuel Gym demo tenant: 6 flavors on hoppers 1-6, one popular, one sold out",
+  "description": "PowerFuel Gym demo tenant: 6 flavors on hoppers 1-6, one popular, one sold out; images from the mock \"S3\" (cookie padded)",
   "status": 200,
   "body": {
     "version": 1,
@@ -14,6 +14,7 @@
       {
         "id": "guava", "name": "Prymor Guava", "hopper": 1,
         "actual_price": 90, "offer_price": 75,
+        "image_url": "{{origin}}/__mock/assets/flavors/prymor_guava-20260926a.png",
         "image": "res://assets/images/flavors/prymor_guava.png",
         "description": "Cold-blended whey isolate with real guava and electrolytes.",
         "volume_ml": 400,
@@ -25,6 +26,7 @@
       {
         "id": "chocolate", "name": "MMN Chocolate", "hopper": 2,
         "actual_price": 180, "offer_price": null,
+        "image_url": "{{origin}}/__mock/assets/flavors/mmn_chocolate-20260926a.png",
         "image": "res://assets/images/flavors/mmn_chocolate.png",
         "description": "Classic chocolate whey shake.",
         "volume_ml": 400,
@@ -36,6 +38,7 @@
       {
         "id": "electro", "name": "Prymor Electro", "hopper": 3,
         "actual_price": 35, "offer_price": null,
+        "image_url": "{{origin}}/__mock/assets/flavors/prymor_electro-20260926a.png",
         "image": "res://assets/images/flavors/prymor_electro.png",
         "description": "Light electrolyte recovery drink.",
         "volume_ml": 400,
@@ -47,6 +50,7 @@
       {
         "id": "vanilla", "name": "ON Vanilla", "hopper": 4,
         "actual_price": 140, "offer_price": null,
+        "image_url": "{{origin}}/__mock/assets/flavors/on_vanilla-20260926a.png",
         "image": "res://assets/images/flavors/on_vanilla.png",
         "description": "Gold Standard vanilla whey.",
         "volume_ml": 400,
@@ -58,6 +62,7 @@
       {
         "id": "cookie", "name": "Cookies & Cream", "hopper": 5,
         "actual_price": 160, "offer_price": null,
+        "image_url": "{{origin}}/__mock/assets/flavors/prymor_cookie-20260926a.png",
         "image": "res://assets/images/flavors/prymor_cookie.png",
         "description": "Cookies-and-cream whey shake.",
         "volume_ml": 400,
@@ -69,6 +74,7 @@
       {
         "id": "coffee", "name": "Beast Coffee", "hopper": 6,
         "actual_price": 190, "offer_price": null,
+        "image_url": "{{origin}}/__mock/assets/flavors/beast_coffee-20260926a.png",
         "image": "res://assets/images/flavors/beast_coffee.png",
         "description": "Cold-brew coffee protein shake.",
         "volume_ml": 400,

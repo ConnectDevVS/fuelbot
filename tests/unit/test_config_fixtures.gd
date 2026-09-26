@@ -50,6 +50,20 @@ func test_mock_default_images_exist() -> void:
 		assert_true(ResourceLoader.exists(f.image), "mock image exists: %s" % f.image)
 
 
+func test_mock_default_image_urls() -> void:
+	var CM := load("res://autoload/ConfigManager.gd")
+	for f in mock_body_with_origin("default").flavors:
+		assert_true(CM.is_valid_image_url(f.get("image_url", "")), "%s image_url valid" % f.id)
+		assert_true(ResourceLoader.exists(f.image), "%s bundled fallback exists" % f.id)
+
+
+func test_image_scenarios_validate() -> void:
+	var CM := load("res://autoload/ConfigManager.gd")
+	for scenario in ["default", "images_v2", "images_broken"]:
+		var errors: PackedStringArray = CM.validate_config(mock_body_with_origin(scenario))
+		assert_true(errors.is_empty(), "%s valid: %s" % [scenario, "; ".join(errors)])
+
+
 func test_hopper_shuffle_scenario_is_valid() -> void:
 	var cfg := load_mock_config("hopper_shuffle")
 	var ConfigManagerScript := load("res://autoload/ConfigManager.gd")

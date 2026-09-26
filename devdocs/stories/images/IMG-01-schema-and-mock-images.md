@@ -124,8 +124,9 @@ same code path (`body_size_limit`).
 - [ ] `test_asset_delay_ms`: `?delay_ms=300` takes ≥ 0.3 s and returns the same bytes.
 - [ ] `test_default_image_urls_point_at_existing_assets`: every `image_url`
       in `default` and `images_v2` resolves to a file in `assets/`.
-- [ ] `test_generated_images_are_reproducible`: running the generator into a
-      temp folder gives byte-identical files to the committed ones.
+- [ ] `test_generated_images_are_reproducible`: the generator's output
+      matches the committed files pixel for pixel (IHDR + decompressed IDAT,
+      so a different zlib build doesn't fail it).
 - [ ] The existing scenario tests still pass (`image` still `res://…`).
 
 ## Out of scope

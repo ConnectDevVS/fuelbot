@@ -285,8 +285,18 @@ static func validate_config(data: Variant) -> PackedStringArray:
 		var offer = f.get("offer_price")
 		if offer != null and (not (offer is int or offer is float) or offer <= 0):
 			errors.append("%s: offer_price must be null or > 0" % fid)
-		if not f.get("image") is String or f.image == "":
-			errors.append("%s: image missing" % fid)
+		# Plan §3.14: a bundled image OR an S3 image_url (the bundled one is the offline fallback).
+		var image = f.get("image")
+		var image_url = f.get("image_url")
+		if image != null and not image is String:
+			errors.append("%s: image must be a string" % fid)
+		var has_url: bool = image_url is String and image_url != ""
+		if image_url != null and not image_url is String:
+			errors.append("%s: image_url must be a string" % fid)
+		elif has_url and not is_valid_image_url(image_url):
+			errors.append("%s: image_url must be https:// with a file name" % fid)
+		if not has_url and not (image is String and image != ""):
+			errors.append("%s: image or image_url required" % fid)
 		if f.has("sold_out") and not f.sold_out is bool:
 			errors.append("%s: sold_out must be bool" % fid)
 		if f.has("badge") and f.badge != null and not f.badge is String:
@@ -299,6 +309,36 @@ static func validate_config(data: Variant) -> PackedStringArray:
 			else:
 				used_hoppers[int(h)] = fid
 	return errors
+
+
+## The cache key of an image URL (plan §3.14): its last path segment, percent-decoded,
+## ignoring any query string or fragment. "" if there is none or it isn't a safe file name.
+static func image_file_name(url: String) -> String:
+	var rest := url.get_slice("#", 0).get_slice("?", 0)
+	var scheme_end := rest.find("://")
+	if scheme_end < 0:
+		return ""
+	var path_start := rest.find("/", scheme_end + 3)
+	if path_start < 0:
+		return ""
+	var name := rest.substr(rest.rfind("/") + 1).uri_decode()
+	if name == "" or name.begins_with(".") or not name.is_valid_filename():
+		return ""
+	return name
+
+
+## https://<host>/…/<file>, or http:// for 127.0.0.1 / localhost only (the mock).
+static func is_valid_image_url(url: String) -> bool:
+	var host := ""
+	if url.begins_with("https://"):
+		host = url.trim_prefix("https://").get_slice("/", 0)
+	elif url.begins_with("http://"):
+		host = url.trim_prefix("http://").get_slice("/", 0)
+		if host.get_slice(":", 0) not in ["127.0.0.1", "localhost"]:
+			return false
+	else:
+		return false
+	return host.get_slice(":", 0) != "" and image_file_name(url) != ""
 
 
 func normalise(raw: Dictionary) -> Dictionary:
@@ -322,6 +362,8 @@ func normalise(raw: Dictionary) -> Dictionary:
 			if not n.has(key):
 				n[key] = null
 		_default(n, "description", "")
+		_default(n, "image", "")
+		_default(n, "image_url", "")
 		_default(n, "volume_ml", 0)
 		_default(n, "nutrition", {})
 		_default(n, "ingredients", [])

@@ -194,6 +194,61 @@ func test_validate_config_rules() -> void:
 	assert_true(cm.validate_config(dup).is_empty(), "duplicate hopper on disabled flavor accepted")
 
 
+func _one_flavor(fields: Dictionary) -> Dictionary:
+	var f := {"id": "a", "name": "A", "hopper": 1, "actual_price": 10, "offer_price": null, "enabled": true}
+	f.merge(fields, true)
+	return {"flavors": [f], "bases": []}
+
+
+func test_validate_image_or_image_url() -> void:
+	var CM := load("res://autoload/ConfigManager.gd")
+	var https := "https://b.s3.ap-south-1.amazonaws.com/m/flavors/a-20260926a.png"
+	assert_true(CM.validate_config(_one_flavor({"image": "res://x.png"})).is_empty(), "image only")
+	assert_true(CM.validate_config(_one_flavor({"image_url": https})).is_empty(), "image_url only")
+	assert_true(CM.validate_config(_one_flavor({"image_url": null, "image": "res://x.png"})).is_empty(),
+		"null image_url + image")
+	assert_false(CM.validate_config(_one_flavor({"image": "", "image_url": ""})).is_empty(), "both empty")
+	assert_false(CM.validate_config(_one_flavor({})).is_empty(), "neither present")
+	assert_false(CM.validate_config(_one_flavor({"image_url": 5, "image": "res://x.png"})).is_empty(),
+		"non-string image_url")
+
+
+func test_validate_image_url_scheme() -> void:
+	var CM := load("res://autoload/ConfigManager.gd")
+	for url in ["http://127.0.0.1:8787/__mock/assets/flavors/a.png", "http://localhost/a.png",
+			"https://x.s3.amazonaws.com/a.png"]:
+		assert_true(CM.validate_config(_one_flavor({"image_url": url})).is_empty(), "accepted: " + url)
+	for url in ["http://example.com/a.png", "ftp://x.com/a.png", "https://x.com/", "https://x.com",
+			"https://x.com/a/.hidden", "https:///a.png", "x.png"]:
+		assert_false(CM.validate_config(_one_flavor({"image_url": url, "image": "res://x.png"})).is_empty(),
+			"rejected: " + url)
+
+
+func test_image_file_name() -> void:
+	var CM := load("res://autoload/ConfigManager.gd")
+	var cases := {
+		"https://b.s3.ap-south-1.amazonaws.com/m-042/flavors/prymor_guava-20260926a.png?X-Amz-Signature=ab":
+			"prymor_guava-20260926a.png",
+		"https://cdn.example.com/a/b%20c.webp": "b c.webp",
+		"https://cdn.example.com/a/x.png#frag": "x.png",
+		"https://cdn.example.com/a/": "",
+		"https://cdn.example.com": "",
+		"https://cdn.example.com/a/..": "",
+		"https://cdn.example.com/a%2Fb.png": "",
+		"": "",
+	}
+	for url in cases:
+		assert_eq(CM.image_file_name(url), cases[url], url)
+
+
+func test_normalise_image_defaults() -> void:
+	_make_cm()
+	var cfg: Dictionary = cm.normalise({"flavors": [{"id": "a", "image": null}, {"id": "b"}]})
+	for f in cfg.flavors:
+		assert_eq(f.image, "", "%s image" % f.id)
+		assert_eq(f.image_url, "", "%s image_url" % f.id)
+
+
 func test_poll_flips_maintenance_without_touching_catalog() -> void:
 	_make_cm()
 	await _boot(cm)

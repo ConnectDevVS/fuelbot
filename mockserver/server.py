@@ -15,6 +15,7 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
@@ -155,6 +156,8 @@ class MockState:
             self.last_tenant = {r["path"]: None for r in self.routes}
             self.last_body = {r["path"]: None for r in self.routes}
             self.sequence_pos = {r["path"]: 0 for r in self.routes}
+            self.asset_counts = {}
+            self.asset_last_tenant = None
 
     def match(self, method, path):
         """Exact routes win over pattern routes. Returns (route, params) or (None, None)."""
@@ -175,6 +178,8 @@ class MockState:
                 "request_counts": dict(self.request_counts),
                 "last_tenant": dict(self.last_tenant),
                 "last_body": copy.deepcopy(self.last_body),
+                "asset_counts": dict(self.asset_counts),
+                "asset_last_tenant": self.asset_last_tenant,
             }
 
 
@@ -211,10 +216,10 @@ def make_handler(state):
             self._dispatch("POST")
 
         def _dispatch(self, method):
-            path = self.path.split("?", 1)[0]
+            path, _, query = self.path.partition("?")
             raw_body = self._read_body()
             if path.startswith("/__mock/"):
-                return self._admin(method, path, raw_body)
+                return self._admin(method, path, raw_body, query)
             route, params = state.match(method, path)
             if route is None:
                 return self._send(404, {"error": "no route"})
@@ -269,9 +274,9 @@ def make_handler(state):
                 state.sequence_pos[key] = pos + 1
             return sequence[min(pos, len(sequence) - 1)]
 
-        def _admin(self, method, path, raw_body):
+        def _admin(self, method, path, raw_body, query=""):
             if method == "GET" and path.startswith("/__mock/assets/"):
-                return self._asset(path[len("/__mock/assets/"):])
+                return self._asset(path[len("/__mock/assets/"):], query)
             if method == "GET" and path == "/__mock/state":
                 return self._send(200, state.snapshot())
             if method == "POST" and path == "/__mock/reset":
@@ -296,14 +301,34 @@ def make_handler(state):
                 return self._send(200, state.snapshot())
             return self._send(404, {"error": "no admin route"})
 
-        def _asset(self, name):
+        def _asset(self, name, query=""):
+            """Static files under assets/ (subfolders too). Counted per path, 404s included.
+            ?delay_ms=N (max 10000) delays the response; other query parameters are ignored."""
+            tenant = (self.headers.get("X-Tenant-Id") or "").strip()
+            with state.lock:
+                state.asset_counts[name] = state.asset_counts.get(name, 0) + 1
+                state.asset_last_tenant = tenant or None
+            try:
+                delay_ms = min(int(parse_qs(query).get("delay_ms", ["0"])[0]), 10000)
+            except ValueError:
+                delay_ms = 0
+            if delay_ms > 0:
+                time.sleep(delay_ms / 1000.0)
             full = os.path.realpath(os.path.join(ASSETS, name))
             if not name or ".." in name.split("/") or not full.startswith(ASSETS + os.sep) or not os.path.isfile(full):
-                return self._send(404, {"error": "no asset"})
-            with open(full, "rb") as f:
-                data = f.read()
-            ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
-            return self._send(200, raw=data, content_type=ctype)
+                status = 404
+                self._send(status, {"error": "no asset"})
+            else:
+                with open(full, "rb") as f:
+                    data = f.read()
+                ctype = mimetypes.guess_type(full)[0] or "application/octet-stream"
+                status = 200
+                try:
+                    self._send(status, raw=data, content_type=ctype)
+                except (BrokenPipeError, ConnectionResetError):
+                    status = "client-gone"
+            print("[mock] GET /__mock/assets/%s%s -> %s" % (name, " delay_ms=%d" % delay_ms if delay_ms else "", status),
+                  flush=True)
 
     return Handler
 
