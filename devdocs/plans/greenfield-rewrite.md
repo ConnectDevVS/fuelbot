@@ -66,6 +66,9 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-09-25 | **Local faults are a set of codes** (`HOMING_TIMEOUT`, `BRIDGE_DOWN`), each with its start time; clearing one never clears another; the maintenance footer for local faults says "BACK IN SERVICE AUTOMATICALLY" | Faults overlap; a self-clearing fault shouldn't say "exit via remote console" | §3.10, §3.11 |
 | 2026-09-25 | **Tests are isolated from the dev environment:** the runner points the backend at the test mock and the reporters at test-only queues, and disables the dead-bridge watchdog | Tests had posted to the developer's dev mock via the dev override | CLAUDE.md |
 | 2026-09-25 | **Maintenance diagnostics show the bridge** (BRIDGE status + BRIDGE HEARTBEAT) next to the server heartbeat; **the 60 s dead-bridge startup grace is accepted** (product owner) | A technician must tell a dead bridge from a server outage; no false alarms at boot | §3.11, sales README |
+| 2026-09-26 | **Flavor images come from AWS S3 via the config API** (product owner): each flavor carries `image_url`, an S3 object URL returned by the config backend. The bundled `res://` images stay only as the offline fallback | Images change with the catalog, without an app release | §3.1, §3.14, §5 M7 |
+| 2026-09-26 | **An image's file name changes every time it's updated** (product owner). The app caches by the URL's **file name** (as the ad video does, §3.13), so a new name = a new download and the same name = never re-downloaded, even if the query string (e.g. a presigned signature) differs | No version field or content check needed; works with presigned URLs and any HTTP caching in between | §3.14 |
+| 2026-09-26 | **Milestone 7's "crop the padded PNGs" becomes "flavor images from S3":** download + cache + fallback, automatic trim of transparent padding, a written image spec for the content team | With images served remotely, hand-cropping bundled files no longer matters; auto-trim protects against padded uploads too | §3.14, §5 M7 |
 
 ## 1. Context
 
@@ -290,6 +293,20 @@ defaults, so older payloads stay valid):
 from the old tree's plain, non-`(1)` files. Provenance is in
 `assets/ASSETS.md`.)
 
+*(Decided 2026-09-26, built in Milestone 7:)* each flavor may also carry
+**`image_url`**, an HTTPS URL to the image in the tenant's **AWS S3** bucket,
+returned by the config API. When present it is the image shown; the
+bundled `image` (`res://…`) becomes the **offline fallback** and is optional
+when `image_url` is set. The object's **file name changes whenever the image
+changes** (e.g. `prymor_guava-20260926a.png`), which is how the app knows to
+download it again (Section 3.14).
+
+```json
+{"id": "guava", "name": "Prymor Guava", "hopper": 1,
+ "image_url": "https://fuelbot-assets.s3.ap-south-1.amazonaws.com/machine-042/flavors/prymor_guava-20260926a.png",
+ "image": "res://assets/images/flavors/prymor_guava.png"}
+```
+
 `maintenance.enabled` is the tenant-wide kill switch; `maintenance.message`
 is shown on the maintenance screen when set, falling back to a local default
 (Section 3.11) when empty.
@@ -455,8 +472,9 @@ every `maintenance_poll_interval_sec`.
    from step 3/4 regardless.
 6. On success (200 + valid JSON): run a validation pass before accepting it
    — every flavor has `hopper` in 1-6 (`MAX_HOPPER`), no two *enabled* flavors share the
-   same `hopper`, `actual_price` is a positive number, `image` is a
-   non-empty string. If validation fails, discard the response entirely
+   same `hopper`, `actual_price` is a positive number, and **either**
+   `image` is a non-empty string **or** `image_url` is an `https://` URL
+   *(updated 2026-09-26 for Section 3.14)*. If validation fails, discard the response entirely
    (keep whatever step 3/4 loaded) and log the failure. If it passes:
    overwrite `current_config`, then write the cache **atomically** — write
    to `user://config_cache.json.tmp`, close it, then
@@ -1173,6 +1191,64 @@ Two things the spike did **not** cover, still open:
    quick confirmation once `ConfigManager`'s download step is actually
    built.
 
+### 3.14 Flavor images from S3 *(decided 2026-09-26, Milestone 7)*
+
+**Source.** The config API returns `image_url` per flavor: an HTTPS URL to an
+object in the tenant's AWS S3 bucket (a public-read object, or a
+CloudFront/presigned URL; the app doesn't care). The image request is a plain
+GET with **no `X-Tenant-Id` header** (S3 doesn't need it). No credentials are
+ever stored in the app for images.
+
+**Cache key = file name.** The file name is the last path segment of the URL,
+ignoring any query string (so a presigned URL whose signature changes on
+every config fetch doesn't trigger a new download). The backend guarantees a
+**new file name for every changed image** (product owner, 2026-09-26), so:
+- a name already in the cache is never downloaded again;
+- a new name is downloaded once;
+- a changed image under the *same* name would **not** be picked up. That's
+  outside the contract; the backend never does it.
+
+**Download (owner: a small `FlavorImages` helper used by `ConfigManager`,
+same pattern as the Razorpay QR image and the §3.13 video).**
+- After a catalog is applied (boot fetch, cache or bundled), every enabled
+  flavor's `image_url` whose file name isn't in `user://image_cache/` is
+  downloaded in the background, one at a time, to `<name>.tmp`, then
+  renamed. A downloaded file is validated before it's kept: it must load
+  as PNG, JPEG or WebP (Godot's `Image.load_*_from_buffer`), be at most
+  **2 MB** and at most **2048 px** on either side. Anything else is
+  discarded and logged.
+- **Auto-trim:** transparent borders are trimmed once, at download time
+  (`Image.get_used_rect()`), and the trimmed image is what's cached. A
+  padded upload still fills its space on the cards and the details page.
+- Failures (offline, 403/404, invalid file) keep whatever is shown now and
+  are retried on the next boot and every `timing.image_retry_interval_sec`
+  (e.g. 600 s). Each failure is logged, and posted as a telemetry
+  `image_download_failed` event (flavor id, file name, reason) so a bad
+  URL is noticed.
+- **Cleanup:** after a successful download pass, files in
+  `user://image_cache/` not referenced by any flavor in the current catalog
+  are deleted.
+
+**What the screens show, in order:**
+1. the cached image for the current `image_url`'s file name;
+2. while that downloads (or if it fails): the previously cached image for
+   the **same flavor id** (the cache keeps a small `flavor id → file name`
+   index), so an update never shows a gap;
+3. the bundled `image` (`res://`), if the flavor has one;
+4. a neutral placeholder (the existing "missing image" treatment).
+
+A finished download swaps the image in place (`ConfigManager` emits
+`flavor_image_ready(flavor_id)`; cards and details listen), without
+rebuilding the screen or interrupting an order. The catalog itself still
+only changes at boot (Section 3.11), so a new `image_url` is noticed on the
+next restart.
+
+**Image spec for the content team** (goes into the backend/content docs):
+PNG or WebP with a **transparent background**, product tightly framed (the
+app trims leftover transparent borders anyway), portrait **600 × 800 px**
+recommended, at most 2 MB and 2048 px, and a **new file name on every
+change** (e.g. a date or version suffix).
+
 ## 4. Target folder structure
 
 *(Updated 2026-09-24 to the as-built layout; ✓ = exists.)*
@@ -1204,7 +1280,7 @@ fuelbot/ (repo root)
 │   ├── default_config.json      ✓
 │   └── local_settings.json      ✓
 ├── assets/
-│   ├── images/flavors/          ✓
+│   ├── images/flavors/          ✓ bundled flavor images = offline fallback (M7: S3 images, §3.14)
 │   ├── fonts/                   ✓ Archivo + JetBrains Mono (OFL)
 │   ├── theme/                   ✓ generated by tools/build_theme.gd
 │   └── video/                   ✓ idle_ad_default.ogv
@@ -1244,7 +1320,7 @@ existing external reference (docs, muscle memory) to preserve.
 | 4 — Hardware bridge + dispensing | 🟡 Built; **Level 0 + Level 1 PASS** (fake bridge; real bridge + fake Arduino). **Level 2/3 pending hardware**; motors 5–6 are fail-safe placeholders pending wiring | [dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md) |
 | 5 — Telemetry | 🟡 Built; **firmware simulator + Level 0 + Level 1 PASS**; Level 2/3 pending hardware; the telemetry backend is the mock | [telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md) |
 | 6 — Maintenance + sale reporting | ✅ Done in software: maintenance (idle set) re-verified, extended to several local faults; sale reporting and dead-bridge → out of service built; Level 0/1 and §7 steps 9–10 PASS. Real sales backend pending | [idle](../stories/idle/SIGNOFF.md), [sales](../stories/sales/SIGNOFF.md) SIGNOFFs |
-| 7 — Asset migration | Partly done: flavor images, video, fonts ported. The flavor PNGs need padding trimmed | [assets/ASSETS.md](../../assets/ASSETS.md) |
+| 7 — Asset migration + flavor images from S3 | Partly done: flavor images, video, fonts ported. **Rescoped 2026-09-26:** flavor images come from S3 via `image_url` (§3.14) instead of cropping the bundled PNGs; not started | [assets/ASSETS.md](../../assets/ASSETS.md) |
 | 8 — Raspberry Pi | Not started | — |
 
 **Milestone 0 — Skeleton**
@@ -1326,7 +1402,18 @@ existing external reference (docs, muscle memory) to preserve.
   the server's back; maintenance flag flip/redirect behavior, including the
   mid-order non-interruption check.
 
-**Milestone 7 — Asset migration**
+**Milestone 7 — Asset migration + flavor images from S3**
+- *(Added 2026-09-26)* **Flavor images from S3** per Section 3.14:
+  `image_url` in the schema and validation; download + validate +
+  auto-trim + cache by file name in `user://image_cache/`; the show order
+  (current → previous for the flavor → bundled → placeholder) with an
+  in-place swap; retry and cleanup; `image_download_failed` telemetry; a
+  mock route serving sample images (including a padded one and a broken
+  one); the written image spec. This replaces "crop the padded flavor
+  PNGs": the bundled PNGs are only the offline fallback now, and auto-trim
+  covers them too.
+- Port `hardware/pos/pinelabs.py` + `transactions.xlsx` inert (carried from
+  Milestone 4).
 - Copy over only assets actually referenced by the kept scenes — grep each
   new `.tscn` for its real `res://` texture paths before copying, rather
   than bulk-copying the old asset dump. Inventory flagged several images
@@ -1448,6 +1535,14 @@ still no CI. The manual steps below remain the acceptance checklist; steps
    always-local `local_settings.json`.
 4. Change a price/ingredient/image in the mock JSON, restart the app,
    confirm the change is reflected with no code edits.
+4b. *(Added 2026-09-26, Milestone 7)* Flavor images from S3 (mock): with
+    `image_url` set, the first boot downloads each image once and shows it
+    (trimmed); a restart with the same URLs downloads nothing; changing one
+    flavor's `image_url` file name downloads only that one, showing the
+    previous image until it's ready; with the image server unreachable the
+    cached (or bundled) image stays and an `image_download_failed` event is
+    posted; an unreferenced cached file is deleted after the next successful
+    pass.
 5. Walk the full flow end-to-end (listing → details → payment → dispensing)
    and confirm the UDP `"P<hopper>"` message is sent only after payment
    succeeds and uses the config's `hopper` field, not the listing position, by temporarily setting a

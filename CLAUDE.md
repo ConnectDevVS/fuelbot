@@ -495,8 +495,12 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- Next: Milestone 7 (crop the flavor PNGs, port `pinelabs.py` inert), then
+- Next: Milestone 7 (flavor images from S3, plan §3.14; port `pinelabs.py` inert), then
   Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
 - **Real sales/telemetry backends:** only the mock exists (settings change).
-- Flavor PNGs from the old build have heavy padding and render small; crop
-  them.
+- **Flavor images from S3 (Milestone 7, decided 2026-09-26, not built):** the
+  config API returns `image_url` (AWS S3); the app caches by the URL's file
+  name in `user://image_cache/` (the name changes on every update, per the
+  product owner), trims transparent padding at download, and falls back to
+  the previous image, then the bundled `res://` image, then a placeholder.
+  Plan §3.14. This replaces "crop the padded flavor PNGs".
