@@ -37,6 +37,15 @@ func test_default_config_images_exist() -> void:
 		assert_true(ResourceLoader.exists(f.image), "image exists: %s" % f.image)
 
 
+func test_bundled_images_are_trimmed() -> void:
+	for file in DirAccess.get_files_at("res://assets/images/flavors"):
+		if not file.ends_with(".png"):
+			continue
+		var image: Image = (load("res://assets/images/flavors/" + file) as Texture2D).get_image()
+		assert_eq(image.get_used_rect().size, image.get_size(), "%s has no transparent border" % file)
+		assert_true(image.get_width() <= 600 and image.get_height() <= 800, "%s fits 600x800" % file)
+
+
 func test_idle_video_exists() -> void:
 	var path := "res://assets/video/idle_ad_default.ogv"
 	assert_true(ResourceLoader.exists(path) or FileAccess.file_exists(path), "idle video exists")
@@ -59,7 +68,7 @@ func test_mock_default_image_urls() -> void:
 
 func test_image_scenarios_validate() -> void:
 	var CM := load("res://autoload/ConfigManager.gd")
-	for scenario in ["default", "images_v2", "images_broken"]:
+	for scenario in ["default", "images_v2", "images_broken", "images_url_only"]:
 		var errors: PackedStringArray = CM.validate_config(mock_body_with_origin(scenario))
 		assert_true(errors.is_empty(), "%s valid: %s" % [scenario, "; ".join(errors)])
 

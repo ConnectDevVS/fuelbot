@@ -21,6 +21,7 @@ var _order_label: Label
 var _chip: PanelContainer
 var _chip_label: Label
 var _return_timer: Timer
+var _summary_image: TextureRect
 
 
 func _ready() -> void:
@@ -33,6 +34,7 @@ func _ready() -> void:
 	RazorpayManager.qr_create_failed.connect(_on_qr_create_failed)
 	RazorpayManager.payment_received.connect(_on_payment_received)
 	RazorpayManager.payment_failed.connect(_on_payment_failed)
+	FlavorImages.flavor_image_ready.connect(_on_flavor_image_ready)
 	var tick := Timer.new()
 	tick.wait_time = 0.25
 	tick.autostart = true
@@ -217,6 +219,16 @@ func get_qr_message() -> String:
 	return _qr_message.text
 
 
+func get_image_texture() -> Texture2D:
+	return _summary_image.texture
+
+
+## A finished download swaps the summary image in place (the payment flow is untouched).
+func _on_flavor_image_ready(flavor_id: String) -> void:
+	if flavor_id == String(OrderState.selected_flavor.get("id", "")):
+		_summary_image.texture = FlavorImages.get_texture(OrderState.selected_flavor)
+
+
 func has_qr_texture() -> bool:
 	return _qr_texture.texture != null
 
@@ -359,8 +371,8 @@ func _build_summary(flavor: Dictionary) -> PanelContainer:
 	image.custom_minimum_size = Vector2(72, 100)
 	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var path: String = flavor.get("image", "")
-	image.texture = load(path) if path != "" and ResourceLoader.exists(path) else null
+	image.texture = FlavorImages.get_texture(flavor)
+	_summary_image = image
 	row.add_child(image)
 	var names := VBoxContainer.new()
 	names.alignment = BoxContainer.ALIGNMENT_CENTER

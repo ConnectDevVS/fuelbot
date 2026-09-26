@@ -131,6 +131,48 @@ func sync(flavors: Array, allow_cleanup: bool) -> void:
 	_start_pass()
 
 
+# --- What the screens show (README "Show order") -------------------------------
+
+## The texture to show for a flavor: current -> previous (index) -> bundled -> null.
+func get_texture(flavor: Dictionary) -> Texture2D:
+	match get_image_source(flavor):
+		"current":
+			return _texture(_name_of(flavor))
+		"previous":
+			return _texture(_index[String(flavor.get("id", ""))])
+		"bundled":
+			return load(String(flavor.image))
+	return null
+
+
+## Which tier get_texture() uses: "current" | "previous" | "bundled" | "none".
+func get_image_source(flavor: Dictionary) -> String:
+	var name := _name_of(flavor)
+	if name != "" and _is_cached(name) and _texture(name) != null:
+		return "current"
+	var previous := String(_index.get(String(flavor.get("id", "")), ""))
+	if previous != "" and _is_cached(previous) and _texture(previous) != null:
+		return "previous"
+	var bundled = flavor.get("image", "")
+	if bundled is String and bundled != "" and ResourceLoader.exists(bundled):
+		return "bundled"
+	return "none"
+
+
+## A cached file as a texture, decoded once and kept in memory (load() can't read
+## un-imported user:// files).
+func _texture(name: String) -> Texture2D:
+	if _textures.has(name):
+		return _textures[name]
+	var image := decode(FileAccess.get_file_as_bytes(cache_dir.path_join(name)))
+	if image == null:
+		push_warning("[Images] cached %s doesn't decode; not shown" % name)
+		return null
+	var texture := ImageTexture.create_from_image(image)
+	_textures[name] = texture
+	return texture
+
+
 # --- Decoding ------------------------------------------------------------------
 
 ## Decodes PNG, JPEG or WebP by signature (never by extension); null for anything else.

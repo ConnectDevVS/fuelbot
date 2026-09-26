@@ -112,11 +112,7 @@ func set_flavor(f: Dictionary) -> void:
 	_badge.visible = badge != null and orderable
 	_badge_label.text = str(badge) if badge != null else ""
 
-	var path: String = f.get("image", "")
-	var texture: Texture2D = load(path) if path != "" and ResourceLoader.exists(path) else null
-	_image.texture = texture
-	_image.visible = texture != null
-	_placeholder.visible = texture == null
+	_apply_image()
 	_placeholder_label.text = String(ConfigManager.get_tenant().get("logo_text", ""))
 
 	_name.text = String(f.get("name", ""))
@@ -137,6 +133,28 @@ func set_flavor(f: Dictionary) -> void:
 	_tap.text = ConfigManager.get_message("card_tap")
 	_content.modulate.a = 1.0 if orderable else 0.45
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if orderable else Control.CURSOR_ARROW
+
+
+func _ready() -> void:
+	FlavorImages.flavor_image_ready.connect(_on_flavor_image_ready)
+
+
+func get_image_texture() -> Texture2D:
+	return _image.texture
+
+
+## Plan §3.14 show order (FlavorImages); the placeholder when there's nothing to show.
+func _apply_image() -> void:
+	var texture := FlavorImages.get_texture(flavor)
+	_image.texture = texture
+	_image.visible = texture != null
+	_placeholder.visible = texture == null
+
+
+## A finished download swaps the image in place: no rebuild.
+func _on_flavor_image_ready(flavor_id: String) -> void:
+	if flavor_id == String(flavor.get("id", "")):
+		_apply_image()
 
 
 func _gui_input(event: InputEvent) -> void:

@@ -95,6 +95,7 @@ every request, so edits apply immediately.
 | `slow` | Responds after 15 s (the app times out at 10 s) |
 | `images_v2` | Guava's image updated (a new file name, v2 = 2 bands), served with a 3 s delay |
 | `images_broken` | Chocolate's image 404s, electro's is corrupt, vanilla's is 2100 px wide |
+| `images_url_only` | Coffee has only an `image_url` (no bundled `image`) and it 404s: the placeholder |
 
 ## Razorpay scenarios
 

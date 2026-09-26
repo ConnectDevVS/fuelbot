@@ -140,8 +140,9 @@ class MockServerTest(unittest.TestCase):
             self.assertEqual(len(hoppers), len(set(hoppers)), name)
             self.assertTrue(all(1 <= h <= 6 for h in hoppers), name)
             for f in flavors:
-                self.assertTrue(f["image"].startswith("res://assets/images/flavors/"), name)
                 self.assertTrue(f["image_url"].startswith("{{origin}}/__mock/assets/flavors/"), name)
+                if f.get("image") is not None:  # optional when image_url is set (images_url_only)
+                    self.assertTrue(f["image"].startswith("res://assets/images/flavors/"), name)
 
 
     # --- Razorpay mock (PAY-02) -------------------------------------------------
