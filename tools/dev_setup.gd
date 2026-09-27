@@ -1,7 +1,7 @@
 extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
-##     [--tenant=powerfuel] [--machine=DEV00001] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
+##     [--tenant=powerfuel] [--machine=DEV00001] [--machine-key=<key>] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
 ##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
@@ -14,6 +14,9 @@ extends SceneTree
 
 const TENANT_PATH := "user://tenant_id.txt"
 const MACHINE_PATH := "user://machine_id.txt"
+const MACHINE_KEY_PATH := "user://machine_key.txt"
+## The server seed's key for DEV00001 (dev only; server/src/services/keys.js DEV_KEY).
+const DEV_MACHINE_KEY := "DEVK-EYDE-VKEY-DEVK-EY01"
 const OVERRIDE_PATH := "user://local_settings.override.json"
 const CACHE_PATH := "user://config_cache.json"
 const CREDS_PATH := "user://razorpay_credentials.cfg"
@@ -24,6 +27,7 @@ const IMAGE_CACHE_DIR := "user://image_cache"
 
 func _initialize() -> void:
 	var tenant := "powerfuel"
+	var machine_key := DEV_MACHINE_KEY
 	var machine := "DEV00001"   # the server seed's pinned dev id; real machines get generated ids
 	var api := "http://127.0.0.1:8787/fuelbot"
 	var poll := 10.0
@@ -36,6 +40,8 @@ func _initialize() -> void:
 			tenant = arg.trim_prefix("--tenant=")
 		elif arg.begins_with("--machine="):
 			machine = arg.trim_prefix("--machine=")
+		elif arg.begins_with("--machine-key="):
+			machine_key = arg.trim_prefix("--machine-key=")
 		elif arg.begins_with("--api="):
 			api = arg.trim_prefix("--api=")
 		elif arg.begins_with("--poll="):
@@ -56,7 +62,7 @@ func _initialize() -> void:
 			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
-		for path in [TENANT_PATH, MACHINE_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
+		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
@@ -98,6 +104,7 @@ func _initialize() -> void:
 
 	_write(TENANT_PATH, tenant)
 	_write(MACHINE_PATH, machine)
+	_write(MACHINE_KEY_PATH, machine_key)
 	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
 	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s" % [
 		tenant, machine, api, poll, payments, bridge_check])
