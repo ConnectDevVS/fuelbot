@@ -18,6 +18,7 @@ export async function startServer(env = {}) {
   const settings = loadSettings({
     LOG_REQUESTS: 'false',
     JWT_SECRET: 'test-secret',
+    BCRYPT_COST: '4',
     MONGO_URL: mongo.getUri('fuelbot_test'),
     LOCAL_STORAGE_DIR: uploads,
     ...env,

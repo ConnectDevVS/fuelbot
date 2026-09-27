@@ -34,6 +34,7 @@ the index.
 | 2026-09-26 | **Platform + tenant roles** (product owner): `platform_admin` (FuelBot staff, all tenants); tenant users belong to one tenant: `tenant_admin`, `operator`, `viewer`, optionally limited to some machines | Companies manage their own people and machines | §4.7 |
 | 2026-09-26 | **Users and prices** (product owner): `platform_admin` is the only FuelBot staff role in v1 (a read-only platform viewer may come later); every other user belongs to **exactly one tenant**; accounts get a **temporary password set by an admin**, changed at first login (no email in v1); **prices and offers are changed only by `tenant_admin` and `platform_admin`** | One dashboard for FuelBot staff and tenant users; prices are a business decision, not an operator's | §4.4, §4.6, §4.7 |
 | 2026-09-26 | **Operational data is platform-only** (product owner): telemetry, maintenance (flag, message, faults, and switching it), errors (dispensing and image failure reasons), audit logs and fault logs are seen and used only by `platform_admin`. Tenant users see online/offline, last seen and a plain **in service / out of service** flag (no reason), and every paid sale, failed ones marked **not dispensed** (no reason) | FuelBot operates and services the machines; tenants run the business side | §4.4, §4.5, §4.7, §4.9, §4.10 |
+| 2026-09-27 | **User management** (product owner): a `tenant_admin` can create and promote other `tenant_admin`s in their own tenant; users are **disabled, never deleted** (the audit log keeps who did what); dashboard sessions last **48 hours, fixed** (no sliding renewal) | Companies run their own admin team; accountability; fewer sign-ins | §4.4, §4.6, §4.12 |
 | 2026-09-26 | **Missing identity → 401, and the app keeps records on 401/403** (app change in S1) | A machine that isn't provisioned yet must not lose sales | §3.5 |
 
 ## 1. Context
@@ -491,8 +492,21 @@ tenant check happens once per request.
 | `GET /auth/me` | signed in | the user, role, tenant, machines |
 | `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end) |
 | `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant |
-| `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions) |
-| `POST /users/:id/password` | same | set a new password (ends sessions) |
+| `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions). **No deletion**: a disabled user can be re-enabled |
+| `POST /users/:id/password` | same | set a new temporary password (ends sessions) |
+
+**User rules** (enforced on every create/update):
+- A `tenant_admin` manages the users of **their own tenant**, including other
+  `tenant_admin`s; never a `platform_admin` or another tenant's users.
+- Nobody changes their **own** role or disables themselves (403
+  `forbidden_self`).
+- A tenant that has an active `tenant_admin` always keeps at least one (409
+  `last_tenant_admin`), and there's always at least one active
+  `platform_admin` (409 `last_platform_admin`).
+- `tenant_id` never changes. `machines` applies to `operator`/`viewer` only
+  and must name machines of that tenant.
+- A role change, disabling, or a password set by an admin bumps
+  `token_version`, which ends that user's sessions at once.
 
 **Accounts get a temporary password.** A `platform_admin` or `tenant_admin`
 creates the user with a temporary password and passes it on outside the
@@ -601,7 +615,8 @@ There are no alerts in v1 (§8), but lists sort by status.
   characters.
 - The session is a JWT (HS256, `JWT_SECRET`) holding `{sub, tv}` (user id,
   `token_version`) in an **httpOnly, `SameSite=Strict`** cookie `fb_session`
-  (`Secure` in production), valid for `SESSION_HOURS` (12). Each request
+  (`Secure` in production), valid for `SESSION_HOURS` (**48, fixed**: no
+  renewal while active; sign in again after 48 h). Each request
   loads the user. A disabled user or a changed `token_version` → 401.
 - **CSRF:** `SameSite=Strict`, plus every non-GET `/api/v1` request must
   send `X-Requested-With: fuelbot-dashboard` (a cross-site form can't set
@@ -761,7 +776,7 @@ step**, no framework, and it uses only `/api/v1`.
 
 `PORT` (8790), `HOST` (127.0.0.1), `PUBLIC_URL`, `MONGO_URL`
 (`mongodb://127.0.0.1:27017/fuelbot`), `NODE_ENV`, `JWT_SECRET`,
-`SESSION_HOURS` (12), `COOKIE_SECURE`, `LOGIN_RATE_LIMIT` (10),
+`SESSION_HOURS` (48), `COOKIE_SECURE`, `LOGIN_RATE_LIMIT` (10),
 `MACHINE_AUTH` (`optional`), `OFFLINE_AFTER_SEC` (300), `DISPLAY_TZ`
 (`Asia/Kolkata`), `STORAGE` (`local`), `LOCAL_STORAGE_DIR`, `S3_BUCKET`,
 `S3_REGION` (`ap-south-1`), `S3_PREFIX`, `S3_PUBLIC_BASE_URL`,
