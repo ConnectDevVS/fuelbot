@@ -10,11 +10,13 @@ decision-log entry.
 
 ## 0. Status & decision log
 
-**Status (2026-09-26).** **S0 and S1 done** ([kiosk-api SIGNOFF](../stories/kiosk-api/SIGNOFF.md)):
+**Status (2026-09-27).** **S0, S1 and S2 done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
+[users-rbac](../stories/users-rbac/SIGNOFF.md) SIGNOFFs). S2: dashboard users,
+48 h sessions, the role/permission table, the users API and the audit log.
+S1:
 the three kiosk endpoints serve real data, and the app sends its machine id
 and keeps 401/403 records. The real app has run end to end against the
-server (`tools/dev_run.sh --backend=server`). Next: S2 (users, sessions,
-RBAC). Nothing is deployed. The mock (`mockserver/`) stays as the app's test
+server (`tools/dev_run.sh --backend=server`). Next: S3 (admin catalog API). Nothing is deployed. The mock (`mockserver/`) stays as the app's test
 backend.
 
 **Decision log.** Newest last. Sections are edited in place; this list is

@@ -7,6 +7,7 @@ import { guard, isPlatform } from '../auth/rbac.js';
 import { hashPassword } from '../auth/passwords.js';
 import { userView } from '../services/views.js';
 import { findPage } from '../services/pages.js';
+import { audit, diff } from '../services/audit.js';
 import { isDuplicateKey } from '../db.js';
 import { HttpError } from '../errors.js';
 
@@ -93,7 +94,10 @@ export function usersRouter(settings) {
         password_hash: await hashPassword(body.password, settings.bcryptCost),
         must_change_password: true,
       });
-      res.status(201).json({ user: userView(user) });
+      const view = userView(user);
+      await audit(req, { action: 'user.create', tenant_id: tenantId, target: `user:${user._id}`,
+        after: { email: view.email, name: view.name, role: view.role, machines: view.machines } });
+      res.status(201).json({ user: view });
     } catch (err) {
       if (isDuplicateKey(err)) throw new HttpError(409, 'email_taken');
       throw err;
@@ -128,10 +132,16 @@ export function usersRouter(settings) {
       ? await checkMachines(role, target.tenant_id, body.machines ?? (MACHINE_ROLES.includes(role) ? target.machines : []))
       : target.machines;
     const endSessions = role !== target.role || (disabled && !target.disabled);
+    const before = userView(target);
     target.set({ name: body.name ?? target.name, role, disabled, machines });
     if (endSessions) target.token_version += 1;
     await target.save();
-    res.json({ user: userView(target) });
+    const view = userView(target);
+    const changes = diff(before, view, ['name', 'role', 'machines', 'disabled']);
+    if (Object.keys(changes.after).length) {
+      await audit(req, { action: 'user.update', tenant_id: target.tenant_id, target: `user:${target._id}`, ...changes });
+    }
+    res.json({ user: view });
   });
 
   // A new temporary password; the user must change it at next sign-in. Your own: /auth/password.
@@ -142,6 +152,7 @@ export function usersRouter(settings) {
     target.must_change_password = true;
     target.token_version += 1;
     await target.save();
+    await audit(req, { action: 'user.password_reset', tenant_id: target.tenant_id, target: `user:${target._id}` });
     res.json({ user: userView(target) });
   });
 

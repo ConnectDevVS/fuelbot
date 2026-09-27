@@ -5,6 +5,7 @@ import { Tenant, User } from '../models/index.js';
 import { hashPassword, verifyPassword } from '../auth/passwords.js';
 import { clearSessionCookie, requirePasswordChanged, requireSession, setSessionCookie } from '../auth/session.js';
 import { userView } from '../services/views.js';
+import { audit } from '../services/audit.js';
 import { HttpError } from '../errors.js';
 
 const emailOf = (body) => (typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '');
@@ -27,7 +28,10 @@ export function authRouter(settings) {
     const email = emailOf(req.body);
     const user = email ? await User.findOne({ email }).select('+password_hash') : null;
     const ok = await verifyPassword(req.body?.password, user?.password_hash);
-    if (!user || !ok || user.disabled) throw new HttpError(401, 'invalid_credentials');
+    if (!user || !ok || user.disabled) {
+      await audit(req, { action: 'auth.login_failed', user: null, email: email || undefined });
+      throw new HttpError(401, 'invalid_credentials');
+    }
     if (user.tenant_id) {
       const tenant = await Tenant.findById(user.tenant_id, { disabled: 1 }).lean();
       if (!tenant || tenant.disabled) throw new HttpError(403, 'tenant_disabled');
@@ -35,6 +39,7 @@ export function authRouter(settings) {
     user.last_login_at = new Date();
     await user.save();
     setSessionCookie(res, user, settings);
+    await audit(req, { action: 'auth.login', user, tenant_id: user.tenant_id });
     res.json({ user: userView(user) });
   });
 
@@ -58,6 +63,7 @@ export function authRouter(settings) {
     user.token_version += 1;
     await user.save();
     setSessionCookie(res, user, settings);
+    await audit(req, { action: 'auth.password_change', tenant_id: user.tenant_id, target: `user:${user._id}` });
     res.json({ user: userView(user) });
   });
 

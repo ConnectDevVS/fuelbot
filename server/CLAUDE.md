@@ -18,6 +18,8 @@ the Godot kiosk app. Read it only when a change touches the app.
   `.env` if present (see `.env.example`).
 - `npm run seed`: tenant `powerfuel`, machine `machine-042` (the mock's
   catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
+- `npm run create-admin -- --email=… [--name=…]`: a platform_admin (hidden
+  password prompt, or `ADMIN_PASSWORD`).
 - **The real app against this server:** start db + seed + server, then
   `tools/dev_run.sh --backend=server` from the repo root (config, telemetry and
   sales go to :8790; Razorpay stays on the mock).
@@ -39,6 +41,12 @@ the Godot kiosk app. Read it only when a change touches the app.
   query strings. Keys and passwords are stored only as hashes.
 - Settings come only from env vars (`src/settings.js`); no URLs or secrets
   in code.
+- **Admin routes ask for a permission, never a role:** `guard('users:manage')`
+  / `assertCan(user, 'menu:edit', {tenantId, machine})` from `auth/rbac.js`.
+  Outside the caller's scope is 404, inside without the permission 403. Add a
+  row to the RBAC table test (`test/audit.test.js`) for every new route.
+- **Every admin write calls `audit(req, {...})`** (`services/audit.js`) with
+  only the changed fields (`diff()`). It scrubs secret-named keys anyway.
 - `createApp({settings})` takes its dependencies; tests build one per
   file (`test/helpers.js`).
 - `server/.gdignore` keeps Godot out of `node_modules/`. Don't remove it.
@@ -51,6 +59,12 @@ the Godot kiosk app. Read it only when a change touches the app.
   docs' prose: `dispense_cycle.base` is the bridge's number (`2`), not `"B2"`.
   A wrong type isn't lost (it lands in `extra`), but it's invisible to
   queries. After a schema change, grep `extra` in a real run.
+- **Test sign-ins:** `makeUser()` + `signIn(app, email)` from `test/helpers.js`
+  (the agent adds the CSRF header on writes). The login rate limiter lives in
+  the app, which a test file shares: a test that exhausts it uses its own
+  email.
+- Inside a sub-router `req.path` is relative (`/me`, not `/auth/me`); use
+  `req.baseUrl + req.path` when matching full paths.
 - Mongoose's default connection is per process. That works because
   `node --test` runs each test file in its own process. Keep
   `startServer()`/`stop()` in `before`/`after` of the file, not per test.

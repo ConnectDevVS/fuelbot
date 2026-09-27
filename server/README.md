@@ -35,7 +35,17 @@ file without `extends`) and stores it as the tenant's products plus the
 machine's menu. It refuses a config the app would reject and prints the
 app's error text. Both can be re-run; they update in place.
 
-Check it the way a machine does:
+## Dashboard users
+
+```sh
+npm run create-admin -- --email=you@fuelbot.example --name="You"   # asks for a password
+```
+
+That's the first `platform_admin` (FuelBot staff). Everyone else is created
+in the admin API (`POST /api/v1/users`) with a temporary password they
+change at first sign-in. Sessions last 48 hours.
+
+Check the kiosk API the way a machine does:
 
 ```sh
 curl -H 'X-Tenant-Id: powerfuel' -H 'X-Machine-Id: machine-042' http://127.0.0.1:8790/fuelbot/config
