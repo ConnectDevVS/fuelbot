@@ -139,6 +139,9 @@ describe('RBAC table', () => {
     ['get', '/api/v1/unregistered', 200, 403, 403, 403],
     ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001/keys', 200, 200, 403, 403],
     ['get', '/api/v1/fleet', 200, 200, 200, 200],
+    ['get', '/api/v1/sales', 200, 200, 200, 200],
+    ['get', '/api/v1/sales/summary', 200, 200, 200, 200],
+    ['get', '/api/v1/sales/export.csv', 200, 200, 200, 200],
   ];
 
   for (const [method, path, ...expected] of TABLE) {

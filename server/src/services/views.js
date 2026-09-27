@@ -71,3 +71,31 @@ export function configView(config, { platform }) {
   const { version, tenant, flavors, bases, idle_video_url: idle } = config;
   return { version, tenant, flavors, bases, idle_video_url: idle };
 }
+
+// --- Sales (plan §4.9, stories/read-apis decision 4) --------------------------------------------
+
+/** The tenant view: money and product facts, "dispensed" instead of the technical outcome. */
+export function tenantSaleView(s) {
+  return {
+    order_id: s.order_id,
+    order_number: s.order_number ?? null,
+    transaction_id: s.transaction_id ?? null,
+    machine_id: s.machine_id,
+    flavor_id: s.flavor_id ?? null,
+    base_id: s.base_id ?? null,
+    hopper: s.hopper ?? null,
+    actual_price: s.actual_price ?? null,
+    offer_price: s.offer_price ?? null,
+    charged_price: s.charged_price ?? null,
+    currency: s.currency ?? null,
+    payment_method: s.payment_method ?? null,
+    dispensed: s.dispensing_result === 'success',
+    ts: s.ts,
+  };
+}
+
+/** The platform view: the whole stored record. */
+export function platformSaleView(s) {
+  const { _id, __v, ...rest } = s;
+  return { id: String(_id), ...tenantSaleView(s), ...rest };
+}
