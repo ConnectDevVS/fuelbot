@@ -107,3 +107,15 @@ export async function signIn(app, email, password = PASSWORD) {
     delete: (url) => agent.delete(url).set(CSRF),
   };
 }
+
+/** A stored sale for read-API tests (bypasses ingest). */
+export async function makeSale(fields) {
+  const { Sale } = await import('../src/models/index.js');
+  const ts = fields.ts ?? new Date();
+  return Sale.create({
+    order_id: `o-${Math.random().toString(36).slice(2)}`, tenant_id: 'powerfuel', machine_id: 'DEV00001',
+    flavor_id: 'guava', hopper: 1, base_id: 'water', actual_price: 90, offer_price: 75, charged_price: 75,
+    currency: 'INR', payment_method: 'upi', dispensing_result: 'success', dispensing_reason: '',
+    transaction_id: 'pay_1', order_number: 1, received_at: ts, machine_known: true, ...fields, ts,
+  });
+}

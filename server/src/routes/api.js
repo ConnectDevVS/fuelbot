@@ -11,6 +11,7 @@ import { machinesRouter } from './machines.js';
 import { menusRouter } from './menus.js';
 import { keysRouter } from './keys.js';
 import { unregisteredRouter } from './unregistered.js';
+import { fleetRouter } from './fleet.js';
 
 export function apiRouter(settings) {
   const router = express.Router();
@@ -24,6 +25,7 @@ export function apiRouter(settings) {
   router.use('/tenants/:tid/machines/:mid/keys', keysRouter());
   router.use('/tenants/:tid/machines', machinesRouter());
   router.use('/unregistered', unregisteredRouter());
+  router.use('/fleet', fleetRouter());
   router.use('/tenants', tenantsRouter());
   return router;
 }
