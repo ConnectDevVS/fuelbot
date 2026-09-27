@@ -21,9 +21,12 @@ firmware simulator and at Levels 0/1; Levels 2/3 are pending hardware**
 **Milestone 6 (sale reporting + dead bridge) is built and verified at Levels
 0/1, including §7 steps 9 and 10** ([sales SIGNOFF](../stories/sales/SIGNOFF.md)).
 **Milestone 7 (flavor images from S3) is built and verified against the mock,
-including §7 step 4b; the real S3 bucket and the config API's `image_url`
-are pending the backend team** ([images SIGNOFF](../stories/images/SIGNOFF.md),
-2026-09-26).
+including §7 step 4b** ([images SIGNOFF](../stories/images/SIGNOFF.md),
+2026-09-26). **The real backend is built in `server/`** (2026-09-27, its own
+plan: [server-plan.md](../../server/devdocs/plans/server-plan.md)): config
+with `image_url`, sales, telemetry, machine keys and the admin API, run end
+to end with this app. Not deployed yet; the real S3 bucket and image upload
+(server S5) are pending.
 Per-milestone status is in Section 5. Work is executed as story sets under
 `devdocs/stories/`. Each set's README lists its detailed decisions, and its
 `SIGNOFF.md` records the verification evidence.
@@ -1352,7 +1355,7 @@ existing external reference (docs, muscle memory) to preserve.
 | 4 — Hardware bridge + dispensing | 🟡 Built; **Level 0 + Level 1 PASS** (fake bridge; real bridge + fake Arduino). **Level 2/3 pending hardware**; motors 5–6 are fail-safe placeholders pending wiring | [dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md) |
 | 5 — Telemetry | 🟡 Built; **firmware simulator + Level 0 + Level 1 PASS**; Level 2/3 pending hardware; the telemetry backend is the mock | [telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md) |
 | 6 — Maintenance + sale reporting | ✅ Done in software: maintenance (idle set) re-verified, extended to several local faults; sale reporting and dead-bridge → out of service built; Level 0/1 and §7 steps 9–10 PASS. Real sales backend pending | [idle](../stories/idle/SIGNOFF.md), [sales](../stories/sales/SIGNOFF.md) SIGNOFFs |
-| 7 — Asset migration + flavor images from S3 | ✅ Done in software (2026-09-26): assets ported; flavor images from S3 via `image_url` (§3.14) built and verified against the mock, incl. §7 step 4b; bundled fallbacks trimmed. Real S3 bucket + config field pending (backend team) | [images SIGNOFF](../stories/images/SIGNOFF.md), [assets/ASSETS.md](../../assets/ASSETS.md) |
+| 7 — Asset migration + flavor images from S3 | ✅ Done in software (2026-09-26): assets ported; flavor images from S3 via `image_url` (§3.14) built and verified against the mock, incl. §7 step 4b; bundled fallbacks trimmed. Config API with `image_url`: built in `server/` (S1); real S3 bucket + upload pending (server S5) | [images SIGNOFF](../stories/images/SIGNOFF.md), [assets/ASSETS.md](../../assets/ASSETS.md) |
 | 8 — Raspberry Pi | Not started | — |
 
 **Milestone 0 — Skeleton**

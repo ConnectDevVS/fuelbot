@@ -566,11 +566,14 @@ any change to `RazorpayManager` or the create payload.
   whether test mode can simulate a UPI QR payment.
 - Next: Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
   Also check WebP/PNG decoding and HTTPS to S3 on the Pi's export template.
-- **Real sales/telemetry backends:** only the mock exists (settings change).
+- **Real backend:** built in `server/` (config, sales, telemetry, machine keys,
+  admin API; see server/CLAUDE.md) and run end to end with this app
+  (`tools/dev_run.sh --backend=server`). **Not deployed yet** (hosting
+  undecided); the app's tests still use the mock.
 - ~~Flavor images from S3~~: built in Milestone 7 (images SIGNOFF, §7 step
-  4b against the mock). **Pending the backend team:** the real S3 bucket and
-  the config API's `image_url` field; the content team follows
-  `devdocs/image-spec.md`.
+  4b against the mock). The config API serves `image_url` (server S1);
+  **pending:** the real S3 bucket and the server's upload endpoint (server
+  S5, deferred). The content team follows `devdocs/image-spec.md`.
 - `tools/screenshot.sh` is still a real (unsandboxed) boot, on purpose: it
   captures what the dev environment shows, so it uses the dev tenant, mock,
   caches and queues like any dev launch.
