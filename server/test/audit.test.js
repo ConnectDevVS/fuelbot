@@ -142,6 +142,9 @@ describe('RBAC table', () => {
     ['get', '/api/v1/sales', 200, 200, 200, 200],
     ['get', '/api/v1/sales/summary', 200, 200, 200, 200],
     ['get', '/api/v1/sales/export.csv', 200, 200, 200, 200],
+    ['get', '/api/v1/telemetry', 200, 403, 403, 403],
+    ['get', '/api/v1/faults', 200, 403, 403, 403],
+    ['get', '/api/v1/orders/none', 404, 404, 404, 404],       // allowed for all; no such order
   ];
 
   for (const [method, path, ...expected] of TABLE) {

@@ -53,6 +53,9 @@ the Godot kiosk app. Read it only when a change touches the app.
   machine writes go through `saveMachine()` (bumps `menu_version`, model hook
   validates, audits). Load scoped resources with `loadTenant()` /
   `loadMachine()`, never a bare `findById`.
+- **Record queries** (sales, telemetry) start from `scopedFilter(user, query)`
+  (`services/records.js`) and page with `recordPage()` (client time, newest
+  first). Never query records without the scope.
 - **Views are allowlists** (`services/views.js`): tenant responses never
   include status, faults, maintenance, IPs or failure reasons.
 - **Every admin write calls `audit(req, {...})`** (`services/audit.js`) with

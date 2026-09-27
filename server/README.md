@@ -60,6 +60,15 @@ change at first sign-in. Sessions last 48 hours.
    matter). Until step 2 it runs on its cached or bundled catalog; without a
    valid key the server refuses it (it keeps its sales until the key is fixed).
 
+## Reports
+
+All under `/api/v1`, scoped to the signed-in user: `GET /fleet` (machines,
+status, today's sales), `GET /sales` (filters: `machine`, `flavor`,
+`dispensed`, `from`, `to`), `GET /sales/summary?group=day|flavor|machine`,
+`GET /sales/export.csv`, `GET /orders/<order id>`. FuelBot staff also get
+`GET /telemetry`, `GET /faults` and `group=tenant`. Days are in
+`DISPLAY_TZ` (default `Asia/Kolkata`).
+
 To replace a key: issue a new one, update `machine_key.txt`, then revoke the
 old one (`DELETE …/keys/<key id>`).
 
