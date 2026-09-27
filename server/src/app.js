@@ -1,8 +1,11 @@
 // The Express app. createApp() takes its dependencies so tests can build one per suite.
 import express from 'express';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { pingDb } from './db.js';
 import { HttpError } from './errors.js';
 import { kioskRouter } from './routes/kiosk.js';
+import { apiRouter } from './routes/api.js';
 
 export function createApp({ settings }) {
   const app = express();
@@ -23,7 +26,9 @@ export function createApp({ settings }) {
     });
   }
 
+  app.use(helmet());
   app.use(express.json({ limit: '256kb' }));
+  app.use(cookieParser());
 
   app.get('/healthz', async (req, res) => {
     await pingDb();
@@ -31,6 +36,7 @@ export function createApp({ settings }) {
   });
 
   app.use('/fuelbot', kioskRouter());
+  app.use('/api/v1', apiRouter(settings));
 
   app.use((req, res) => res.status(404).json({ error: 'not_found' }));
 
