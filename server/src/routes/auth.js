@@ -3,7 +3,7 @@ import express from 'express';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { Tenant, User } from '../models/index.js';
 import { hashPassword, verifyPassword } from '../auth/passwords.js';
-import { clearSessionCookie, requirePasswordChanged, requireSession, setSessionCookie } from '../auth/session.js';
+import { endSession, requirePasswordChanged, requireSession, setSessionCookie } from '../auth/session.js';
 import { userView } from '../services/views.js';
 import { audit } from '../services/audit.js';
 import { HttpError } from '../errors.js';
@@ -45,8 +45,9 @@ export function authRouter(settings) {
 
   router.use(requireSession, requirePasswordChanged);
 
-  router.post('/logout', (req, res) => {
-    clearSessionCookie(res, settings);
+  // Ends this session on the server, not just the cookie; other sessions continue.
+  router.post('/logout', async (req, res) => {
+    await endSession(req, res, settings);
     res.json({ ok: true });
   });
 

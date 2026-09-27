@@ -136,6 +136,24 @@ describe('sessions (/api/v1/auth)', () => {
     assert.equal((await login(request(ctx.app), 'new@powerfuel.example', 'a brand new secret')).status, 200);
   });
 
+  it('sign-out ends that session on the server: a copied cookie stops working, others continue', async () => {
+    const res = await login(request(ctx.app), 'ops@fuelbot.example');
+    const copied = cookieOf(res).split(';')[0];
+    const other = request.agent(ctx.app);
+    await login(other, 'ops@fuelbot.example');
+    const out = await request(ctx.app).post('/api/v1/auth/logout').set(CSRF).set('Cookie', copied);
+    assert.equal(out.status, 200);
+    const again = await request(ctx.app).get('/api/v1/auth/me').set('Cookie', copied);
+    assert.equal(again.status, 401);
+    assert.equal(again.body.error, 'not_signed_in');
+    assert.equal((await other.get('/api/v1/auth/me')).status, 200);
+    const { RevokedSession } = await import('../src/models/index.js');
+    const [revoked] = await RevokedSession.find().lean();
+    assert.ok(revoked.expires_at > new Date(), 'kept until the session would have expired');
+    const noJti = jwt.sign({ sub: 'x', tv: 0 }, 'test-secret');
+    assert.equal((await request(ctx.app).get('/api/v1/auth/me').set('Cookie', `fb_session=${noJti}`)).status, 401);
+  });
+
   it('sign-out clears the cookie', async () => {
     const agent = request.agent(ctx.app);
     await login(agent, 'ops@fuelbot.example');

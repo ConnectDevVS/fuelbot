@@ -1,7 +1,9 @@
 // Dashboard sessions (plan §4.6): a signed JWT {sub, tv} in an httpOnly, SameSite=Strict cookie,
-// valid SESSION_HOURS (48), fixed. Every request reloads the user.
+// valid SESSION_HOURS (48), fixed. Every request reloads the user. Each session has an id (jti);
+// signing out revokes that id on the server, so a copied cookie stops working too.
+import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import { Tenant, User } from '../models/index.js';
+import { RevokedSession, Tenant, User } from '../models/index.js';
 import { HttpError } from '../errors.js';
 
 export const COOKIE = 'fb_session';
@@ -12,6 +14,7 @@ export function setSessionCookie(res, user, settings) {
   const token = jwt.sign({ sub: String(user._id), tv: user.token_version }, settings.jwtSecret, {
     algorithm: 'HS256',
     expiresIn: settings.sessionHours * 3600,
+    jwtid: crypto.randomBytes(16).toString('hex'),
   });
   res.cookie(COOKIE, token, {
     httpOnly: true,
@@ -20,6 +23,15 @@ export function setSessionCookie(res, user, settings) {
     path: '/',
     maxAge: settings.sessionHours * 3600 * 1000,
   });
+}
+
+/** Ends this session on the server (idempotent) and clears its cookie. */
+export async function endSession(req, res, settings) {
+  if (req.session?.jti) {
+    await RevokedSession.updateOne({ jti: req.session.jti },
+      { $setOnInsert: { expires_at: new Date(req.session.exp * 1000) } }, { upsert: true });
+  }
+  clearSessionCookie(res, settings);
 }
 
 export function clearSessionCookie(res, settings) {
@@ -43,6 +55,8 @@ export async function requireSession(req, res, next) {
   } catch {
     throw new HttpError(401, 'not_signed_in');
   }
+  if (!claims.jti || await RevokedSession.exists({ jti: claims.jti })) throw new HttpError(401, 'not_signed_in');
+  req.session = { jti: claims.jti, exp: claims.exp };
   const user = await User.findById(claims.sub).lean().catch(() => null);
   if (!user || user.disabled || user.token_version !== claims.tv) throw new HttpError(401, 'not_signed_in');
   if (user.tenant_id) {
