@@ -52,13 +52,22 @@ change at first sign-in. Sessions last 48 hours.
    generates its id (8 characters, e.g. `K7Q2M9XA`).
 2. Give it a menu: `PUT …/machines/<id>/menu`, or copy one with
    `POST …/machines/<id>/menu/copy-from/<other id>`.
-3. On the machine: `tenant_id.txt` = the tenant id, `machine_id.txt` = the
-   generated id. Until step 2 it runs on its cached or bundled catalog.
+3. Issue its key (tenant_admin or platform_admin):
+   `POST …/machines/<id>/keys {"label": "Bay 3"}`. The key (e.g.
+   `7KQM-2XPA-9TRD-4WZC-HN3B`) is shown **once**.
+4. On the machine: `tenant_id.txt` = the tenant id, `machine_id.txt` = the
+   generated id, `machine_key.txt` = the key (case, spaces and dashes don't
+   matter). Until step 2 it runs on its cached or bundled catalog; without a
+   valid key the server refuses it (it keeps its sales until the key is fixed).
+
+To replace a key: issue a new one, update `machine_key.txt`, then revoke the
+old one (`DELETE …/keys/<key id>`).
 
 Check the kiosk API the way a machine does:
 
 ```sh
-curl -H 'X-Tenant-Id: powerfuel' -H 'X-Machine-Id: DEV00001' http://127.0.0.1:8790/fuelbot/config
+curl -H 'X-Tenant-Id: powerfuel' -H 'X-Machine-Id: DEV00001' \
+     -H 'Authorization: Bearer DEVK-EYDE-VKEY-DEVK-EY01' http://127.0.0.1:8790/fuelbot/config
 ```
 
 ## Tests

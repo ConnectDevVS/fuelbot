@@ -10,16 +10,18 @@ decision-log entry.
 
 ## 0. Status & decision log
 
-**Status (2026-09-27).** **S0–S3 done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
-[users-rbac](../stories/users-rbac/SIGNOFF.md), [catalog-admin](../stories/catalog-admin/SIGNOFF.md)
-SIGNOFFs). S3: tenants, products, machines (server-generated ids), menus,
+**Status (2026-09-27).** **S0–S4 done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
+[users-rbac](../stories/users-rbac/SIGNOFF.md), [catalog-admin](../stories/catalog-admin/SIGNOFF.md),
+[machine-keys](../stories/machine-keys/SIGNOFF.md) SIGNOFFs). S4: typeable
+machine keys, required by default; the app sends them and keeps its records
+while a key is revoked. S3: tenants, products, machines (server-generated ids), menus,
 bases, maintenance and unregistered machines through the admin API; a
 machine configured only through it has run in the real app. S2: dashboard users,
 48 h sessions, the role/permission table, the users API and the audit log.
 S1:
 the three kiosk endpoints serve real data, and the app sends its machine id
 and keeps 401/403 records. The real app has run end to end against the
-server (`tools/dev_run.sh --backend=server`). Next: S4 (machine keys). Nothing is deployed. The mock (`mockserver/`) stays as the app's test
+server (`tools/dev_run.sh --backend=server`). Next: S5 (product images). Nothing is deployed. The mock (`mockserver/`) stays as the app's test
 backend.
 
 **Decision log.** Newest last. Sections are edited in place; this list is

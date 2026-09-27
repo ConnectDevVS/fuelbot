@@ -16,8 +16,8 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `npm run db`: local persistent MongoDB on 27017 (data in `.data/`).
 - `npm start` / `npm run dev` (watch): the server on **:8790**. It reads
   `.env` if present (see `.env.example`).
-- `npm run seed`: tenant `powerfuel`, machine `DEV00001` (the mock's
-  catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
+- `npm run seed`: tenant `powerfuel`, machine `DEV00001` with the dev key
+  `DEVK-EYDE-VKEY-DEVK-EY01` (the mock's catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
 - `npm run create-admin -- --email=… [--name=…]`: a platform_admin (hidden
   password prompt, or `ADMIN_PASSWORD`).
 - **The real app against this server:** start db + seed + server, then
@@ -39,6 +39,9 @@ the Godot kiosk app. Read it only when a change touches the app.
   200. Never return 401/403 on ingest until the app retries them (plan §3.5).
 - **Never log** headers, cookies, bodies, machine keys, passwords or URLs with
   query strings. Keys and passwords are stored only as hashes.
+- **`MACHINE_AUTH` is `required` by default.** Server tests run with `off`
+  (`test/helpers.js`) unless they're about keys; `keys.test.js` covers the
+  modes by switching `ctx.settings.machineAuth`.
 - Settings come only from env vars (`src/settings.js`); no URLs or secrets
   in code.
 - **Admin routes ask for a permission, never a role:** `guard('users:manage')`
