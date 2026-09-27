@@ -67,7 +67,9 @@ const CONFIG_PATHS = ['menu', 'bases', 'maintenance', 'location_label', 'site', 
   'idle_video_url', 'tenant_id'];
 MachineSchema.pre('validate', async function checkConfig() {
   if (!this.isNew && !CONFIG_PATHS.some((path) => this.isModified(path))) return;
-  if (this.isNew && this.menu.length === 0) return;   // just registered: not configured yet
+  // Not configured yet (registered, menu never filled): nothing to validate. Emptying a menu
+  // that had items is validated, and refused (the app needs at least one flavor).
+  if (this.menu.length === 0 && (this.isNew || !this.isModified('menu'))) return;
   const { assertMachineValid } = await import('../services/catalog.js');
   await assertMachineValid(this);
 });

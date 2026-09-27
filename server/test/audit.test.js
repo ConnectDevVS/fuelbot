@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { CSRF, PASSWORD, makeUser, signIn, startServer } from './helpers.js';
 import { AuditEntry, Machine, Tenant, User } from '../src/models/index.js';
+import { createMachine } from '../src/services/machines.js';
 
 const TEMP = 'temporary pass 123';
 const CHANGED = 'my very own secret';
@@ -102,6 +103,7 @@ describe('RBAC table', () => {
   before(async () => {
     ctx = await startServer();
     await Tenant.create({ _id: 'powerfuel', name: 'PowerFuel Gym' });
+    await createMachine({ tenant_id: 'powerfuel', name: 'Bay 1' }, { idSource: () => 'RBAC0001' });
     const users = {
       platform_admin: { email: 'p@x.io', role: 'platform_admin' },
       tenant_admin: { email: 't@x.io', role: 'tenant_admin', tenant_id: 'powerfuel' },
@@ -127,6 +129,12 @@ describe('RBAC table', () => {
     ['get', '/api/v1/tenants/powerfuel/products', 200, 200, 200, 200],
     ['post', '/api/v1/tenants/powerfuel/products', 400, 400, 403, 403],  // 400: allowed, empty body
     ['get', '/api/v1/tenants/globex/products', 404, 404, 404, 404],     // no such tenant / not theirs
+    ['get', '/api/v1/tenants/powerfuel/machines', 200, 200, 200, 200],
+    ['post', '/api/v1/tenants/powerfuel/machines', 400, 400, 403, 403],
+    ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001', 200, 200, 200, 200],
+    ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001/config', 200, 200, 200, 200],
+    ['put', '/api/v1/tenants/powerfuel/machines/RBAC0001/bases', 400, 400, 403, 403],
+    ['put', '/api/v1/tenants/powerfuel/machines/RBAC0001/maintenance', 400, 403, 403, 403],
   ];
 
   for (const [method, path, ...expected] of TABLE) {

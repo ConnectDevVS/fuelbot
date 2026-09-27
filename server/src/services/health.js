@@ -59,3 +59,26 @@ export async function applyHealthEvent(record) {
   );
   return result.modifiedCount === 1;
 }
+
+/** Health faults as [{code, since}] from a lean doc (plain object) or a document (Map). */
+function faultList(machine) {
+  const faults = machine.health?.faults;
+  const entries = faults instanceof Map ? [...faults.entries()] : Object.entries(faults ?? {});
+  return entries.map(([code, since]) => ({ code, since })).sort((a, b) => a.code.localeCompare(b.code));
+}
+
+/**
+ * Machine status (plan §4.5), computed on read. The full picture is platform-only; tenant users
+ * get online / in_service / last seen (views.js picks).
+ */
+export function machineStatus(machine, settings, now = Date.now()) {
+  const seen = machine.last_seen_at ? new Date(machine.last_seen_at).getTime() : null;
+  const online = seen !== null && now - seen <= settings.offlineAfterSec * 1000;
+  const faults = faultList(machine);
+  const maintenance = Boolean(machine.maintenance?.enabled);
+  let status = 'ok';
+  if (!online) status = 'offline';
+  else if (faults.length) status = 'fault';
+  else if (maintenance) status = 'maintenance';
+  return { status, online, faults, maintenance, in_service: !maintenance && faults.length === 0 };
+}

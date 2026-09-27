@@ -7,6 +7,7 @@ import { usersRouter } from './users.js';
 import { auditRouter } from './audit.js';
 import { tenantsRouter } from './tenants.js';
 import { productsRouter } from './products.js';
+import { machinesRouter } from './machines.js';
 
 export function apiRouter(settings) {
   const router = express.Router();
@@ -16,6 +17,7 @@ export function apiRouter(settings) {
   router.use('/users', usersRouter(settings));
   router.use('/audit', auditRouter());
   router.use('/tenants/:tid/products', productsRouter());
+  router.use('/tenants/:tid/machines', machinesRouter());
   router.use('/tenants', tenantsRouter());
   return router;
 }
