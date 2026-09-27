@@ -124,6 +124,9 @@ describe('RBAC table', () => {
     ['get', '/api/v1/tenants/powerfuel', 200, 200, 200, 200],
     ['post', '/api/v1/tenants', 400, 403, 403, 403],          // 400: allowed, empty body
     ['patch', '/api/v1/tenants/powerfuel', 200, 200, 403, 403], // {name} below
+    ['get', '/api/v1/tenants/powerfuel/products', 200, 200, 200, 200],
+    ['post', '/api/v1/tenants/powerfuel/products', 400, 400, 403, 403],  // 400: allowed, empty body
+    ['get', '/api/v1/tenants/globex/products', 404, 404, 404, 404],     // no such tenant / not theirs
   ];
 
   for (const [method, path, ...expected] of TABLE) {
