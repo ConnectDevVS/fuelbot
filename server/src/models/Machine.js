@@ -67,6 +67,7 @@ const CONFIG_PATHS = ['menu', 'bases', 'maintenance', 'location_label', 'site', 
   'idle_video_url', 'tenant_id'];
 MachineSchema.pre('validate', async function checkConfig() {
   if (!this.isNew && !CONFIG_PATHS.some((path) => this.isModified(path))) return;
+  if (this.isNew && this.menu.length === 0) return;   // just registered: not configured yet
   const { assertMachineValid } = await import('../services/catalog.js');
   await assertMachineValid(this);
 });

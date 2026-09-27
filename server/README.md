@@ -26,7 +26,7 @@ curl http://127.0.0.1:8790/healthz
 ## Data
 
 ```sh
-npm run seed     # tenant "powerfuel", machine "machine-042", the mock's six flavors
+npm run seed     # tenant "powerfuel", machine "DEV00001", the mock's six flavors
 npm run import-config -- --tenant=<id> --machine=<id> [--tenant-name="…"] [--strip-image-urls] config.json
 ```
 
@@ -48,7 +48,7 @@ change at first sign-in. Sessions last 48 hours.
 Check the kiosk API the way a machine does:
 
 ```sh
-curl -H 'X-Tenant-Id: powerfuel' -H 'X-Machine-Id: machine-042' http://127.0.0.1:8790/fuelbot/config
+curl -H 'X-Tenant-Id: powerfuel' -H 'X-Machine-Id: DEV00001' http://127.0.0.1:8790/fuelbot/config
 ```
 
 ## Tests

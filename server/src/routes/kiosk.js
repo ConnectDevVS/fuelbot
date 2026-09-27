@@ -14,6 +14,7 @@ export function kioskRouter() {
   router.get('/config', async (req, res) => {
     touchLastSeen(req);
     if (!req.kiosk.known) throw new HttpError(404, 'unknown_machine');
+    if (req.kiosk.machine.menu.length === 0) throw new HttpError(409, 'machine_not_configured');
     res.set('Cache-Control', 'no-store');
     res.json(await machineConfig(req.kiosk.machine));
   });

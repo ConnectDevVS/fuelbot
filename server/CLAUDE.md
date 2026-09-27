@@ -16,7 +16,7 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `npm run db`: local persistent MongoDB on 27017 (data in `.data/`).
 - `npm start` / `npm run dev` (watch): the server on **:8790**. It reads
   `.env` if present (see `.env.example`).
-- `npm run seed`: tenant `powerfuel`, machine `machine-042` (the mock's
+- `npm run seed`: tenant `powerfuel`, machine `DEV00001` (the mock's
   catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
 - `npm run create-admin -- --email=… [--name=…]`: a platform_admin (hidden
   password prompt, or `ADMIN_PASSWORD`).

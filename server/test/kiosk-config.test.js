@@ -96,10 +96,10 @@ describe('scripts: seed and import-config', () => {
 
   const env = () => ({ ...process.env, MONGO_URL: ctx.settings.mongoUrl });
 
-  it('seed creates powerfuel / machine-042 without image URLs, and can re-run', async () => {
+  it('seed creates powerfuel / DEV00001 without image URLs, and can re-run', async () => {
     await run('node', ['scripts/seed.js'], { cwd: SERVER_DIR, env: env() });
     await run('node', ['scripts/seed.js'], { cwd: SERVER_DIR, env: env() });
-    const res = await request(ctx.app).get('/fuelbot/config').set(ids());
+    const res = await request(ctx.app).get('/fuelbot/config').set(ids('powerfuel', 'DEV00001'));
     assert.equal(res.status, 200);
     assert.equal(res.body.flavors.length, 6);
     assert.ok(res.body.flavors.every((f) => !('image_url' in f) && f.image.startsWith('res://')));
@@ -113,15 +113,21 @@ describe('scripts: seed and import-config', () => {
     fs.writeFileSync(good, JSON.stringify(mockConfig('default')));
     fs.writeFileSync(bad, JSON.stringify(mockConfig('invalid_duplicate_hopper')));
     try {
-      const { stdout } = await run('node', ['scripts/import-config.js', '--tenant=acme', '--machine=m-1',
+      const { stdout } = await run('node', ['scripts/import-config.js', '--tenant=acme',
         '--tenant-name=Acme Fitness', good], { cwd: SERVER_DIR, env: env() });
-      assert.match(stdout, /Imported 6 flavors into tenant acme, machine m-1/);
+      const id = /machine ([A-Z0-9]{8})\./.exec(stdout)?.[1];
+      assert.ok(id, `a generated machine id in: ${stdout}`);
+      assert.equal((await Machine.findById(id)).tenant_id, 'acme');
+      const again = await run('node', ['scripts/import-config.js', '--tenant=acme', `--machine=${id}`, good],
+        { cwd: SERVER_DIR, env: env() });
+      assert.match(again.stdout, new RegExp(`machine ${id}\\.`));
+      assert.equal(await Machine.countDocuments({ tenant_id: 'acme' }), 1);
       assert.equal((await Tenant.findById('acme')).name, 'Acme Fitness');
       await assert.rejects(
-        run('node', ['scripts/import-config.js', '--tenant=acme', '--machine=m-2', bad], { cwd: SERVER_DIR, env: env() }),
+        run('node', ['scripts/import-config.js', '--tenant=acme', '--machine=ACME0002', bad], { cwd: SERVER_DIR, env: env() }),
         (err) => err.code === 1 && /chocolate: hopper 1 already used by guava/.test(err.stderr),
       );
-      assert.equal(await Machine.countDocuments({ _id: 'm-2' }), 0);
+      assert.equal(await Machine.countDocuments({ _id: 'ACME0002' }), 0);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

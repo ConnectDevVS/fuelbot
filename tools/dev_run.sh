@@ -134,7 +134,7 @@ cat <<BANNER
 ────────────────────────────────────────────────────────────
  FuelBot dev run
  Mock backend : $([[ $no_mock -eq 1 ]] && echo "disabled (offline, bundled default config)" || echo "http://127.0.0.1:$MOCK_PORT  (log: .mock.log)")
- Backend API  : $([[ "$backend" == "server" ]] && echo "real server http://127.0.0.1:$SERVER_PORT/fuelbot (tenant powerfuel, machine machine-042; Razorpay on the mock)" || echo "the mock")
+ Backend API  : $([[ "$backend" == "server" ]] && echo "real server http://127.0.0.1:$SERVER_PORT/fuelbot (tenant powerfuel, machine DEV00001; Razorpay on the mock)" || echo "the mock")
  Scenario     : ${scenario:-$([[ $no_mock -eq 1 ]] && echo "-" || echo "current")}
  Payments     : $([[ $no_mock -eq 1 ]] && echo "-" || echo "$payments")
  Bridge       : $bridge_note

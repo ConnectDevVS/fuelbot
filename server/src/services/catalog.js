@@ -4,6 +4,7 @@ import { Machine, Product, Tenant } from '../models/index.js';
 import { buildConfig } from '../catalog/build.js';
 import { validateAll } from '../catalog/validate.js';
 import { CatalogError } from '../errors.js';
+import { generateMachineId } from './machines.js';
 
 const plain = (doc) => (doc && typeof doc.toObject === 'function' ? doc.toObject() : doc);
 
@@ -57,7 +58,7 @@ function parseDate(value) {
  * Imports an app config body (the kiosk's schema) as a tenant's products plus one machine's menu
  * (stories/kiosk-api decision 4). Creates or updates in place. The raw config is validated first.
  */
-export async function importConfig({ tenantId, tenantName, machineId, config }) {
+export async function importConfig({ tenantId, tenantName, machineId = generateMachineId(), config }) {
   const errors = validateAll(config);
   if (errors.length) throw new CatalogError([{ machine_id: machineId, errors }]);
   const existing = await Machine.findById(machineId).lean();

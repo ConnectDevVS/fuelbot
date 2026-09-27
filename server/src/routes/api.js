@@ -5,6 +5,7 @@ import { csrfGuard, requirePasswordChanged, requireSession } from '../auth/sessi
 import { authRouter } from './auth.js';
 import { usersRouter } from './users.js';
 import { auditRouter } from './audit.js';
+import { tenantsRouter } from './tenants.js';
 
 export function apiRouter(settings) {
   const router = express.Router();
@@ -13,5 +14,6 @@ export function apiRouter(settings) {
   router.use(requireSession, requirePasswordChanged);
   router.use('/users', usersRouter(settings));
   router.use('/audit', auditRouter());
+  router.use('/tenants', tenantsRouter());
   return router;
 }

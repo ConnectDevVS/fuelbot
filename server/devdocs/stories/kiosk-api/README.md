@@ -49,11 +49,11 @@ after the checks.
    first. Re-importing updates in place. The round trip (import, then GET)
    reproduces the mock's `default` body exactly (contract test 1).
 5. **Seed** = import the mock's `default.json` as tenant `powerfuel`
-   ("PowerFuel Gym"), machine `machine-042`, with its `{{origin}}` image
+   ("PowerFuel Gym"), machine `machine-042` (`DEV00001` since S3: ids are generated), with its `{{origin}}` image
    URLs **removed** (the dev server has no such images; the bundled `image`
    remains). S5 brings real image uploads.
 6. **Health on ingest** follows plan §4.5. A health event older than
    `health.last_event_at` is stored but doesn't change health.
 7. **The app's dev defaults** become tenant `powerfuel`, machine
-   `machine-042`. The mock ignores `X-Machine-Id`, so app tests are
+   `machine-042` (`DEV00001` since S3). The mock ignores `X-Machine-Id`, so app tests are
    unaffected.

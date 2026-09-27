@@ -1,7 +1,7 @@
 extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
-##     [--tenant=powerfuel] [--machine=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
+##     [--tenant=powerfuel] [--machine=DEV00001] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
 ##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
@@ -24,7 +24,7 @@ const IMAGE_CACHE_DIR := "user://image_cache"
 
 func _initialize() -> void:
 	var tenant := "powerfuel"
-	var machine := "machine-042"
+	var machine := "DEV00001"   # the server seed's pinned dev id; real machines get generated ids
 	var api := "http://127.0.0.1:8787/fuelbot"
 	var poll := 10.0
 	var payments := "mock"

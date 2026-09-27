@@ -120,13 +120,17 @@ describe('RBAC table', () => {
     ['get', '/api/v1/auth/me', 200, 200, 200, 200],
     ['get', '/api/v1/users', 200, 200, 403, 403],
     ['get', '/api/v1/audit', 200, 403, 403, 403],
+    ['get', '/api/v1/tenants', 200, 200, 200, 200],
+    ['get', '/api/v1/tenants/powerfuel', 200, 200, 200, 200],
+    ['post', '/api/v1/tenants', 400, 403, 403, 403],          // 400: allowed, empty body
+    ['patch', '/api/v1/tenants/powerfuel', 200, 200, 403, 403], // {name} below
   ];
 
   for (const [method, path, ...expected] of TABLE) {
     it(`${method.toUpperCase()} ${path}`, async () => {
       const roles = ['platform_admin', 'tenant_admin', 'operator', 'viewer'];
       for (const [i, role] of roles.entries()) {
-        const res = await agents[role][method](path);
+        const res = await agents[role][method](path, method === 'patch' ? { name: 'PowerFuel Gym' } : {});
         assert.equal(res.status, expected[i], `${role}: ${JSON.stringify(res.body)}`);
       }
     });
