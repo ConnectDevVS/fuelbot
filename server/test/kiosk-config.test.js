@@ -106,6 +106,14 @@ describe('scripts: seed and import-config', () => {
     assert.equal(await Machine.countDocuments(), 1);
   });
 
+  it('seed refuses to run in production', async () => {
+    await assert.rejects(
+      run('node', ['scripts/seed.js'], { cwd: SERVER_DIR, env: { ...env(), NODE_ENV: 'production' } }),
+      (err) => err.code === 1 && /Refused/.test(err.stderr),
+    );
+    assert.equal(await Machine.countDocuments(), 0);
+  });
+
   it('import-config imports a plain config file and refuses an invalid one', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fuelbot-import-'));
     const good = path.join(dir, 'good.json');

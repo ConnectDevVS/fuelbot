@@ -9,6 +9,12 @@ import { DEV_KEY, hashKey, issueKey } from '../src/services/keys.js';
 import { MachineKey } from '../src/models/index.js';
 
 export const DEV_MACHINE = 'DEV00001';
+
+// Never in production: the seed creates a machine with a publicly known key.
+if (process.env.NODE_ENV === 'production') {
+  console.error('Refused: npm run seed is for development (it creates DEV00001 with a known key).');
+  process.exit(1);
+}
 const MOCK_DEFAULT = new URL('../../mockserver/responses/config/default.json', import.meta.url).pathname;
 
 await withDb(async () => {
