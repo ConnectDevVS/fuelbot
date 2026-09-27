@@ -665,6 +665,11 @@ There are no alerts in v1 (§8), but lists sort by status.
 | `operator` | their tenant; all machines, or the listed `machines` | menus (hopper, sold out, enabled, badge, order) of their machines; **edit existing products' text and images only if they have all machines** (a product change reaches every machine); never create products; **never prices or offers** (product defaults or menu overrides); sales and stock (read) for their machines |
 | `viewer` | same as operator | read only: products, menus, tenant status, sales and stock of their machines |
 
+- **`platform_admin` can do everything a `tenant_admin` can, in every
+  tenant** (product owner, 2026-09-27): users, branding, machines, keys,
+  products, menus, prices, stock refills and adjustments, sales, plus the
+  platform-only data below. In code the platform set is built from the
+  tenant_admin set, and a test fails if they ever diverge.
 - **Platform-only data** (product owner): **telemetry** (every event),
   **maintenance** (the flag, message and faults, and switching it),
   **errors** (`dispensing_result` and `dispensing_reason` values, image

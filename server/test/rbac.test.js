@@ -20,6 +20,13 @@ describe('rbac', () => {
     }
   });
 
+  it('platform_admin holds every tenant_admin permission (in any tenant)', () => {
+    for (const p of ROLE_PERMISSIONS.tenant_admin) {
+      assert.ok(ROLE_PERMISSIONS.platform_admin.has(p), p);
+      assert.ok(can(platform, p, { tenantId: 'any-tenant' }), p);
+    }
+  });
+
   it('prices: tenant_admin and platform_admin only', () => {
     assert.ok(can(platform, 'price:write', { tenantId: 'acme' }));
     assert.ok(can(tAdmin, 'price:write', { tenantId: 'acme' }));
