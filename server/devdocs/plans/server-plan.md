@@ -48,6 +48,7 @@ the index.
 | 2026-09-27 | **Machine keys: issued separately, typed by hand, required from the start** (product owner): a tenant_admin/platform_admin issues a key for a registered machine through the API; it's shown once and typed into the machine's `machine_key.txt`, so it's **typeable**: 20 characters in groups of 4 (`7KQM-2XPA-9TRD-4WZC-HN3B`) from an alphabet without look-alikes (≈ 99 bits); dashes, spaces and case are ignored. `MACHINE_AUTH` defaults to **`required`**; the dev seed issues a fixed dev key for `DEV00001` | The machine id isn't secret (dashboard, audit, sales, QR notes); a key typed by a technician must be unambiguous | §4.3, §4.12, §3.7 |
 | 2026-09-27 | **S5 (product images) deferred; S6 next** (product owner). Until S5, products keep the `image_url` they were imported with and their bundled `image` | Reporting first; the S3 bucket isn't decided | §6 |
 | 2026-09-27 | **Weekly and monthly sales are required in S7** (product owner): the summary gains `group=week` (ISO weeks, Monday–Sunday, key `2026-W39`) and `group=month` (key `2026-09`), both in `DISPLAY_TZ`; the dashboard's Sales page shows day / week / month | Owners review sales by week and month | §4.9, §4.10, §6 |
+| 2026-09-27 | **Estimated stock per hopper** (product owner): no sensors; the server estimates what's left in each hopper from recorded refills minus a **per-product portion size** for every cycle that actually dosed. **Refills are recorded by the tenant_admin** (and platform_admin). New milestone S6b, before the dashboard | Know when to refill without new hardware; sensors can feed the same record later | §4.13, §6 |
 | 2026-09-26 | **Missing identity → 401, and the app keeps records on 401/403** (app change in S1) | A machine that isn't provisioned yet must not lose sales | §3.5 |
 
 ## 1. Context
@@ -371,6 +372,7 @@ isn't in a schema. Two rules keep that from conflicting with the contract:
 | `actual_price` | Number, required | default price, whole rupees |
 | `offer_price` | Number or null | default offer |
 | `archived` | Boolean | hidden from the picker; refused while on any menu |
+| `portion_g` | Number | grams dosed per serving (§4.13); set by tenant_admin+ (`stock:write`); stock isn't estimated without it |
 | `rev` | Number | optimistic-lock token |
 
 **`Machine`** (`machines`). `_id` is the machine id.
@@ -382,7 +384,7 @@ isn't in a schema. Two rules keep that from conflicting with the contract:
 | `name` | String | internal label ("Bay 02 by the lockers") |
 | `location_label`, `site` | String | shown on the kiosk header |
 | `support_phone` | String | overrides the tenant's when set |
-| `menu` | [`MenuItem`] | in listing order: `product_id`, `hopper`, `enabled`, `sold_out`, `badge` (String or null), `price` (`{actual_price, offer_price}` or absent = the product's defaults) |
+| `menu` | [`MenuItem`] | in listing order: `product_id`, `hopper`, `enabled`, `sold_out`, `badge` (String or null), `price` (`{actual_price, offer_price}` or absent = the product's defaults), `low_portions` (Number, optional: the low-stock threshold for this hopper, §4.13) |
 | `bases` | [`Base`] | `id`, `name`, `code`, `enabled` |
 | `maintenance` | `Maintenance` | `enabled`, `message`, `flagged_by`, `flagged_at` (Date), `faults` [`{code, description}`] |
 | `idle_video_url` | String or null | |
@@ -659,9 +661,9 @@ There are no alerts in v1 (§8), but lists sort by status.
 | Role | Scope | Can |
 |---|---|---|
 | `platform_admin` | all tenants | everything: tenants, any user, `/unregistered`, **telemetry, maintenance, errors, audit and fault logs**, and all of below in any tenant |
-| `tenant_admin` | their tenant, all machines | their tenant's users (not platform ones), branding, machines (register, edit, bases, disable), machine keys, products, menus, **prices and offers**, images, sales |
-| `operator` | their tenant; all machines, or the listed `machines` | menus (hopper, sold out, enabled, badge, order) of their machines; **edit existing products' text and images only if they have all machines** (a product change reaches every machine); never create products; **never prices or offers** (product defaults or menu overrides); sales for their machines |
-| `viewer` | same as operator | read only: products, menus, tenant status, sales of their machines |
+| `tenant_admin` | their tenant, all machines | their tenant's users (not platform ones), branding, machines (register, edit, bases, disable), machine keys, products, menus, **prices and offers**, images, sales, **stock: refills, adjustments, portion sizes** |
+| `operator` | their tenant; all machines, or the listed `machines` | menus (hopper, sold out, enabled, badge, order) of their machines; **edit existing products' text and images only if they have all machines** (a product change reaches every machine); never create products; **never prices or offers** (product defaults or menu overrides); sales and stock (read) for their machines |
+| `viewer` | same as operator | read only: products, menus, tenant status, sales and stock of their machines |
 
 - **Platform-only data** (product owner): **telemetry** (every event),
   **maintenance** (the flag, message and faults, and switching it),
@@ -774,6 +776,9 @@ step**, no framework, and it uses only `/api/v1`.
     - *Maintenance*: toggle, message, faults (**platform only**).
     - *Telemetry* (dispense-cycle stages as a timeline) and *Faults*
       (**platform only**).
+    - *Stock*: each hopper's product, estimated portions left, days left,
+      low / empty flags, last refill; "Record refill" and "Adjust"
+      (tenant_admin+). A fleet-wide "refill soon" list on the Fleet page.
     - *Settings*: name, location, bases, keys (tenant_admin+).
   - *Sales* across the tenant's machines: filters, **day / week / month**
     totals and chart (revenue, orders, not dispensed), by flavor and by
@@ -805,11 +810,85 @@ step**, no framework, and it uses only `/api/v1`.
 `PORT` (8790), `HOST` (127.0.0.1), `PUBLIC_URL`, `MONGO_URL`
 (`mongodb://127.0.0.1:27017/fuelbot`), `NODE_ENV`, `JWT_SECRET`,
 `SESSION_HOURS` (48), `COOKIE_SECURE`, `LOGIN_RATE_LIMIT` (10),
-`MACHINE_AUTH` (`required`), `OFFLINE_AFTER_SEC` (300), `DISPLAY_TZ`
+`MACHINE_AUTH` (`required`), `STOCK_LOW_PORTIONS` (15), `OFFLINE_AFTER_SEC` (300), `DISPLAY_TZ`
 (`Asia/Kolkata`), `STORAGE` (`local`), `LOCAL_STORAGE_DIR`, `S3_BUCKET`,
 `S3_REGION` (`ap-south-1`), `S3_PREFIX`, `S3_PUBLIC_BASE_URL`,
 `LOG_REQUESTS` (true). Ports in use locally: the mock on 8787, the test
 mock on 8788, and **the server on 8790**.
+
+### 4.13 Estimated stock (no sensors)
+
+*(Decided 2026-09-27, product owner; milestone S6b.)* The machines have no
+level sensors. The server estimates what's left in each hopper from two
+facts it can trust: **what went in** (refills recorded by a tenant_admin)
+and **what came out** (every dispense cycle that actually dosed that
+hopper). It's an estimate: dosing is timed, so real grams per portion drift
+with powder density, humidity and auger wear. Calibrate the portion size
+by weighing ten portions.
+
+**Inputs**
+- **Portion size per product:** `Product.portion_g` (grams per serving;
+  it varies by product). Set by tenant_admin+ (`stock:write`). Without it,
+  that product's stock shows as "not estimated".
+- **Refills:** a tenant_admin (or platform_admin) records "hopper 3 filled
+  to 2000 g" on the machine's Stock page after filling it. A refill states
+  the **level after filling** (not "grams added"), so a missed dose or a
+  wrong estimate is corrected at every refill. An **adjustment** (same
+  shape) corrects the level without a refill, e.g. after weighing.
+- **Doses:** every `dispense_cycle` for that machine and hopper whose
+  `stages` contain `PROTEIN_DISPENSED`. Counting the stage, not the sale,
+  means a cycle that failed before dosing doesn't count, and one that dosed
+  and then timed out does. Rejected orders never dose.
+
+**Model:** `StockEvent` (`stock_events`), strict: `tenant_id`,
+`machine_id`, `hopper`, `product_id`, `kind` (`refill` / `adjust`),
+`level_g`, `note`, `user_id`, `user_email`, `at`. Every entry is also
+audited.
+
+**Estimate** (computed on read, per machine and hopper):
+
+```
+since   = the latest refill/adjust for this machine + hopper
+doses   = dispense_cycle events for this machine + hopper with PROTEIN_DISPENSED, ts > since.at
+left_g  = max(since.level_g − doses × product.portion_g, 0)
+portions_left = floor(left_g / portion_g)
+rate    = doses per day over the last 7 days (this hopper)
+days_left = portions_left / rate   (null when there were no doses)
+```
+
+- **Low** when `portions_left` ≤ the menu item's `low_portions` (default
+  `STOCK_LOW_PORTIONS`, 15). **Empty** at 0.
+- **The product in the hopper** is the one the refill named. If the menu
+  puts a different product on that hopper afterwards, the estimate shows
+  **"refill needed"** until a refill names the new product (the old powder
+  is still physically there, and the server can't know how much).
+- **Nothing is automatic in v1:** an empty estimate doesn't mark the
+  flavor sold out (it's an estimate). The dashboard shows low and empty, and
+  a person decides (open question §9.7).
+- **Machines without a refill yet** show "unknown" per hopper.
+
+**API** (under `/api/v1/tenants/:tid/machines/:mid`)
+
+| Method & path | Who | What |
+|---|---|---|
+| `GET …/stock` | members (their machines) | per hopper on the menu: product, `portion_g`, last refill (level, when, by whom), doses since, `left_g`, `portions_left`, `days_left`, `low`, `empty`, `state` (`ok` / `low` / `empty` / `unknown` / `refill_needed` / `not_estimated`) |
+| `POST …/stock/refills` | tenant_admin+ (`stock:write`) | `{hopper, level_g, note?}`: the product is the one on that hopper now |
+| `POST …/stock/adjustments` | tenant_admin+ | same shape, `kind: adjust` |
+| `GET …/stock/history` | members | refills and adjustments, newest first (cursor pages) |
+
+Plus `GET /api/v1/stock?state=low,empty` (scoped): every visible hopper
+that needs attention across the fleet, for the "refill soon" list.
+`portion_g` is set through the product (`PATCH …/products/:pid`) and
+`low_portions` through the menu item.
+
+**Roles:** reading stock follows machine visibility (all tenant roles, for
+their machines). `stock:write` (refills, adjustments, `portion_g`,
+`low_portions`) is tenant_admin and platform_admin.
+
+**Later, with sensors** (kiosk plan §3.9 item 4): a measured level from a
+`hopper_levels` telemetry event becomes an automatic `adjust` entry, so
+machines with sensors are measured and the rest stay estimated, in the
+same record and API.
 
 ## 5. Target folder structure
 
@@ -827,14 +906,14 @@ server/
 │   ├── settings.js           env → settings
 │   ├── db.js                 mongoose connect / disconnect, syncIndexes
 │   ├── models/               Tenant, Product, Machine, Sale, TelemetryEvent, MachineKey,
-│   │                         User, AuditEntry (strict schemas, §4.1)
+│   │                         User, AuditEntry, StockEvent (strict schemas, §4.1, §4.13)
 │   ├── catalog/              input.js (raw-body checks), build.js (tenant + machine + products
 │   │                         → config body), validate.js (= the app's rules)
 │   ├── auth/                 machine.js (ids + keys), session.js (JWT cookie), rbac.js, passwords.js
 │   ├── routes/               kiosk.js, auth.js, users.js, tenants.js, products.js, machines.js,
 │   │                         keys.js, reports.js, audit.js
 │   ├── services/             catalog.js (every catalog write), health.js (status), audit.js,
-│   │                         views.js (platform / tenant projections, §4.7)
+│   │                         views.js (platform / tenant projections, §4.7), stock.js (§4.13)
 │   └── storage/              index.js, local.js, s3.js
 ├── public/                   the dashboard (index.html, js/, css/)
 ├── scripts/                  db.js (local mongod), seed.js, create-admin.js, import-config.js
@@ -855,6 +934,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S4 | Machine keys | §4.3. **App:** the S4 changes in §3.7 | `MACHINE_AUTH=required` |
 | S5 | Product images (**deferred**, after S6) | §4.8, local and S3 drivers (S3 tested against a stubbed client) | the images SIGNOFF's pending "real S3" item, once a bucket exists |
 | S6 | Read APIs | §4.9, fleet status | reporting without the dashboard |
+| S6b | Estimated stock | §4.13: `portion_g`, `low_portions`, `StockEvent`, refills / adjustments, the estimate, stock APIs | knowing when to refill, before the dashboard shows it |
 | S7 | Dashboard | §4.10, plus `group=week\|month` in the sales summary (§4.9) | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
@@ -942,3 +1022,6 @@ chained with `&&` after the checks.
    are kept forever.
 6. **Refund process** (already open in the kiosk plan): who acts on failed
    dispenses, and does the dashboard need a "refunded" mark?
+7. **Stock:** should an empty estimate ever mark the flavor sold out
+   automatically (e.g. as an opt-in per machine)? Should low stock notify
+   someone (with alerting, §8)?
