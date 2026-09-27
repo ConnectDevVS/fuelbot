@@ -18,7 +18,7 @@ export function loadSettings(env = process.env) {
     // Dev: a random secret per process (sessions end on restart).
     jwtSecret = crypto.randomBytes(32).toString('hex');
   }
-  const machineAuth = env.MACHINE_AUTH || 'optional';
+  const machineAuth = env.MACHINE_AUTH || 'required';
   if (!MACHINE_AUTH_MODES.includes(machineAuth)) {
     throw new Error(`MACHINE_AUTH must be one of ${MACHINE_AUTH_MODES.join(', ')}`);
   }

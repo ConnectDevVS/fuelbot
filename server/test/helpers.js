@@ -19,6 +19,7 @@ export async function startServer(env = {}) {
     LOG_REQUESTS: 'false',
     JWT_SECRET: 'test-secret',
     BCRYPT_COST: '4',
+    MACHINE_AUTH: 'off',   // key tests set their own mode
     MONGO_URL: mongo.getUri('fuelbot_test'),
     LOCAL_STORAGE_DIR: uploads,
     ...env,

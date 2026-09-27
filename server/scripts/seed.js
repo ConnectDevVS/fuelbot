@@ -5,13 +5,16 @@
 //   npm run seed
 import { importConfig } from '../src/services/catalog.js';
 import { readConfigFile, stripImageUrls, withDb } from './lib.js';
+import { DEV_KEY, hashKey, issueKey } from '../src/services/keys.js';
+import { MachineKey } from '../src/models/index.js';
 
 export const DEV_MACHINE = 'DEV00001';
 const MOCK_DEFAULT = new URL('../../mockserver/responses/config/default.json', import.meta.url).pathname;
 
 await withDb(async () => {
   const config = stripImageUrls(readConfigFile(MOCK_DEFAULT));
-  await importConfig({ tenantId: 'powerfuel', tenantName: 'PowerFuel Gym', machineId: DEV_MACHINE, config });
+  const { machine } = await importConfig({ tenantId: 'powerfuel', tenantName: 'PowerFuel Gym', machineId: DEV_MACHINE, config });
+  if (!(await MachineKey.exists({ hash: hashKey(DEV_KEY) }))) await issueKey(machine, { label: 'dev seed', key: DEV_KEY });
   console.log(`Seeded tenant "powerfuel" (PowerFuel Gym) with machine "${DEV_MACHINE}" `
-    + `(${config.flavors.length} products).`);
+    + `(${config.flavors.length} products, dev key ${DEV_KEY}).`);
 });

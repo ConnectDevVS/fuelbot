@@ -9,6 +9,7 @@ import { tenantsRouter } from './tenants.js';
 import { productsRouter } from './products.js';
 import { machinesRouter } from './machines.js';
 import { menusRouter } from './menus.js';
+import { keysRouter } from './keys.js';
 import { unregisteredRouter } from './unregistered.js';
 
 export function apiRouter(settings) {
@@ -20,6 +21,7 @@ export function apiRouter(settings) {
   router.use('/audit', auditRouter());
   router.use('/tenants/:tid/products', productsRouter());
   router.use('/tenants/:tid/machines/:mid/menu', menusRouter());
+  router.use('/tenants/:tid/machines/:mid/keys', keysRouter());
   router.use('/tenants/:tid/machines', machinesRouter());
   router.use('/unregistered', unregisteredRouter());
   router.use('/tenants', tenantsRouter());

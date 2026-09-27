@@ -137,6 +137,7 @@ describe('RBAC table', () => {
     ['put', '/api/v1/tenants/powerfuel/machines/RBAC0001/maintenance', 400, 403, 403, 403],
     ['put', '/api/v1/tenants/powerfuel/machines/RBAC0001/menu', 400, 400, 400, 403],
     ['get', '/api/v1/unregistered', 200, 403, 403, 403],
+    ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001/keys', 200, 200, 403, 403],
   ];
 
   for (const [method, path, ...expected] of TABLE) {

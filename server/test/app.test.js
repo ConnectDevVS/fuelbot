@@ -32,9 +32,9 @@ describe('settings', () => {
     assert.throws(() => loadSettings({ STORAGE: 'ftp' }), /STORAGE/);
   });
 
-  it('defaults to optional machine auth and local storage', () => {
+  it('defaults to required machine auth and local storage', () => {
     const s = loadSettings({});
-    assert.equal(s.machineAuth, 'optional');
+    assert.equal(s.machineAuth, 'required');
     assert.equal(s.storage, 'local');
     assert.equal(s.port, 8790);
   });
