@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { once } from 'node:events';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { loadSettings } from '../src/settings.js';
 import mongoose from 'mongoose';
@@ -25,15 +26,24 @@ export async function startServer(env = {}) {
     ...env,
   });
   await connectDb(settings.mongoUrl);
+  // One server per test file, bound to 127.0.0.1 and handed to supertest as a listening server.
+  // supertest's default (a new server per request on every interface) could share a port number
+  // with another process's 127.0.0.1 socket (e.g. a parallel file's mongod) and send the request
+  // there: a rare "404 {}" that isn't ours.
   const app = createApp({ settings });
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
   return {
-    app,
+    app: server,
+    expressApp: app,
     settings,
     uploads,
     async reset() {
       await Promise.all(Object.values(mongoose.models).map((model) => model.deleteMany({})));
     },
     async stop() {
+      server.closeAllConnections();
+      await new Promise((resolve) => { server.close(resolve); });
       await disconnectDb();
       await mongo.stop();
       fs.rmSync(uploads, { recursive: true, force: true });

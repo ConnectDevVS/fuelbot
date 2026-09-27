@@ -81,5 +81,10 @@ the Godot kiosk app. Read it only when a change touches the app.
 - Mongoose's default connection is per process. That works because
   `node --test` runs each test file in its own process. Keep
   `startServer()`/`stop()` in `before`/`after` of the file, not per test.
+- **`ctx.app` in tests is a listening server on 127.0.0.1** (one per file),
+  not the Express app. supertest's default (a new server per request on
+  every interface) occasionally sent a request to another process's socket
+  on the same port (a parallel file's `mongod`): a rare `404 {}`. Don't pass
+  `ctx.expressApp` to supertest.
 - `node --test` needs a glob (`"test/*.test.js"`); a bare directory fails.
 - The shell is zsh (see the root CLAUDE.md).
