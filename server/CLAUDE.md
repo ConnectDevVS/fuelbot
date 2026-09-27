@@ -45,6 +45,13 @@ the Godot kiosk app. Read it only when a change touches the app.
   / `assertCan(user, 'menu:edit', {tenantId, machine})` from `auth/rbac.js`.
   Outside the caller's scope is 404, inside without the permission 403. Add a
   row to the RBAC table test (`test/audit.test.js`) for every new route.
+- **Admin writes:** raw body through `checkBody()` (`catalog/input.js`) first;
+  versioned resources check `If-Match` (`checkVersion()`); config-affecting
+  machine writes go through `saveMachine()` (bumps `menu_version`, model hook
+  validates, audits). Load scoped resources with `loadTenant()` /
+  `loadMachine()`, never a bare `findById`.
+- **Views are allowlists** (`services/views.js`): tenant responses never
+  include status, faults, maintenance, IPs or failure reasons.
 - **Every admin write calls `audit(req, {...})`** (`services/audit.js`) with
   only the changed fields (`diff()`). It scrubs secret-named keys anyway.
 - `createApp({settings})` takes its dependencies; tests build one per

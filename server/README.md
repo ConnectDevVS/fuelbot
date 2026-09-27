@@ -45,6 +45,16 @@ That's the first `platform_admin` (FuelBot staff). Everyone else is created
 in the admin API (`POST /api/v1/users`) with a temporary password they
 change at first sign-in. Sessions last 48 hours.
 
+## Setting up a machine
+
+1. Register it (tenant_admin or platform_admin):
+   `POST /api/v1/tenants/<tenant>/machines {"name": "Bay 3"}`. The server
+   generates its id (8 characters, e.g. `K7Q2M9XA`).
+2. Give it a menu: `PUT …/machines/<id>/menu`, or copy one with
+   `POST …/machines/<id>/menu/copy-from/<other id>`.
+3. On the machine: `tenant_id.txt` = the tenant id, `machine_id.txt` = the
+   generated id. Until step 2 it runs on its cached or bundled catalog.
+
 Check the kiosk API the way a machine does:
 
 ```sh
