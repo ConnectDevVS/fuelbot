@@ -60,6 +60,18 @@ change at first sign-in. Sessions last 48 hours.
    matter). Until step 2 it runs on its cached or bundled catalog; without a
    valid key the server refuses it (it keeps its sales until the key is fixed).
 
+## Stock (estimated)
+
+1. Set each product's portion size (grams per serving): `PATCH /api/v1/tenants/<t>/products/<p>`
+   `{"portion_g": 32.5}` (with `If-Match: <rev>`).
+2. After filling a hopper, record the level:
+   `POST …/machines/<id>/stock/refills {"hopper": 1, "level_g": 2000}`.
+3. `GET …/machines/<id>/stock` shows grams, portions and days left per hopper;
+   `GET /api/v1/stock` lists every hopper that's low, empty or unknown.
+
+It's an estimate (dosing is timed): weigh ten portions to calibrate
+`portion_g`, and correct with `…/stock/adjustments` after weighing a hopper.
+
 ## Reports
 
 All under `/api/v1`, scoped to the signed-in user: `GET /fleet` (machines,

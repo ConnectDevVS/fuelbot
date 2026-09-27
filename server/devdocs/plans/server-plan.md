@@ -10,9 +10,10 @@ decision-log entry.
 
 ## 0. Status & decision log
 
-**Status (2026-09-27).** **S0–S4 and S6 done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
+**Status (2026-09-27).** **S0–S4, S6 and S6b done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
 [users-rbac](../stories/users-rbac/SIGNOFF.md), [catalog-admin](../stories/catalog-admin/SIGNOFF.md),
-[machine-keys](../stories/machine-keys/SIGNOFF.md), [read-apis](../stories/read-apis/SIGNOFF.md) SIGNOFFs).
+[machine-keys](../stories/machine-keys/SIGNOFF.md), [read-apis](../stories/read-apis/SIGNOFF.md), [stock](../stories/stock/SIGNOFF.md) SIGNOFFs).
+S6b: estimated stock per hopper (refills minus portions per real dose).
 S6: fleet, sales (list, summary, CSV), and platform-only telemetry, fault
 log and order detail. S4: typeable
 machine keys, required by default; the app sends them and keeps its records
@@ -23,7 +24,7 @@ machine configured only through it has run in the real app. S2: dashboard users,
 S1:
 the three kiosk endpoints serve real data, and the app sends its machine id
 and keeps 401/403 records. The real app has run end to end against the
-server (`tools/dev_run.sh --backend=server`). Next: S7 (dashboard); S5 (product images) deferred. Nothing is deployed. The mock (`mockserver/`) stays as the app's test
+server (`tools/dev_run.sh --backend=server`). Next: S7 (dashboard; needs its own detailed plan first); S5 (product images) deferred; Deploy after the hosting decision. Nothing is deployed. The mock (`mockserver/`) stays as the app's test
 backend.
 
 **Decision log.** Newest last. Sections are edited in place; this list is

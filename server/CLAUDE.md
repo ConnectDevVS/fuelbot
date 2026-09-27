@@ -56,6 +56,11 @@ the Godot kiosk app. Read it only when a change touches the app.
 - **Record queries** (sales, telemetry) start from `scopedFilter(user, query)`
   (`services/records.js`) and page with `recordPage()` (client time, newest
   first). Never query records without the scope.
+- **Stock is estimated** (`services/stock.js`, plan §4.13): refills/adjustments
+  minus `portion_g` per `dispense_cycle` with `PROTEIN_DISPENSED`. Count the
+  stage, never sales. `stock:write` guards refills, `portion_g`, `low_portions`.
+- **Stage files for a commit only after the test gate passes** (a failed gate
+  leaves them staged, and the next commit sweeps them in).
 - **Views are allowlists** (`services/views.js`): tenant responses never
   include status, faults, maintenance, IPs or failure reasons.
 - **Every admin write calls `audit(req, {...})`** (`services/audit.js`) with
