@@ -871,6 +871,10 @@ days_left = portions_left / rate   (null when there were no doses)
   flavor sold out (it's an estimate). The dashboard shows low and empty, and
   a person decides (open question §9.7).
 - **Machines without a refill yet** show "unknown" per hopper.
+- **Clocks:** a refill is stamped with server time, a dose with the
+  machine's clock (`ts`, client time like every report). A machine clock
+  that's off shifts which doses fall before or after a refill, a small error
+  for an estimate. The Pi keeps time over NTP (check at deploy).
 
 **API** (under `/api/v1/tenants/:tid/machines/:mid`)
 

@@ -43,7 +43,9 @@ Made while writing this set:
    filling or measuring).
 4. **A dose** = a `dispense_cycle` telemetry event for that tenant, machine
    and hopper whose `stages` include `PROTEIN_DISPENSED`, with `ts` after the
-   latest refill/adjustment. Client time (`ts`), like every report.
+   latest refill/adjustment. Client time (`ts`), like every report; the
+   refill itself is server time, so the machine's clock matters (plan
+   §4.13, "Clocks").
 5. **States**, in this order: `not_estimated` (no `portion_g`), `unknown`
    (never refilled), `refill_needed` (the last refill named another
    product), `empty` (0 portions), `low` (≤ threshold), `ok`.
