@@ -78,3 +78,31 @@ export function mockConfig(name = 'default') {
   };
   return JSON.parse(JSON.stringify(load(name)).replaceAll('{{origin}}', MOCK_ORIGIN));
 }
+
+// --- Dashboard users -------------------------------------------------------------------------
+
+export const CSRF = { 'X-Requested-With': 'fuelbot-dashboard' };
+export const PASSWORD = 'a long enough secret';
+
+/** A user with PASSWORD (or fields.password), hashed at cost 4. */
+export async function makeUser(fields) {
+  const { User } = await import('../src/models/index.js');
+  const { hashPassword } = await import('../src/auth/passwords.js');
+  const { password = PASSWORD, ...rest } = fields;
+  return User.create({ name: 'N', password_hash: await hashPassword(password, 4), ...rest });
+}
+
+/** A supertest agent signed in as email (cookie kept), with the CSRF header on writes. */
+export async function signIn(app, email, password = PASSWORD) {
+  const { default: request } = await import('supertest');
+  const agent = request.agent(app);
+  const res = await agent.post('/api/v1/auth/login').set(CSRF).send({ email, password });
+  if (res.status !== 200) throw new Error(`sign-in as ${email} failed: ${res.status} ${JSON.stringify(res.body)}`);
+  return {
+    get: (url) => agent.get(url),
+    post: (url, body) => agent.post(url).set(CSRF).send(body ?? {}),
+    patch: (url, body) => agent.patch(url).set(CSRF).send(body ?? {}),
+    put: (url, body) => agent.put(url).set(CSRF).send(body ?? {}),
+    delete: (url) => agent.delete(url).set(CSRF),
+  };
+}

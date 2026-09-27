@@ -2,17 +2,8 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-import { startServer } from './helpers.js';
+import { CSRF, PASSWORD, makeUser, startServer } from './helpers.js';
 import { Tenant, User } from '../src/models/index.js';
-import { hashPassword } from '../src/auth/passwords.js';
-
-const CSRF = { 'X-Requested-With': 'fuelbot-dashboard' };
-const PASSWORD = 'a long enough secret';
-
-async function makeUser(fields) {
-  const { password = PASSWORD, ...rest } = fields;
-  return User.create({ name: 'N', password_hash: await hashPassword(password, 4), ...rest });
-}
 
 function cookieOf(res) {
   return (res.headers['set-cookie'] ?? []).find((c) => c.startsWith('fb_session='));

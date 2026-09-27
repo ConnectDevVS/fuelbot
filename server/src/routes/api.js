@@ -3,11 +3,13 @@
 import express from 'express';
 import { csrfGuard, requirePasswordChanged, requireSession } from '../auth/session.js';
 import { authRouter } from './auth.js';
+import { usersRouter } from './users.js';
 
 export function apiRouter(settings) {
   const router = express.Router();
   router.use(csrfGuard);
   router.use('/auth', authRouter(settings));
   router.use(requireSession, requirePasswordChanged);
+  router.use('/users', usersRouter(settings));
   return router;
 }
