@@ -19,12 +19,14 @@ const FIELDS = {
   image: T.nullable(T.bundledImage()),
   actual_price: T.rupees(),
   offer_price: T.nullable(T.rupees()),
+  portion_g: T.nullable((v) => (typeof v === 'number' && v > 0 && v <= 500 ? null : 'grams > 0 and ≤ 500')),
 };
 const CREATE = { ...FIELDS, product_id: required(T.slug()), name: required(FIELDS.name), actual_price: required(FIELDS.actual_price) };
 const UPDATE = { ...FIELDS, archived: T.bool() };
 const PRICE_FIELDS = ['actual_price', 'offer_price'];
+const STOCK_FIELDS = ['portion_g'];
 const VIEW_FIELDS = ['name', 'description', 'volume_ml', 'nutrition', 'ingredients', 'allergens', 'image', 'image_url',
-  'actual_price', 'offer_price', 'archived'];
+  'actual_price', 'offer_price', 'portion_g', 'archived'];
 
 export function productView(p, machines = []) {
   return {
@@ -39,6 +41,7 @@ export function productView(p, machines = []) {
     image: p.image ?? null,
     actual_price: p.actual_price,
     offer_price: p.offer_price ?? null,
+    portion_g: p.portion_g ?? null,
     archived: Boolean(p.archived),
     rev: p.rev ?? 0,
     machines,
@@ -64,10 +67,13 @@ async function loadProduct(tenantId, productId) {
   return product;
 }
 
-/** Operators may send prices, but not change them (stories/catalog-admin decision 5). */
-function assertPriceChange(user, tenantId, current, body) {
-  const changes = PRICE_FIELDS.some((k) => k in body && body[k] !== (current?.[k] ?? null));
-  if (changes && !can(user, 'price:write', { tenantId })) throw new HttpError(403, 'forbidden_field', PRICE_FIELDS);
+/** Operators may send these fields, but not change them: prices need price:write
+ * (stories/catalog-admin decision 5), portion size stock:write (stories/stock decision 1). */
+function assertFieldChanges(user, tenantId, current, body) {
+  for (const [fields, permission] of [[PRICE_FIELDS, 'price:write'], [STOCK_FIELDS, 'stock:write']]) {
+    const changes = fields.some((k) => k in body && body[k] !== (current?.[k] ?? null));
+    if (changes && !can(user, permission, { tenantId })) throw new HttpError(403, 'forbidden_field', fields);
+  }
 }
 
 export function productsRouter() {
@@ -114,7 +120,7 @@ export function productsRouter() {
     const product = await loadProduct(tenant._id, req.params.pid);
     const body = checkBody(req.body, UPDATE);
     checkVersion(req, product.rev);
-    assertPriceChange(req.user, tenant._id, product, body);
+    assertFieldChanges(req.user, tenant._id, product, body);
     if (body.archived === true && !product.archived
       && await Machine.exists({ tenant_id: tenant._id, 'menu.product_id': product.product_id })) {
       throw new HttpError(409, 'product_in_use');

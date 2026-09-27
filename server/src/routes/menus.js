@@ -14,6 +14,7 @@ const ITEM_FIELDS = {
   sold_out: T.bool(),
   badge: T.nullable(T.string(20)),
   price: PRICE,
+  low_portions: T.nullable(T.whole(0, 1000)),
 };
 const ITEM = T.object({ ...ITEM_FIELDS, product_id: T.slug() });
 
@@ -27,6 +28,7 @@ function normalise(item) {
     sold_out: item.sold_out ?? false,
     badge: item.badge ?? null,
     price: item.price ? { actual_price: item.price.actual_price, offer_price: item.price.offer_price ?? null } : undefined,
+    low_portions: item.low_portions ?? undefined,
   };
 }
 
@@ -36,6 +38,11 @@ function assertPrices(req, machine, nextMenu) {
   const changed = nextMenu.some((i) => priceKey(i.price) !== (current.get(i.product_id) ?? 'default'));
   if (changed && !can(req.user, 'price:write', { tenantId: machine.tenant_id })) {
     throw new HttpError(403, 'forbidden_field', ['price']);
+  }
+  const lows = new Map(machine.menu.map((i) => [i.product_id, i.low_portions ?? null]));
+  const lowChanged = nextMenu.some((i) => (i.low_portions ?? null) !== (lows.get(i.product_id) ?? null));
+  if (lowChanged && !can(req.user, 'stock:write', { tenantId: machine.tenant_id })) {
+    throw new HttpError(403, 'forbidden_field', ['low_portions']);
   }
 }
 
@@ -87,7 +94,8 @@ export function menusRouter() {
     const index = machine.menu.findIndex((i) => i.product_id === req.params.pid);
     if (index < 0) throw new HttpError(404, 'not_found');
     const menu = machine.menu.map((i) => normalise(i.toObject()));
-    menu[index] = normalise({ ...menu[index], ...body, price: 'price' in body ? body.price : menu[index].price });
+    menu[index] = normalise({ ...menu[index], ...body, price: 'price' in body ? body.price : menu[index].price,
+      low_portions: 'low_portions' in body ? body.low_portions : menu[index].low_portions });
     res.json({ machine: await replaceMenu(req, machine, menu, 'menu.item_update') });
   });
 

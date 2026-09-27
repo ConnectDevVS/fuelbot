@@ -38,6 +38,7 @@ export function loadSettings(env = process.env) {
     cookieSecure: env.COOKIE_SECURE ? env.COOKIE_SECURE === 'true' : production,
     machineAuth,
     offlineAfterSec: int(env.OFFLINE_AFTER_SEC, 300),
+    stockLowPortions: int(env.STOCK_LOW_PORTIONS, 15),
     displayTz: env.DISPLAY_TZ || 'Asia/Kolkata',
     loginRateLimit: int(env.LOGIN_RATE_LIMIT, 10),
     logRequests: env.LOG_REQUESTS !== 'false',

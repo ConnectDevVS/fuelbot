@@ -11,7 +11,7 @@ const PLATFORM_ONLY = [
 
 const TENANT_ADMIN = [
   'tenant:read', 'tenant:edit', 'users:manage', 'machines:read', 'machines:manage', 'keys:manage',
-  'catalog:read', 'products:create', 'products:edit', 'menu:edit', 'price:write', 'sales:read',
+  'catalog:read', 'products:create', 'products:edit', 'menu:edit', 'price:write', 'sales:read', 'stock:write',
 ];
 const OPERATOR = ['tenant:read', 'machines:read', 'catalog:read', 'products:edit', 'menu:edit', 'sales:read'];
 const VIEWER = ['tenant:read', 'machines:read', 'catalog:read', 'sales:read'];

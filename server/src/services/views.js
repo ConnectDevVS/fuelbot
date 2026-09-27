@@ -24,6 +24,7 @@ const menuItemView = (item) => ({
   sold_out: item.sold_out ?? false,
   badge: item.badge ?? null,
   price: item.price ? { actual_price: item.price.actual_price, offer_price: item.price.offer_price ?? null } : null,
+  low_portions: item.low_portions ?? null,
 });
 
 /**

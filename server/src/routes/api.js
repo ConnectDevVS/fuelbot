@@ -10,6 +10,7 @@ import { productsRouter } from './products.js';
 import { machinesRouter } from './machines.js';
 import { menusRouter } from './menus.js';
 import { keysRouter } from './keys.js';
+import { stockRouter } from './stock.js';
 import { unregisteredRouter } from './unregistered.js';
 import { fleetRouter } from './fleet.js';
 import { salesRouter } from './sales.js';
@@ -26,6 +27,7 @@ export function apiRouter(settings) {
   router.use('/tenants/:tid/products', productsRouter());
   router.use('/tenants/:tid/machines/:mid/menu', menusRouter());
   router.use('/tenants/:tid/machines/:mid/keys', keysRouter());
+  router.use('/tenants/:tid/machines/:mid/stock', stockRouter());
   router.use('/tenants/:tid/machines', machinesRouter());
   router.use('/unregistered', unregisteredRouter());
   router.use('/fleet', fleetRouter());

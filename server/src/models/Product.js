@@ -22,6 +22,7 @@ const ProductSchema = new mongoose.Schema({
   image: String,
   actual_price: { type: Number, required: true },
   offer_price: { type: Number, default: null },
+  portion_g: Number,                       // grams per serving (plan §4.13)
   archived: { type: Boolean, default: false },
   rev: { type: Number, default: 0 },
 }, { ...STRICT, timestamps: TIMESTAMPS, collection: 'products' });

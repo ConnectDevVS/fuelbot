@@ -8,3 +8,4 @@ export { User, ROLES, PLATFORM_ROLES, TENANT_ROLES } from './User.js';
 export { AuditEntry } from './AuditEntry.js';
 export { MachineKey } from './MachineKey.js';
 export { RevokedSession } from './RevokedSession.js';
+export { StockEvent } from './StockEvent.js';

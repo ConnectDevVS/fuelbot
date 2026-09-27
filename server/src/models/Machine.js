@@ -14,6 +14,7 @@ const MenuItemSchema = new mongoose.Schema({
   sold_out: { type: Boolean, default: false },
   badge: { type: String, default: null },
   price: { type: PriceSchema, default: undefined },
+  low_portions: Number,                    // low-stock threshold for this hopper (plan §4.13)
 }, SUB);
 
 const BaseSchema = new mongoose.Schema({
