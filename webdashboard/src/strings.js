@@ -71,12 +71,52 @@ const STRINGS = {
   'error.server': 'The server had a problem. Try again',
   'error.generic': 'Something went wrong. Reload the page',
 
-  // Placeholders until the pages land (SRV-33 on)
+  // Placeholders until the pages land
   'placeholder.coming': 'Coming in {story}.',
   'placeholder.refresh': 'Refresh',
+  'action.retry': 'Retry',
+
+  // Pages (dashboard plan §3.3)
   'page.fleet': 'Fleet',
   'page.home': 'Home',
   'page.sales': 'Sales',
+  'page.stock': 'Stock',
+  'page.machines': 'Machines',
+  'page.machineNew': 'Register a machine',
+  'page.machine': 'Machine',
+  'page.products': 'Products',
+  'page.users': 'Users',
+  'page.company': 'Company',
+  'page.tenants': 'Tenants',
+  'page.faults': 'Faults',
+  'page.telemetry': 'Telemetry',
+  'page.audit': 'Audit',
+  'page.unregistered': 'Unregistered',
+  'page.usersAll': 'All users',
+  'page.salesAll': 'All sales',
+  'page.order': 'Order',
+
+  // Shell
+  'nav.label': 'Main',
+  'nav.platform': 'Platform',
+  'nav.more': 'More',
+  'nav.account': 'Account',
+  'nav.skip': 'Skip to content',
+  'nav.footer': 'Times in IST · ₹ INR',
+  'topbar.tenant': 'Tenant · {id}',
+  'switcher.label': 'Tenant',
+  'switcher.all': 'All tenants',
+  'account.menu': 'Account',
+  'role.platform_admin': 'FuelBot admin',
+  'role.tenant_admin': 'Tenant admin',
+  'role.operator': 'Operator',
+  'role.viewer': 'Viewer',
+  'notfound.title': 'Not found',
+  'notfound.home': 'Go to your start page',
+  'notavailable.title': 'Not available',
+  'notavailable.body': "Your role can't open this page.",
+  'crash.title': 'Something went wrong. Reload',
+  'crash.reload': 'Reload',
 };
 
 export function t(key, params = {}) {

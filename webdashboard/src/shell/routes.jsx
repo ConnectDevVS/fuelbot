@@ -1,25 +1,44 @@
-// The route table (dashboard plan §3.3). SRV-32: sign-in, change password, the landing redirect
-// and placeholders for the landing pages; SRV-33 adds the full map, gating and the shell.
+// The router (dashboard plan §3.3), built from pages.js. Every page sits behind the session, its
+// tenant scope (/t/:tid/*) and its permission gate, inside the shell; not-yet-built pages show
+// which story brings them.
 import { lazy } from 'react';
 import { RequireAuth } from '../auth/RequireAuth.jsx';
-import AppLayout from './AppLayout.jsx';
 import Landing from '../pages/Landing.jsx';
-import ComingSoon from '../pages/ComingSoon.jsx';
+import NotFound from '../pages/NotFound.jsx';
+import ErrorBoundary from './ErrorBoundary.jsx';
+import { Gate, TenantScope } from './Guards.jsx';
+import { PAGES } from './pages.js';
 import { t } from '../strings.js';
 
+const Layout = lazy(() => import('./Layout.jsx'));
 const SignInPage = lazy(() => import('../auth/SignInPage.jsx'));
 const ChangePasswordPage = lazy(() => import('../auth/ChangePasswordPage.jsx'));
+const ComingSoon = lazy(() => import('../pages/ComingSoon.jsx'));
+
+// Built pages, by page id (lazy). Anything not here is a ComingSoon placeholder.
+export const COMPONENTS = {};
+
+function pageElement(page) {
+  const Component = COMPONENTS[page.id];
+  const body = Component ? <Component /> : <ComingSoon title={t(page.title)} story={page.story} />;
+  const gated = <Gate page={page}>{body}</Gate>;
+  return page.path.startsWith('/t/:tid') ? <TenantScope>{gated}</TenantScope> : gated;
+}
 
 export const routes = [
-  { path: '/sign-in', element: <SignInPage /> },
-  { path: '/change-password', element: <RequireAuth allowPasswordChange><ChangePasswordPage /></RequireAuth> },
+  { path: '/sign-in', element: <SignInPage />, errorElement: <ErrorBoundary /> },
   {
-    element: <RequireAuth><AppLayout /></RequireAuth>,
+    path: '/change-password',
+    element: <RequireAuth allowPasswordChange><ChangePasswordPage /></RequireAuth>,
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    element: <RequireAuth><Layout /></RequireAuth>,
+    errorElement: <ErrorBoundary />,
     children: [
       { path: '/', element: <Landing /> },
-      { path: '/fleet', element: <ComingSoon title={t('page.fleet')} story="SRV-36" /> },
-      { path: '/t/:tid/home', element: <ComingSoon title={t('page.home')} story="SRV-38" /> },
-      { path: '/t/:tid/sales', element: <ComingSoon title={t('page.sales')} story="SRV-39" /> },
+      ...PAGES.map((page) => ({ path: page.path, element: pageElement(page), handle: { page } })),
+      { path: '*', element: <NotFound /> },
     ],
   },
 ];

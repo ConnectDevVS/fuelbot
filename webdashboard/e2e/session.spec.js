@@ -1,5 +1,5 @@
 // SRV-32: sign in, forced password change, session end, sign out, expiry banner.
-import { expect, PASSWORD, resetData, test, USERS } from './fixtures.js';
+import { expect, PASSWORD, resetData, signOutViaUi, test, USERS } from './fixtures.js';
 
 const NEW_PASSWORD = 'my own password 456';
 
@@ -19,7 +19,7 @@ test('each role signs in and lands correctly', async ({ page, shot }) => {
     await signInWithForm(page, USERS[key].email);
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await signOutViaUi(page);
     await expect(page).toHaveURL(/\/dashboard\/sign-in$/);
   }
 });
@@ -104,7 +104,7 @@ test('sign out ends the session', async ({ page, context }) => {
   await expect(page).toHaveURL(/\/t\/powerfuel\/home$/);
   const cookies = await context.cookies();
   expect(cookies.some((c) => c.name === 'fb_session' && c.httpOnly && c.sameSite === 'Strict')).toBe(true);
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await signOutViaUi(page);
   await expect(page).toHaveURL(/\/dashboard\/sign-in$/);
   // The copied cookie no longer works: the server revoked that session.
   await context.addCookies(cookies);

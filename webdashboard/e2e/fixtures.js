@@ -51,6 +51,18 @@ export const test = base.extend({
   },
 });
 
+/** Signs out through the UI: the account menu, or on a phone the More sheet. */
+export async function signOutViaUi(page) {
+  const more = page.getByRole('button', { name: 'More' });
+  if (await more.isVisible()) {
+    await more.click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Sign out' }).click();
+  } else {
+    await page.getByRole('button', { name: 'Account' }).click();
+    await page.getByRole('menuitem', { name: 'Sign out' }).click();
+  }
+}
+
 /** Reseeds the database (after a spec wrote something). Sessions end: sign in again after. */
 export async function resetData(request) {
   const res = await request.post('http://127.0.0.1:8795/__e2e/reset');

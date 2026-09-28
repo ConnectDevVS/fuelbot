@@ -78,3 +78,25 @@ body {
 .form-alert {
   margin-bottom: 16px;
 }
+
+/* Skip to content: visible only when focused from the keyboard. */
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: -9999px;
+  z-index: 1000;
+  padding: 8px 12px;
+  border-radius: var(--fb-radius);
+  background: var(--fb-surface);
+  color: var(--fb-text);
+}
+
+.skip-link:focus {
+  left: 16px;
+}
+
+/* Not found / Not available: a plain icon instead of antd's illustrations (off-palette). */
+.result-icon {
+  color: var(--fb-dim);
+  font-size: 56px;
+}

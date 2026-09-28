@@ -67,6 +67,14 @@ covers the Godot kiosk, which S7 never touches.
   text, never text on white and never a chart mark.
 - CSS Modules (`*.module.css`) for layout and our own pieces; no CSS
   framework besides antd.
+- **Pages are data:** `src/shell/pages.js` lists every URL with the
+  permission(s) it needs, its title and nav placement (DP §3). A story that
+  builds a page adds its lazy component to `COMPONENTS` in
+  `src/shell/routes.jsx`; until then the page is a "Coming in SRV-NN"
+  placeholder. The router wraps each page in `TenantScope` (for `/t/:tid/…`:
+  another tenant is Not found, with no request for tenant users) and `Gate`
+  (Not available, and the page never mounts). "Staff" in the UI means
+  `can('telemetry:read')`, never a role name.
 - **Look at every screenshot** a UI story produces (`.screenshots/`, at
   390 / 820 / 1440): overflow, clipping, wrong role controls, unreadable
   states. Say in the commit message that you looked.
