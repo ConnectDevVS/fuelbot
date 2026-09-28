@@ -1481,9 +1481,9 @@ sales over 41 days, all four roles). Findings that shaped this plan:
 3. **Images under CSP:** product images from hosts other than the S3 bucket
    or `PUBLIC_URL` are blocked unless listed in `IMAGE_ORIGINS`. They show a
    placeholder.
-4. **Staff emails shown to tenants:** `last_refill.by` shows the email of
-   whoever recorded a refill, including FuelBot staff. Acceptable? (It isn't
-   on the platform-only list.)
+4. ~~Staff emails shown to tenants?~~ **Answered (product owner,
+   2026-09-28): yes.** Tenant users see `last_refill.by`, the email of
+   whoever recorded a refill, FuelBot staff included (SRV-41).
 5. **`/stock` cost** grows with machines × hoppers (1–3 queries each). With
    no auto-refresh it's bounded by clicks. Revisit (one aggregate) past
    about 200 machines.

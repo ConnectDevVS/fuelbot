@@ -68,6 +68,7 @@ the index.
 | 2026-09-28 | **Dashboard: light theme only for now** (product owner, revising the same day's "dark + light"): no dark mode and no theme toggle. Tokens stay in one block so a dark theme can be added later. **No separate claude.design session for S7** (product owner): the plan's wireframes plus styled mock-ups of Home, the provisioning card, the Menu editor, the Stock tab and the Sales filters are the design; the claude.design prompt stays as an option | Less to build and test (half the screenshots); the mock-ups cover the riskiest screens | §4.10 |
 | 2026-09-28 | **Dashboard UI: Ant Design 6** instead of hand-written CSS, and **JavaScript** (product owner). antd's runtime styles run under the strict dashboard CSP through a **per-request style nonce**: the server renders `index.html` with a fresh nonce in a meta tag and in `style-src`, and the app stamps it on every `<style>`. Spike G: 63 violations without it, 0 with it; antd's `zeroRuntime` doesn't work with a custom theme in 6.6.5 | Ready-made accessible components (tables, forms, date-range picker, selects, drawers) for a small team; no `unsafe-inline` | §4.6, §4.10 |
 | 2026-09-28 | **Tenant in dashboard URLs is safe**, as the product owner asked. The URL only names what to ask for; every `/api/v1` call is checked against the session's own tenant (another tenant → 404). S7 adds a test sweeping every `/tenants/:tid` route with another tenant's id (SRV-28) | Staff deep links need the tenant in the URL; tenant users gain nothing by editing it | §4.7 |
+| 2026-09-28 | **Tenant users see who recorded a refill** (`last_refill.by`, an email), FuelBot staff emails included (product owner) | Refills are tenant operations; knowing who filled a hopper helps the owner, and it isn't platform-only data | §4.13; dashboard SRV-41 |
 
 ## 1. Context
 
@@ -1088,9 +1089,8 @@ chained with `&&` after the checks.
    automatically (e.g. as an opt-in per machine)? Should low stock notify
    someone (with alerting, §8)?
 8. **Dashboard (S7), before SRV-30:**
-   - JavaScript or TypeScript for `/webdashboard`? The recommendation is
-     JavaScript, matching the server.
-   - Is it acceptable that tenant users see who recorded a refill,
-     including a FuelBot staff email (`last_refill.by`)?
+   - ~~JavaScript or TypeScript?~~ Answered: JavaScript.
+   - ~~May tenant users see who recorded a refill, including a FuelBot
+     staff email (`last_refill.by`)?~~ Answered 2026-09-28: yes (§0).
    - The rest is in
      [dashboard plan §10](../../../webdashboard/devdocs/plans/dashboard-plan.md).

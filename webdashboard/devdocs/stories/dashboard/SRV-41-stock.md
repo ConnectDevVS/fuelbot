@@ -40,7 +40,8 @@ refilling. **So that** machines don't run empty.
   - portions left (big), "≈ n days" (`days_left`, or "—");
   - a bar of `left_g / last_refill.level_g`;
   - the last refill line: "Refill 2,000 g · 26 Sep 18:10 · by
-    owner@powerfuel.test";
+    owner@powerfuel.test" (the email is shown to every role, FuelBot
+    staff's included: product owner, 2026-09-28);
   - threshold, portion size.
   - State texts per DP §5.6.3.
 - **Record refill / Adjust:**
