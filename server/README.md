@@ -45,6 +45,22 @@ That's the first `platform_admin` (FuelBot staff). Everyone else is created
 in the admin API (`POST /api/v1/users`) with a temporary password they
 change at first sign-in. Sessions last 48 hours.
 
+## Dashboard
+
+The web dashboard is its own project in [`../webdashboard`](../webdashboard).
+Build it once, then this server serves it:
+
+```sh
+cd ../webdashboard && npm ci && npm run build   # writes webdashboard/dist
+# then open http://127.0.0.1:8790/dashboard/ (or just http://127.0.0.1:8790/)
+```
+
+Without a build, `/dashboard/` answers 503 "Dashboard not built", and the
+server logs `[dashboard] not built: <dir>` at boot. `DASHBOARD_DIR` points
+elsewhere; `IMAGE_ORIGINS` adds image hosts to the dashboard's CSP. For
+development with hot reload, use `npm run dev` in `webdashboard/` (Vite on
+:5173, proxying `/api` here).
+
 ## Setting up a machine
 
 1. Register it (tenant_admin or platform_admin):

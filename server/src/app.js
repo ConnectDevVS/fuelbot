@@ -6,6 +6,7 @@ import { pingDb } from './db.js';
 import { HttpError } from './errors.js';
 import { kioskRouter } from './routes/kiosk.js';
 import { apiRouter } from './routes/api.js';
+import { dashboardRouter } from './dashboard.js';
 
 export function createApp({ settings }) {
   const app = express();
@@ -37,6 +38,13 @@ export function createApp({ settings }) {
 
   app.use('/fuelbot', kioskRouter());
   app.use('/api/v1', apiRouter(settings));
+
+  // The web dashboard (dashboard plan §2.4): its own CSP, per-request style nonce, SPA fallback.
+  app.get('/', (req, res) => res.redirect(302, '/dashboard/'));
+  app.use('/dashboard', (req, res, next) => {
+    if (req.originalUrl.split('?')[0] === '/dashboard') return res.redirect(301, '/dashboard/');
+    next();
+  }, dashboardRouter(settings));
 
   app.use((req, res) => res.status(404).json({ error: 'not_found' }));
 

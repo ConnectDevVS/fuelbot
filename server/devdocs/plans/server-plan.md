@@ -680,6 +680,10 @@ There are no alerts in v1 (§8), but lists sort by status.
   - `img-src 'self' data:` + the storage origins + `IMAGE_ORIGINS`;
   - `frame-ancestors 'none'`;
   - `upgrade-insecure-requests` in production only.
+  - `index.html` is `Cache-Control: no-store` (the nonce); hashed
+    `assets/*` are `max-age=31536000, immutable`; other GETs under
+    `/dashboard` fall back to `index.html` (deep links); no build → 503.
+    `GET /` → `/dashboard/`. Built in SRV-29 (`src/dashboard.js`).
   - The details are in the
     [dashboard plan §2.4](../../../webdashboard/devdocs/plans/dashboard-plan.md).
 
@@ -850,9 +854,11 @@ are
 `S3_REGION` (`ap-south-1`), `S3_PREFIX`, `S3_PUBLIC_BASE_URL`,
 `LOG_REQUESTS` (true).
 
-S7 adds:
+S7 adds (SRV-29):
 - `DASHBOARD_DIR` (default `<repo>/webdashboard/dist`);
-- `IMAGE_ORIGINS` (extra `https://` image origins for the dashboard CSP).
+- `IMAGE_ORIGINS` (a comma list of extra `https://` image origins for the
+  dashboard CSP; anything that isn't a bare https origin stops the server
+  at boot).
 
 Ports in use locally:
 - 8787: the mock;
@@ -953,6 +959,7 @@ server/
 ├── src/
 │   ├── index.js              entry: settings → db → app → listen
 │   ├── app.js                createApp({settings, storage}): middleware, routes, errors
+│   ├── dashboard.js          /dashboard: webdashboard/dist, its CSP + style nonce, SPA fallback
 │   ├── settings.js           env → settings
 │   ├── db.js                 mongoose connect / disconnect, syncIndexes
 │   ├── models/               Tenant, Product, Machine, Sale, TelemetryEvent, MachineKey,

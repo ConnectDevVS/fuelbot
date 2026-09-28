@@ -74,6 +74,10 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `createApp({settings})` takes its dependencies; tests build one per
   file (`test/helpers.js`).
 - `server/.gdignore` keeps Godot out of `node_modules/`. Don't remove it.
+- **The dashboard's CSP lives in `src/dashboard.js`** (dashboard plan §2.4):
+  `index.html` is rendered per request with a fresh style nonce (Ant Design
+  writes styles at runtime), never served by `express.static`, and sent
+  `no-store`. Never add `unsafe-inline`; the API keeps helmet's default CSP.
 - `mockserver/` stays the app's test backend. Server work never depends on it at
   runtime (tests read its JSON as contract fixtures); app stories may add scenarios.
 
