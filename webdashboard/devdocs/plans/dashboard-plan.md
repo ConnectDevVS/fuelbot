@@ -373,9 +373,9 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
 | dim | `#6B717A` |
 | accent | `#C8FF3E`, as a fill with `on-accent` text only, never as text on white |
 | on-accent | `#111215` |
-| ok | `#15803D` |
+| ok / ok surface / ok border | `#15803D` / `#EAF6EE` / `#A9D9B8` (surfaces added in SRV-34: antd's derived success fill was a muddy grey-green) |
 | warn / warn surface / warn border | `#A16207` / `#FEF7E6` / `#F2D58A` |
-| bad / bad surface | `#B91C1C` / `#FDECEC` |
+| bad / bad surface / bad border | `#B91C1C` / `#FDECEC` / `#F3B4B4` |
 
 - **antd theme** (`ConfigProvider theme`; checked in spike G):
 
@@ -385,7 +385,7 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
 | `colorLink` | `#3F6A0B` | |
 | `colorText` / `colorTextSecondary` | `#111215` / `#4B5159` | |
 | `colorBorder`, `colorBgLayout`, `colorBgContainer` | `#E1E3E6`, `#F4F5F2`, `#FFFFFF` | |
-| `colorSuccess` / `colorWarning` / `colorError` | `#15803D` / `#A16207` / `#B91C1C` | |
+| `colorSuccess` / `colorWarning` / `colorError` | `#15803D` / `#A16207` / `#B91C1C` | their `…Bg` / `…Border` tokens are set from the surfaces above, not derived (SRV-32, SRV-34) |
 | `borderRadius` / `borderRadiusLG` | 10 / 16 | |
 | `fontFamily` | `Archivo, system-ui, sans-serif` | (`fontSize` 15) |
 | `Button` (component tokens) | `colorPrimary #C8FF3E`, hover `#B6F02B`, active `#A6DC24`, `primaryColor #111215`, `primaryShadow none`, `fontWeight 700` | **primary buttons are lime with dark text**, as on the kiosk (verified in spike G) |

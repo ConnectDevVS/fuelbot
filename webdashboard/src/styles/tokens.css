@@ -18,11 +18,14 @@
   --fb-link: #3F6A0B;
   --fb-selected: #EEF0EA;
   --fb-ok: #15803D;
+  --fb-ok-surface: #EAF6EE;
+  --fb-ok-border: #A9D9B8;
   --fb-warn: #A16207;
   --fb-warn-surface: #FEF7E6;
   --fb-warn-border: #F2D58A;
   --fb-bad: #B91C1C;
   --fb-bad-surface: #FDECEC;
+  --fb-bad-border: #F3B4B4;
   --fb-chart-dispensed: #4D7C0F;
   --fb-chart-not-dispensed: #9D3FD6;
 

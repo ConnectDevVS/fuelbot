@@ -1,0 +1,42 @@
+.gallery {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--fb-border);
+}
+
+.h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 20px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.copyCard {
+  max-width: 640px;
+}

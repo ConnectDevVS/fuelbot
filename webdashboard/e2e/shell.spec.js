@@ -39,8 +39,12 @@ test('nav per role', async ({ page, signInAs, shot }, testInfo) => {
       await page.getByRole('button', { name: 'More' }).click();
       const signOut = page.getByRole('dialog').getByRole('button', { name: 'Sign out' });
       await expect(signOut).toBeInViewport();
-      await page.locator('.ant-drawer-content-wrapper').evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
-      await shot('shell-more-sheet');
+      const sheetBottom = async () => {
+        const box = await page.locator('.ant-drawer-content-wrapper').boundingBox();
+        return Math.round(box.y + box.height);
+      };
+      await expect.poll(sheetBottom).toBe(page.viewportSize().height);   // finished sliding up
+      await shot('shell-more-sheet', { fullPage: false });
       await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
     }
     await signOutViaUi(page);

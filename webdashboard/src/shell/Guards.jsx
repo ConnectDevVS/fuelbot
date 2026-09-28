@@ -7,7 +7,7 @@ import { allowed } from './pages.js';
 import { useCurrentTenant } from './tenant.js';
 import NotFound from '../pages/NotFound.jsx';
 import NotAvailable from '../pages/NotAvailable.jsx';
-import { ErrorPanel } from '../pages/ErrorPanel.jsx';
+import { ErrorPanel } from '../ui/States.jsx';
 import { isApiError } from '../api/client.js';
 
 export function TenantScope({ children }) {

@@ -47,7 +47,14 @@ covers the Godot kiosk, which S7 never touches.
   `message.*`/`notification.*`/`Modal.confirm()` miss the theme and the
   nonce (lint bans them).
 - **antd through our `src/ui/` wrappers** (DP §4), so pages use our names
-  and antd details live in one place. Hand-written SVG charts only.
+  and antd details live in one place: `PageHeader`/`RefreshButton`,
+  `DataTable` (+ `LoadMore`; cards below 760 px), `States` (skeletons,
+  empty, error, not found/available), `Chips` (`StatusBadge`, `StockChip`,
+  `DispensedChip`: they render only what the object carries), `KpiTile`,
+  `Money`, `DateTime`/`RelativeTime`, `Id`/`CopyField`, `dialogs`
+  (`useConfirm`, `useToast`), `Sheet`. All of them are on `/_gallery`
+  (`?gallery` for staff in a build). Layout primitives (`Row`, `Col`,
+  `Space`, `Button`, `Card`) are fine directly. Hand-written SVG charts only.
 - **No secrets anywhere but component state.** No password or machine key
   in a URL, `localStorage`/`sessionStorage` (lint bans both: the dashboard
   stores nothing in the browser), the React Query cache, or a `console.*`
@@ -99,6 +106,14 @@ covers the Godot kiosk, which S7 never touches.
 - JetBrains Mono has no `₹`; Archivo is its fallback in `--fb-font-mono`.
 - The shell is zsh (`${var^^}` fails; unquoted `$var` isn't word-split).
 - Headless browser only: headed windows pop up in front of the user.
+- Screenshots of dialogs and sheets: `shot(name, { fullPage: false })`
+  (fixed overlays don't render in a full-page capture), and wait for antd's
+  open animation first (poll the modal's opacity/transform or the drawer's
+  edge; `getAnimations()` missed it).
+- antd's focus lock works on `focusin`: Tab past a modal's last button
+  leaves the page for the browser UI, and the next Tab is pulled back. Test
+  that page content behind never gets focus, not that `activeElement` is
+  always inside.
 - `npx playwright test` serves whatever is in `dist/`: after changing `src/`,
   use `npm run e2e` (it builds first), or the screenshots show old code.
 - Never keep a password in a React Query mutation (`useMutation` keeps its

@@ -14,6 +14,7 @@ const Layout = lazy(() => import('./Layout.jsx'));
 const SignInPage = lazy(() => import('../auth/SignInPage.jsx'));
 const ChangePasswordPage = lazy(() => import('../auth/ChangePasswordPage.jsx'));
 const ComingSoon = lazy(() => import('../pages/ComingSoon.jsx'));
+const Gallery = lazy(() => import('../pages/Gallery.jsx'));
 
 // Built pages, by page id (lazy). Anything not here is a ComingSoon placeholder.
 export const COMPONENTS = {};
@@ -37,6 +38,8 @@ export const routes = [
     errorElement: <ErrorBoundary />,
     children: [
       { path: '/', element: <Landing /> },
+      // Every shared component (SRV-34): dev builds, or ?gallery for staff (the page checks).
+      { path: '/_gallery', element: <Gallery /> },
       ...PAGES.map((page) => ({ path: page.path, element: pageElement(page), handle: { page } })),
       { path: '*', element: <NotFound /> },
     ],

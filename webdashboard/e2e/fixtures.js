@@ -45,8 +45,10 @@ export const test = base.extend({
   },
 
   shot: async ({ page }, use, testInfo) => {
-    await use(async (name) => {
-      await page.screenshot({ path: `.screenshots/${testInfo.project.name}-${name}.png`, fullPage: true });
+    // fullPage for pages; { fullPage: false } for dialogs and sheets (fixed overlays don't render
+    // in a full-page capture).
+    await use(async (name, { fullPage = true } = {}) => {
+      await page.screenshot({ path: `.screenshots/${testInfo.project.name}-${name}.png`, fullPage });
     });
   },
 });

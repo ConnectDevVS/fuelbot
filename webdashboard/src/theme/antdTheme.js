@@ -12,13 +12,17 @@ export const antdTheme = {
     colorBorder: palette.border,
     colorBgLayout: palette.bg,
     colorBgContainer: palette.surface,
+    // antd derives the status fills from our dark status colours, which gives muddy chips and
+    // banners: every status Bg/Border comes from the palette instead.
     colorSuccess: palette.ok,
+    colorSuccessBg: palette.okSurface,
+    colorSuccessBorder: palette.okBorder,
     colorWarning: palette.warn,
-    // antd derives these from the (dark) status colours, which gives a muddy fill: use ours.
     colorWarningBg: palette.warnSurface,
     colorWarningBorder: palette.warnBorder,
     colorError: palette.bad,
     colorErrorBg: palette.badSurface,
+    colorErrorBorder: palette.badBorder,
     borderRadius: 10,
     borderRadiusLG: 16,
     fontFamily: fonts.sans,
