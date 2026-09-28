@@ -30,6 +30,9 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 | 7 | Landing page | **Staff → Fleet; tenant users → Home** | §3.2 |
 | 8 | Language & accessibility | **English only, best-effort accessibility** (no formal WCAG target, no axe gate). Browsers: the last 2 versions of Chrome, Edge, Safari (incl. iOS) and Firefox | Strings in one module (§2.10); keyboard and labels done well, but not gated |
 | 9 | Extras | **A "Not dispensed" work list** and a **print-friendly sales report** | Sales page preset and print stylesheet (§5.8) |
+| 10 | UI components | **Ant Design** (antd 6), not hand-written CSS (revised 2026-09-28) | antd themed from our tokens (§2.8); its runtime styles run under the strict CSP with a per-request nonce (§2.4, spike G); a small hand-written stylesheet only for layout and our own pieces |
+| 11 | Language of the code | **JavaScript** (JSX), not TypeScript | §0.3.1 is now the product owner's decision; open question §10.1 closed |
+| 12 | A separate claude.design session | **Not needed for S7.** The wireframes (§5) plus the mock-ups in `design/` are the design | The claude.design prompt stays as an option for later |
 
 ### 0.2 Binding decisions carried from the server plan (product owner, 2026-09-26/27)
 
@@ -47,15 +50,21 @@ next restart, and maintenance within one poll (≤ 120 s).
 
 ### 0.3 Decisions made while planning (not the product owner's; can be revisited)
 
-1. **Plain JavaScript (JSX), not TypeScript.** This matches the server
-   (product owner: "plain JavaScript"). It's open question §10.1.
+1. **Plain JavaScript (JSX), not TypeScript.** Confirmed by the product
+   owner (§0.1 row 11), matching the server.
 2. **Libraries (few, mainstream):**
-   - runtime: `react`, `react-dom`, `react-router` (v7, library mode), `@tanstack/react-query` (v5);
+   - runtime:
+     - `react`, `react-dom`, `react-router` (v7, library mode), `@tanstack/react-query` (v5);
+     - **`antd` (v6) and `@ant-design/icons`**; `dayjs` (antd's date library) with its `utc` and `timezone` plugins;
+     - `@dnd-kit/core` and `@dnd-kit/sortable` for drag-to-reorder on the Menu tab (antd has no drag-and-drop; its own docs use dnd-kit).
    - dev: `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `eslint` with `eslint-plugin-react-hooks`.
-   - No UI kit and no CSS framework: hand-written CSS with custom properties.
-3. **Charts are hand-written SVG React components** (two bar charts), not a
-   chart library. They need print, hatching and tooltips, which comes to
-   about 250 lines, with no dependency to keep patched.
+   - **No CSS framework.** antd provides the components. A small stylesheet
+     (CSS modules + `tokens.css`) covers page layout, the phone tab bar, the
+     provisioning card and the charts.
+3. **Charts are hand-written SVG React components** (two bar charts). antd
+   has no charts, and `@ant-design/charts` is a large canvas library. They
+   need print, hatching and tooltips, which comes to about 250 lines, with no
+   dependency to keep patched.
 4. **`/auth/me` returns the caller's effective permissions**, plus
    `display_tz`, the session expiry and the tenant's name. The UI never
    copies the role table (SRV-28).
@@ -65,7 +74,9 @@ next restart, and maintenance within one poll (≤ 120 s).
    fallback, and long-cache hashed assets (SRV-29). `dist/` is never
    committed.
 7. **URLs carry the tenant** (`/dashboard/t/<tenant>/…`), so staff can deep
-   link into any tenant and tenant users get the same links.
+   link into any tenant and tenant users get the same links. Editing the URL
+   gives a tenant user nothing: see §2.7, "Why the tenant in the URL is
+   safe".
 8. **Browser tests use Playwright** on the installed Google Chrome
    (`channel: 'chrome'`, no download), falling back to Playwright's Chromium
    (`npx playwright install chromium`).
@@ -74,6 +85,11 @@ next restart, and maintenance within one poll (≤ 120 s).
    instead of 658 KB + 187 KB (measured).
 10. **Chart palette:** chart marks use their own validated steps, not the
     brand lime (§2.8).
+11. **antd under the strict CSP with a nonce** (spike G). The server renders
+    `index.html` per request with a fresh nonce; antd's `ConfigProvider csp`
+    and a tiny first-loaded module put it on every `<style>`. There's no
+    `unsafe-inline`. antd's `zeroRuntime` mode was tried and doesn't work
+    with a custom theme in 6.6.5.
 
 ## 1. Scope & goals
 
@@ -121,13 +137,16 @@ webdashboard/
 ├── package.json         scripts: dev, build, preview, test (vitest), e2e (playwright), lint
 ├── vite.config.js       base '/dashboard/'; dev proxy /api and /files → DASHBOARD_API_URL (default http://127.0.0.1:8790)
 ├── playwright.config.js projects: phone 390×844, tablet 820×1180, desktop 1440×900
-├── index.html           no inline script or style; <meta name="color-scheme" content="light">
+├── index.html           no inline script or style; <meta name="color-scheme" content="light">;
+│                        <meta name="csp-nonce" content="__CSP_NONCE__"> (the server fills it per request)
 ├── src/
-│   ├── main.jsx         router + QueryClient + providers
+│   ├── nonce.js         imported FIRST: gives every <style> the page creates the CSP nonce (§2.4)
+│   ├── main.jsx         router + QueryClient + antd ConfigProvider (theme, csp nonce, locale) + antd App
+│   ├── theme/           antdTheme.js (antd tokens + component tokens, from the palette), palette.js
 │   ├── api/             client.js (fetch wrapper), errors.js (code → message), queries.js (query keys + hooks)
 │   ├── auth/            session (useMe, can()), RequireAuth, sign-in, change-password
 │   ├── shell/           Layout, Sidebar, TabBar, TopBar, TenantSwitcher, routes.jsx
-│   ├── ui/              components (§4) + forms kit; one folder each, with its CSS module
+│   ├── ui/              thin wrappers over antd (§4) + the few own components; CSS modules for layout only
 │   ├── charts/          RevenueChart, FlavorMixChart, scales.js
 │   ├── lib/             time.js (DISPLAY_TZ days, ISO weeks, ranges), money.js, names.js, csv links
 │   ├── pages/           one folder per page (§5)
@@ -185,7 +204,7 @@ from the plan.
   helmet's defaults.
 
   ```
-  default-src 'self'; script-src 'self'; style-src 'self';
+  default-src 'self'; script-src 'self'; style-src 'self' 'nonce-<per request>';
   img-src 'self' data: <S3_PUBLIC_BASE_URL origin or the bucket's https origin> <PUBLIC_URL origin> <IMAGE_ORIGINS…>;
   font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self';
   frame-ancestors 'none'; form-action 'self'
@@ -197,9 +216,26 @@ from the plan.
     imported with.
   - A blocked image shows the placeholder (the `<img onError>`), never a
     broken icon.
+- **The style nonce (Ant Design; spike G):**
+  - antd 6 writes its component styles as `<style>` elements at runtime (CSS-in-JS), which
+    `style-src 'self'` alone blocks: 63 violations and unstyled components
+    in spike G.
+  - So the server renders `index.html` **per request**: a fresh 128-bit
+    random nonce replaces `__CSP_NONCE__` in `<meta name="csp-nonce">`, and
+    the same value goes in the CSP header (`style-src 'self' 'nonce-…'`).
+  - In the app:
+    - `ConfigProvider csp={{nonce}}` puts it on antd's styles;
+    - `src/nonce.js`, imported first, sets it on any other `<style>` a
+      library creates. Spike G found 3 such styles, from antd's helper
+      library: a scrollbar measure and the drawer's scroll lock.
+  - Result: **0 violations, no `unsafe-inline`.**
+  - Scripts stay `'self'` only; the nonce applies to styles only.
+  - A placeholder left in the page (the dev server, or a direct file) means
+    no nonce, and the app still runs, because the dev server sends no CSP.
 - **Caching:**
   - `/dashboard/assets/*` (content-hashed): `Cache-Control: public, max-age=31536000, immutable`;
-  - `index.html`: `no-cache`.
+  - `index.html`: `Cache-Control: no-store`. It carries a per-request nonce,
+    so no browser or proxy may reuse it.
 - **SPA fallback:** any other `GET /dashboard/*` gets `index.html`, so deep
   links work. A missing file under `/dashboard/assets/` is a real 404.
 - **No build yet:** if `DASHBOARD_DIR/index.html` is missing, `/dashboard/`
@@ -209,6 +245,9 @@ from the plan.
 - **Spike A (§9):** a Vite production build ran with zero CSP violations
   under this policy and under helmet's default. The font loaded; the cookie
   and the CSRF header worked; deep links fell back.
+- **Spike G (§9):** an antd 6 page (layout, menu, table, date-range picker,
+  select, drawer, toast, segmented) ran with the nonce setup: 0 violations,
+  and the theme was applied.
 
 ### 2.5 Session and identity (`/auth/me`, SRV-28)
 
@@ -275,16 +314,50 @@ Today `/auth/me` returns only the user view. After SRV-28:
 - **Tenant users:** the switcher is a static badge with their tenant's name
   and `logo_text`. `/t/<other>/…` renders Not found, and so does the API.
 
+**Why the tenant in the URL is safe** (the product owner asked: what stops
+a tenant_admin replacing `powerfuel` with another tenant's name?)
+
+- **The URL doesn't grant anything; it only names what the page asks for.**
+  Who the user is comes from the session cookie. It's httpOnly, so page
+  code can't read or change it, and it's signed by the server.
+- **The server checks every request** against the signed-in user's own
+  tenant (`auth/rbac.js`, SP §4.7):
+  - `/tenants/globex/...` from a PowerFuel user is **404 `not_found`**, for
+    reads and writes alike. It's 404, not 403, so it doesn't even confirm
+    the tenant exists.
+  - Record queries (`/sales`, `/fleet`, `/stock`, `/orders/:id`) always
+    start from the user's own tenant (and machines), whatever filters are
+    sent.
+- **Checked against the real server while planning:** a PowerFuel viewer
+  asking for `/tenants/globex/products` got 404. The RBAC table test
+  already has that row for all tenant roles.
+- **Made explicit in S7:**
+  - a server test sweeps every `/tenants/:tid/...` route (every method) as
+    each tenant role with another tenant's id, expecting 404 and no write
+    (SRV-28);
+  - the UI shows Not found at `/t/<other>/…` without making a request
+    (SRV-33);
+  - the end-to-end leak scan confirms that `boss@globex` sees nothing of
+    PowerFuel (SRV-49).
+- **The same holds inside a tenant:** an operator limited to Bay 02 who
+  types Bay 3's id gets 404 too.
+- The tenant is in the URL only so staff can link to any tenant's page.
+  Tenant users would be exactly as safe without it.
+
 ### 2.8 Theme and brand
 
 - **Light theme only** (product owner, 2026-09-28: no dark mode for now).
   There's no theme toggle and no theme stored in the browser. The page sets
   `<meta name="color-scheme" content="light">`, so it stays light when the
   OS is in dark mode.
-- **Tokens** are CSS custom properties in one `:root` block
-  (`src/styles/tokens.css`). Components use only tokens, so a dark theme
-  later means adding one block (the kiosk palette in `ui/theme/palette.gd`
-  is its starting point) and a toggle.
+- **One palette, two consumers.**
+  - `src/theme/palette.js` holds the colours below.
+  - `src/theme/antdTheme.js` builds antd's theme from it (next table).
+  - `src/styles/tokens.css` holds the same values as CSS custom properties
+    for our own CSS: layout, charts, the provisioning card.
+  - A unit test keeps the two identical.
+  - A dark theme later means a second palette (the kiosk's
+    `ui/theme/palette.gd` is its starting point) plus antd's `darkAlgorithm`.
 
 | Token | Value |
 |---|---|
@@ -301,6 +374,25 @@ Today `/auth/me` returns only the user view. After SRV-28:
 | warn / warn surface / warn border | `#A16207` / `#FEF7E6` / `#F2D58A` |
 | bad / bad surface | `#B91C1C` / `#FDECEC` |
 
+- **antd theme** (`ConfigProvider theme`; checked in spike G):
+
+| antd token | Value | Why |
+|---|---|---|
+| `colorPrimary` | `#4D7C0F` (dark green) | links, focus rings, checkboxes, selected rows need a colour readable on white; the lime isn't |
+| `colorLink` | `#3F6A0B` | |
+| `colorText` / `colorTextSecondary` | `#111215` / `#4B5159` | |
+| `colorBorder`, `colorBgLayout`, `colorBgContainer` | `#E1E3E6`, `#F4F5F2`, `#FFFFFF` | |
+| `colorSuccess` / `colorWarning` / `colorError` | `#15803D` / `#A16207` / `#B91C1C` | |
+| `borderRadius` / `borderRadiusLG` | 10 / 16 | |
+| `fontFamily` | `Archivo, system-ui, sans-serif` | (`fontSize` 15) |
+| `Button` (component tokens) | `colorPrimary #C8FF3E`, hover `#B6F02B`, active `#A6DC24`, `primaryColor #111215`, `primaryShadow none`, `fontWeight 700` | **primary buttons are lime with dark text**, as on the kiosk (verified in spike G) |
+| `Segmented` | `itemSelectedBg #C8FF3E`, `itemSelectedColor #111215` | the Day/Week/Month switch |
+| `Menu` | `itemSelectedBg #EEF0EA`, `itemSelectedColor #111215` | sidebar |
+| `Layout` | `siderBg #FFFFFF`, `headerBg`/`bodyBg #F4F5F2` | |
+
+  The heavy uppercase page titles (Archivo 900) and the mono labels are our
+  own small CSS classes (`.page-title`, `.overline`), since antd's
+  Typography doesn't do them.
 - **Chart marks** (validated with the dataviz checker for lightness,
   chroma, colour-blind separation and contrast on white):
   - Dispensed, or a single series: `#4D7C0F`.
@@ -334,6 +426,16 @@ Today `/auth/me` returns only the user view. After SRV-28:
 - **Bottom tabs per role:**
   - tenant users: Home, Sales, Stock, Machines, More;
   - staff: Fleet, Sales, Stock, Machines, More.
+- **With antd:**
+  - `Layout.Sider` (`breakpoint="lg"`, collapsed to the icon rail below
+    1100 px, hidden below 760 px);
+  - `Grid.useBreakpoint()` switches layouts;
+  - the bottom tab bar is our own component (antd has none);
+  - `Table` on tablet and desktop, and our card list (antd `Card`s) on
+    phone. Not antd `List`, which 6.6 deprecates;
+  - `Drawer` becomes `placement="bottom"`, full height on phone;
+  - filters in a bottom `Drawer` on phone;
+  - `Modal` for dialogs.
 - The mock-ups in `design/` show Home at desktop, tablet and phone, and
   the provisioning card, Menu editor, Stock tab and Sales filters (§5).
 
@@ -412,6 +514,32 @@ After sign-in (or `/dashboard/`):
 | anything else | Not found | – |
 
 ## 4. Shared UI patterns
+
+**Built on Ant Design** (product owner, §0.1 row 10). Each pattern below is
+a thin wrapper in `src/ui/`, so pages use our names and behaviour, and antd
+details live in one place:
+
+| Pattern | antd | Our part |
+|---|---|---|
+| Page header | `Typography`, `Space`, `Button` | `.overline` + `.page-title` classes, Refresh + "Updated" |
+| Loading / empty / error / not found | `Skeleton`, `Empty`, `Alert` + Retry, `Result` (404/403) | messages from `strings.js` |
+| Tables | `Table` (sorting, `rowKey`, `onRow`) | phone card list below 760 px; "Load more" for cursors |
+| Status, stock, dispensed chips | `Tag` (+ icon) | never colour alone; tenant-safe rendering (§4.6) |
+| KPIs | `Statistic`, `Card` | ₹ formatting, the warning variant |
+| Money, time, ids | `Typography.Text copyable` for ids | `Money`, `DateTime`, `RelativeTime`, `CopyField` (canonical value) |
+| Confirm dialogs | `App.useApp().modal.confirm` (danger) | consequence texts (§4.9) |
+| Drawer / sheet | `Drawer` (right on desktop, bottom on phone) | |
+| Toasts | `App.useApp().message` | never error-only |
+| Forms | `Form`, `Form.Item` (`validateStatus`, `help`), `Input`, `InputNumber`, `Select` (`showSearch`, `mode="tags"` for ingredients and allergens), `Switch`, `Checkbox` | `useVersionedSave`, server errors via `form.setFields`, `PriceField`, `RestartNote`, `UnsavedBar` |
+| Periods and filters | `DatePicker.RangePicker` (`presets`), `Segmented` (Day / Week / Month), `Select` | ranges in `display_tz` (dayjs `timezone` plugin) |
+| Register flow | `Steps` | the provisioning card (our own component; mock-ups `provisioning-*.png`) |
+| Order and machine facts | `Descriptions` | |
+| Menu reorder | — | `@dnd-kit/sortable` + ↑/↓ buttons |
+| Charts | — | our SVG charts (SRV-37) |
+
+Use `App.useApp()` for `message` and `modal`, never the static
+`message.success()`/`Modal.confirm()`: the static functions don't get the
+`ConfigProvider` context (theme and CSP nonce).
 
 1. **Page header:** a mono overline (context: date, tenant, or machine id),
    an H1 in Archivo 900 uppercase, and actions on the right (Refresh +
@@ -1313,6 +1441,7 @@ fields; SRV-27 adds rows for `/fleet?tenant=globex` and
 | D | Headless browser test that signs in and screenshots | **Pass** with Playwright's `channel: 'chrome'` (the installed Chrome; no browser download), at phone and desktop widths. Screenshots were looked at. Lesson: an SVG with a fixed `width` overflows at 390 px, so charts use `viewBox` + `width: 100%` |
 | E | Fonts for phones | The kiosk's TTFs subset with `pyftsubset` (Latin-1, `₹`, dashes, quotes, bullets, arrows; both variable axes kept) → Archivo **88 KB**, JetBrains Mono **39 KB** WOFF2 (from 658 KB + 187 KB); `₹` present |
 | F | Chart palette | Validated with the dataviz checker: `#4D7C0F` / `#9D3FD6` on white pass lightness, chroma, colour-blind separation and contrast. Rejected: green/orange pairs (colour-blind ΔE 1.3–6.6). A dark pair (`#7A9F28` / `#AF6ADF`) also passed, for a later dark theme |
+| G | **Ant Design 6.6.5 under the strict CSP** (after the product owner chose antd). A Vite build of one page with antd `Layout`/`Sider`, `Menu`, `Card`, `Statistic`, `Segmented`, primary `Button`, `DatePicker.RangePicker` (opened), `Select`, `Tag`, `Table`, `Drawer` (opened) and `message` (shown), with the FuelBot theme; four ways, in headless Chrome | **(A) as-is under `style-src 'self'`:** 63 violations; components unstyled (the primary button grey). **(B) `zeroRuntime` + `antd/dist/antd.css`** and **(C) `zeroRuntime` + our theme's CSS pre-built with `@ant-design/static-style-extract`:** both still add 19 `<style>`s at runtime (the theme's CSS variables), with 22 violations. Their component class hashes don't match the pre-built file, so the button is unstyled. Not usable with a custom theme in 6.6.5. **(D) runtime styles + per-request nonce** (`<meta name="csp-nonce">` filled by the server, `ConfigProvider csp={{nonce}}`): 3 violations left, all from antd's helper library (a scrollbar measure and the drawer's body scroll lock), which ignores the provider. Adding `src/nonce.js` (imported first; stamps the nonce on every `<style>` the page creates) gave **0 violations and no `unsafe-inline`**. The theme applied: the primary button computed `rgb(200,255,62)` with `rgb(17,18,21)` text. The picker, drawer and toast all worked. **Size:** the JS bundle for that page was 1.09 MB (**346 KB gzip**), with React and antd. The real app should split code per route (`React.lazy`) so the first load stays near that |
 
 API captures (the same session, a scratch server on :8890, seeded with 183
 sales over 41 days, all four roles). Findings that shaped this plan:
@@ -1329,11 +1458,20 @@ sales over 41 days, all four roles). Findings that shaped this plan:
 
 ## 10. Risks and open questions
 
-1. **TypeScript?** The product owner chose React + Vite partly for
-   maintainability. JSX in plain JS matches the server rule, but TS is cheap
-   to adopt now and costly later. *Recommendation: stay JS (with JSDoc on
-   the API client), and revisit if the team grows.* Needs the product
-   owner's answer before SRV-30.
+1. ~~TypeScript?~~ **Answered (product owner, 2026-09-28): JavaScript.**
+   JSDoc on the API client helps editors.
+1a. **Ant Design risks:**
+   - **The nonce setup depends on how antd and its helpers create
+     styles.** An antd upgrade could add a style path the nonce doesn't
+     reach. The e2e guard fails on any CSP violation, so a regression shows
+     up in the first test run after an upgrade.
+   - **Bundle size:** 346 KB gzip for one antd page (spike G), against
+     about 100 KB hand-written. It's mitigated by splitting code per route.
+     Check on a mid-range phone over 4G at SRV-49.
+   - **Major versions** (v5 → v6 changed the styling engine) come about
+     every two years. Pin to `^6` and upgrade deliberately.
+   - **The look** is Ant Design wearing our colours. The mock-ups are
+     layout guides, not pixel targets.
 2. **Deploy builds the dashboard.** With a build step, whoever deploys runs
    `npm ci && npm run build` in `webdashboard/`. The deploy milestone must
    include it (no hosting decision yet, server plan §9.1).

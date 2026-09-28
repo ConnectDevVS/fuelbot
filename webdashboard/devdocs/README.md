@@ -9,7 +9,9 @@ with the stories; until then this folder holds the plan only.
   to SRV-49, and the SIGNOFF.
 - [design/](design/): the visual design for S7, light theme only. Together
   with the plan's wireframes this is the design; no separate design session
-  is needed. The mock-ups:
+  is needed. The app is built with **Ant Design** themed to the same
+  palette (plan §2.8), so the mock-ups are layout and hierarchy guides, not
+  pixel targets. The mock-ups:
   - `home-desktop.png`, `home-tablet.png`, `home-phone.png`: tenant Home;
   - `provisioning-desktop.png`, `provisioning-phone.png`: register a
     machine, step 3, the key shown once;

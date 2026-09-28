@@ -34,8 +34,11 @@ receives a menu it would reject.
     `actual_price`), or an override via `PriceField` ×2.
   - The override toggle is shown only with `price:write`. An operator sees
     the effective price with a lock.
-- **Reorder:** drag handles (pointer) + ↑/↓ buttons (keyboard/touch); the
-  order is the list order in the payload.
+- **Reorder:** drag handles with `@dnd-kit/core` + `@dnd-kit/sortable`
+  (added to `package.json` in this story; antd has no drag-and-drop, and
+  its docs use dnd-kit), plus ↑/↓ buttons (keyboard/touch). The order is
+  the list order in the payload. Rows are antd `Form.List` items, so field
+  errors map by index (`menu[2].hopper`).
 - **Add:**
   - a picker of non-archived products not on the menu;
   - the new item defaults to hopper = the lowest free hopper, enabled,

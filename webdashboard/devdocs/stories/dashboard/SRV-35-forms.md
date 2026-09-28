@@ -1,4 +1,4 @@
-# SRV-35: Forms and write patterns
+# SRV-35: Forms and write patterns (antd Form)
 
 **As** someone editing a product, menu or setting, **I want** clear field
 errors, a safe way through conflicts with a colleague's edit, price fields
@@ -15,12 +15,18 @@ or lose work.
     `details.current`, 422 `details[{machine_id, errors[]}]`.
 - **Depends on:** SRV-34.
 
-## Deliverables (`src/ui/forms/`)
+## Deliverables (`src/ui/forms/`, on antd `Form`)
 
-1. `Field`, `TextInput`, `NumberInput` (integer / decimal modes),
-   `Textarea`, `Select`, `Toggle`, `TagInput`, `FormError` (a summary with
-   links to fields).
-2. `PriceField`:
+1. Forms use antd `Form` / `Form.Item` with antd inputs: `Input`,
+   `Input.TextArea`, `InputNumber` (`precision={0}` for rupees and grams,
+   decimals for `portion_g`), `Select` (`showSearch`), `Switch`, and
+   `Select mode="tags"` for ingredients and allergens. Our additions:
+   - `FormError`: an antd `Alert` summary with links that scroll to the
+     fields (`form.scrollToField`);
+   - `useFormDirty(form)`: dirty tracking from `onValuesChange`, for the
+     unsaved bar.
+2. `PriceField` (antd `InputNumber` with a `₹` prefix, `min={1}`,
+   `precision={0}`):
    - `{value, onChange, editable}`;
    - editable = `can('price:write')`;
    - read-only shows `₹75` + a lock icon + the tooltip "Only tenant admins
@@ -39,12 +45,17 @@ or lose work.
      new version;
    - **Discard mine** reloads.
 6. `applyServerError(error, form)`:
-   - `invalid_body` → field errors by path;
+   - `invalid_body` → field errors by path, set with antd
+     `form.setFields([{name, errors}])`; the path `menu[2].hopper` becomes
+     antd's name path `['menu', 2, 'hopper']`;
    - users codes → fields (DP §7);
    - `forbidden_field` → marks the fields in `details`;
    - anything else → `FormError`.
-7. `InvalidConfigPanel`: "The machine would reject this" + per machine
-   (name via `machineName`) the app's error strings.
+7. `InvalidConfigPanel` (antd `Alert type="error"`): "The machine would
+   reject this" + per machine (name via `machineName`) the app's error
+   strings.
+8. `ConflictDialog` and the unsaved-changes confirm use
+   `App.useApp().modal` (theme + nonce context).
 
 ## Spec notes
 
@@ -62,7 +73,8 @@ or lose work.
 
 - [ ] `src/ui/forms/applyServerError.test.js` › "maps invalid_body details
       to fields, unknown paths to the summary" (the captured 400:
-      `colour` unknown, `name`, `actual_price`).
+      `colour` unknown, `name`, `actual_price`); "`menu[2].hopper` →
+      antd name path `['menu', 2, 'hopper']`".
 - [ ] `src/ui/forms/useVersionedSave.test.jsx`:
       - "sends If-Match";
       - "409 opens the conflict dialog with changed fields";

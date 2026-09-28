@@ -42,14 +42,14 @@ widths in a light theme, plus the small server additions it needs.
 | # | Story | Depends on | Produces |
 |---|-------|-----------|----------|
 | 27 | [Read API additions](SRV-27-read-api-additions.md) | S6b | `group=week\|month`; CSV `local_time`; `tenant` filter on `/fleet` and `/stock` |
-| 28 | [`/auth/me` for the dashboard](SRV-28-auth-me.md) | S2 | `permissions`, `all_machines`, `tenant`, `display_tz`, `session_expires_at` |
-| 29 | [Serve the dashboard](SRV-29-serve-dashboard.md) | — | `DASHBOARD_DIR`, `/dashboard` static + SPA fallback + dashboard CSP + cache headers; `IMAGE_ORIGINS`; `/` → `/dashboard/` |
-| 30 | [Scaffold `/webdashboard`](SRV-30-scaffold.md) | 29 | Vite + React app, tokens (light), fonts, lint, vitest, CLAUDE.md, README, `.gdignore` |
+| 28 | [`/auth/me` + tenant isolation](SRV-28-auth-me.md) | S2 | `permissions`, `all_machines`, `tenant`, `display_tz`, `session_expires_at`; a test sweeping every tenant route with another tenant's id (404, no write) |
+| 29 | [Serve the dashboard](SRV-29-serve-dashboard.md) | — | `DASHBOARD_DIR`, `/dashboard` static + SPA fallback + dashboard CSP with a per-request style nonce + cache headers; `IMAGE_ORIGINS`; `/` → `/dashboard/` |
+| 30 | [Scaffold `/webdashboard`](SRV-30-scaffold.md) | 29 | Vite + React + **Ant Design** themed for FuelBot, the CSP nonce module, palette/tokens (light), fonts, lint, vitest, CLAUDE.md, README, `.gdignore` |
 | 31 | [Browser test harness](SRV-31-browser-tests.md) | 29, 30 | Playwright, seeded e2e server, CSP/page-error guard, screenshot matrix |
 | 32 | [API client, session, sign-in](SRV-32-session.md) | 28, 31 | `api/client.js`, error mapping, `useMe`/`can`, sign-in, change password, sign-out, expiry banner |
 | 33 | [App shell & navigation](SRV-33-shell.md) | 32 | layout (sidebar / rail / tab bar), top bar, tenant switcher, routes + gates, landing |
-| 34 | [Display components & gallery](SRV-34-components.md) | 33 | tables→cards, status/stock/dispensed chips, Money/DateTime/Id/CopyField, states, dialogs, `/_gallery` |
-| 35 | [Forms & write patterns](SRV-35-forms.md) | 34 | `useVersionedSave`, Conflict dialog, field errors, 422 panel, PriceField, RestartNote, unsaved bar |
+| 34 | [Display components & gallery](SRV-34-components.md) | 33 | antd wrappers: tables→cards, status/stock/dispensed chips, Money/DateTime/Id/CopyField, states, dialogs, `/_gallery` |
+| 35 | [Forms & write patterns](SRV-35-forms.md) | 34 | antd `Form`; `useVersionedSave`, Conflict dialog, field errors, 422 panel, PriceField, RestartNote, unsaved bar |
 | 36 | [Fleet](SRV-36-fleet.md) | 33, 34 | staff landing: all tenants, problems first, refill-soon panel |
 | 37 | [Charts](SRV-37-charts.md) | 34 | RevenueChart (stacked, hatched), FlavorMixChart; tooltips; print |
 | 38 | [Tenant Home](SRV-38-home.md) | 27, 36, 37 | tenant landing: KPIs, charts, machines, refill soon |
@@ -93,8 +93,9 @@ widths in a light theme, plus the small server additions it needs.
   - `dist/`, `.screenshots/`, `test-results/`, `playwright-report/` and
     `node_modules/` are never committed.
 - **Security:**
-  - no inline scripts or styles, and no `dangerouslySetInnerHTML` (lint
-    rule);
+  - no inline scripts and no `dangerouslySetInnerHTML` (lint rule). Styles
+    come from our CSS files or antd's runtime styles carrying the
+    per-request nonce; `src/nonce.js` stays the first import;
   - no password or machine key in a URL, web storage, the query cache or a
     console call;
   - every non-GET sends `X-Requested-With: fuelbot-dashboard`.
@@ -117,6 +118,9 @@ widths in a light theme, plus the small server additions it needs.
 8. **English only; best-effort accessibility;** evergreen browsers.
 9. **Extras:** a Not-dispensed work list and a print-friendly sales
    report.
+10. **Ant Design** for the UI components instead of hand-written CSS (after
+    spike G proved it runs under the strict CSP with a nonce).
+11. **JavaScript** (JSX), not TypeScript.
 
 Carried over (binding): platform-only data, "Not dispensed", price
 permissions, temporary passwords, disable-not-delete, 48 h fixed
@@ -126,10 +130,11 @@ whole rupees, `DISPLAY_TZ`, and the restart / ≤ 120 s notes.
 
 ### Made while writing this set (can be revisited)
 
-1. **Plain JavaScript + JSX, not TypeScript** (DP §0.3.1; open question DP
-   §10.1).
-2. **Libraries:** React 19, React Router 7 (library mode), TanStack Query 5.
-   No UI kit or CSS framework. **Hand-written SVG charts.**
+1. *(Now the product owner's: JavaScript.)*
+2. **Libraries:** React 19, React Router 7 (library mode), TanStack Query 5,
+   antd 6 + `@ant-design/icons`, dayjs (antd's) with `timezone`,
+   `@dnd-kit` for menu reordering. **Hand-written SVG charts** (antd has
+   none).
 3. **`/auth/me` returns effective permissions.** The UI never copies the
    role table (SRV-28).
 4. **URLs carry the tenant** (`/t/:tid/…`). Staff get global pages at the
@@ -137,7 +142,14 @@ whole rupees, `DISPLAY_TZ`, and the restart / ≤ 120 s notes.
 5. **The server serves `webdashboard/dist`,** which is never committed. A
    missing build gives a 503 "not built" page.
 6. **The dashboard's own strict CSP** on `/dashboard` (DP §2.4). The API
-   keeps helmet's defaults.
+   keeps helmet's defaults. antd's runtime styles pass it through a
+   **per-request nonce** (`index.html` rendered by the server; `ConfigProvider
+   csp` + `src/nonce.js`). There's no `unsafe-inline`.
+6a. **antd theme:** the dark green `#4D7C0F` as `colorPrimary` (readable on
+    white), and lime primary buttons with dark text via component tokens
+    (DP §2.8).
+6b. **`App.useApp()`** for message and modal; the static calls are banned by
+    lint (they miss the theme and nonce context).
 7. **Playwright on the installed Chrome** (`channel: 'chrome'`), with
    Chromium as the fallback. The e2e server is in-memory Mongo + the real
    `createApp`, on a fixed port (**8795**).
@@ -161,6 +173,7 @@ These are recorded in the stories they de-risk:
 - **D (headless screenshots):** SRV-31.
 - **E (fonts):** SRV-30.
 - **F (chart palette):** SRV-37.
+- **G (Ant Design under the strict CSP):** SRV-29, SRV-30.
 
 All passed. No spike code was committed.
 

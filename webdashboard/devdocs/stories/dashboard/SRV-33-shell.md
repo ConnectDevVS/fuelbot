@@ -18,8 +18,12 @@ page, **so that** I get where I need to be quickly on a phone or a desk.
    - each route has `{path, element, needs: permission | null, nav: {...} | null}`;
    - not-yet-built pages render a "Coming in SRV-NN" placeholder. They're
      removed as stories land.
-2. `src/shell/Layout.jsx`: sidebar (≥ 1100 px), icon rail (760–1099), top
-   bar + bottom tab bar (< 760); `<main>` landmark; skip link.
+2. `src/shell/Layout.jsx` on antd `Layout`: `Layout.Sider` with antd
+   `Menu` (≥ 1100 px labels; 760–1099 px `collapsed` icon rail with
+   tooltips); below 760 px no Sider, our top bar + our bottom tab bar
+   (antd has none); `<main>` landmark; skip link. Routes load with
+   `React.lazy` + `Suspense` (a `Skeleton`), to keep the first load small
+   (DP §10.1a).
 3. `src/shell/Sidebar.jsx`, `IconRail.jsx`, `TabBar.jsx`, `MoreSheet.jsx`
    (the phone "More": the remaining nav items + Account).
 4. `src/shell/TopBar.jsx`:
@@ -27,8 +31,8 @@ page, **so that** I get where I need to be quickly on a phone or a desk.
    - for staff, a **TenantSwitcher** (`GET /tenants`): "All tenants" →
      `/fleet`, a tenant → `/t/<id>/home`;
    - UserMenu (name, role label, Change password, Sign out).
-6. `src/shell/icons.jsx`: inline SVG icons as React components. They're
-   JSX, which is fine under the CSP.
+6. Icons from `@ant-design/icons` (SVG React components; fine under the
+   CSP), mapped in `src/shell/icons.js`.
 7. `src/pages/NotFound.jsx`, `NotAvailable.jsx`,
    `src/shell/ErrorBoundary.jsx` ("Something went wrong. Reload").
 8. `document.title` per route: `"<Page> · <Tenant> · FuelBot"`.

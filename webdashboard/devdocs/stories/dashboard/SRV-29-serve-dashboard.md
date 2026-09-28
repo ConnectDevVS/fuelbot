@@ -1,4 +1,4 @@
-# SRV-29: Serve the dashboard (static, SPA fallback, CSP)
+# SRV-29: Serve the dashboard (static, SPA fallback, CSP with a style nonce)
 
 **As** anyone opening `https://<host>/dashboard/`, **I want** the built
 dashboard served by the same process as the API, under a strict content
@@ -6,7 +6,9 @@ security policy, **so that** it runs same-origin with the session cookie
 and nothing injected can execute.
 
 - **Refs:** SP §2.3 (one app, two faces), §4.6 (helmet, CSP), §4.12
-  (settings); DP §2.4. Spike A (a Vite build under this CSP: 0 violations).
+  (settings); DP §2.4. Spike A (a Vite build under this CSP: 0 violations),
+  spike G (Ant Design needs a per-request style nonce: 0 violations with it,
+  63 without).
 - **Depends on:** nothing (it serves a folder that SRV-30 fills). **Server
   only.**
 
@@ -17,7 +19,9 @@ and nothing injected can execute.
      `new URL('../../webdashboard/dist/', import.meta.url).pathname`);
    - `imageOrigins` (`IMAGE_ORIGINS`, a comma list of `https://` origins;
      invalid entries throw at boot).
-2. `server/src/dashboard.js`: `dashboardRouter(settings)`.
+2. `server/src/dashboard.js`: `dashboardRouter(settings)`, which reads
+   `index.html` once at boot (and again if the file changes) and renders
+   it per request with a nonce.
 3. `server/src/app.js`:
    - mount `/dashboard` before the 404 handler;
    - `GET /` → 302 `/dashboard/`;
@@ -35,8 +39,8 @@ and nothing injected can execute.
 
 - **CSP:** `helmet({ contentSecurityPolicy: { useDefaults: false, directives } })`
   applied only under `/dashboard`:
-  - `default-src 'self'`; `script-src 'self'`; `style-src 'self'`;
-    `font-src 'self'`; `connect-src 'self'`;
+  - `default-src 'self'`; `script-src 'self'`;
+    `style-src 'self' 'nonce-<n>'`; `font-src 'self'`; `connect-src 'self'`;
   - `img-src 'self' data:` + the origin of `S3_PUBLIC_BASE_URL` if set,
     else `https://<S3_BUCKET>.s3.<S3_REGION>.amazonaws.com` if a bucket is
     set, + the origin of `PUBLIC_URL`, + each of `IMAGE_ORIGINS`;
@@ -45,12 +49,23 @@ and nothing injected can execute.
   - `upgrade-insecure-requests`: **only when `settings.production`**.
   - The other helmet headers stay at their defaults. The API (`/api/v1`,
     `/fuelbot`) keeps helmet's default CSP.
+- **The style nonce** (Ant Design writes its styles at runtime; DP §2.4):
+  - per request: `n = crypto.randomBytes(16).toString('base64')`;
+  - the CSP header carries `'nonce-<n>'` in `style-src`;
+  - the HTML response is `index.html` with **every** `__CSP_NONCE__`
+    replaced by `n` (the `<meta name="csp-nonce">`);
+  - the nonce is never logged.
+  - Only responses that serve `index.html` get a nonce. Static files need
+    none.
 - **Static:** `express.static(dashboardDir, { index: false, fallthrough: true, setHeaders })`:
   - `assets/*`: `Cache-Control: public, max-age=31536000, immutable`;
   - everything else: `Cache-Control: no-cache`.
+  - `index.html` is **never** served by `express.static`: a request for
+    `/dashboard/index.html` goes through the renderer too, so the
+    placeholder can't leak unfilled.
 - **SPA fallback:** `GET`/`HEAD` under `/dashboard` that isn't a static
-  file and isn't under `/dashboard/assets/` → `index.html`
-  (`Cache-Control: no-cache`).
+  file and isn't under `/dashboard/assets/` → the rendered `index.html`
+  (`Cache-Control: no-store`, because the nonce is per request).
   - Any other method → 404 `{error: 'not_found'}`.
   - A missing asset under `/dashboard/assets/` → 404 (no HTML for a
     script URL).
@@ -64,15 +79,21 @@ and nothing injected can execute.
 
 ## Acceptance criteria
 
-Tests use a temp `DASHBOARD_DIR` with `index.html`, `favicon.svg` and
+Tests use a temp `DASHBOARD_DIR` with `index.html` (containing
+`<meta name="csp-nonce" content="__CSP_NONCE__">`), `favicon.svg` and
 `assets/app-abc123.js`.
 
 - [ ] `dashboard.test.js` › "serves index.html with the dashboard CSP":
       - `GET /dashboard/` → 200 HTML;
       - `content-security-policy` contains `script-src 'self'`,
-        `style-src 'self'`, `frame-ancestors 'none'`, and **not**
+        `style-src 'self' 'nonce-…'`, `frame-ancestors 'none'`, and **not**
         `unsafe-inline`;
-      - `cache-control: no-cache`.
+      - `cache-control: no-store`.
+- [ ] `dashboard.test.js` › "a fresh nonce per request, the same in header
+      and page": two GETs → two different nonces; in each, the CSP header's
+      nonce equals the `csp-nonce` meta content; the body has no
+      `__CSP_NONCE__` left. `GET /dashboard/index.html` is rendered the same
+      way (no raw placeholder).
 - [ ] `dashboard.test.js` › "hashed assets are immutable":
       `GET /dashboard/assets/app-abc123.js` → 200 JS with
       `max-age=31536000, immutable`.
@@ -93,6 +114,8 @@ Tests use a temp `DASHBOARD_DIR` with `index.html`, `favicon.svg` and
       `/dashboard` → 301.
 - [ ] `cd server && npm test` passes. By hand: `npm start` with no build
       shows the 503 page. Record that it was seen in the commit message.
+- [ ] The browser-level proof (0 CSP violations with antd) comes with
+      SRV-30/31: the e2e guard fails on any violation.
 
 ## Out of scope
 

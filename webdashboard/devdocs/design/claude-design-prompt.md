@@ -39,9 +39,13 @@ The dashboard is where two kinds of people manage those machines:
   - **Viewer**: read-only.
 
 Please design a complete, consistent screen set and a small component
-library. The app will be built in React with hand-written CSS, so design
-with CSS-friendly primitives: flat colours, 1 px borders, radii, no blur or
-glass effects, and no gradients except the hatch pattern described below.
+library. The app will be built in React with **Ant Design 6**, themed with
+the tokens below (lime primary buttons with dark text; dark green
+`#4D7C0F` for links, focus and selection). So design with Ant Design's
+components and patterns (Table, Form, Drawer, Modal, Tag, Segmented,
+DatePicker, Steps, Statistic) rather than inventing new controls. Use
+flat colours, 1 px borders and radii; no blur or glass effects, and no
+gradients except the hatch pattern described below.
 
 ## Brand and visual language (keep this)
 

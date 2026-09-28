@@ -19,7 +19,11 @@ machine, **so that** I can review the business at the grain I plan it.
 2. `src/pages/sales/filters.js`: filter state ⇄ URL query. Presets → `{from,
    to}` in `display_tz` as offset ISO strings; the default group per range.
 3. `src/pages/sales/SalesFilters.jsx`: one row on desktop, a "Filters (n)"
-   sheet on phone.
+   sheet on phone (`Sheet`, the bottom antd `Drawer`; mock-up
+   `sales-filters-phone.png`). antd `DatePicker.RangePicker` with
+   `presets` for the period list (dayjs values in `display_tz`, converted
+   to `from`/`to` by `filters.js`), `Segmented` for Day/Week/Month, and
+   `Select showSearch` for machine and flavor.
 4. `src/pages/sales/SalesKpis.jsx`, `BreakdownTable.jsx`.
 5. Routes:
    - `/t/:tid/sales` (`sales:read`);

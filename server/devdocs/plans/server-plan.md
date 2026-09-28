@@ -66,6 +66,8 @@ the index.
 | 2026-09-28 | **Dashboard charts:** revenue over time (day / ISO week / month) and flavor mix only. **No auto-refresh:** a Refresh button with an "Updated" time. **English only, best-effort accessibility.** **Extras:** a "Not dispensed" work list and a print-friendly sales report (product owner) | Keeps `/fleet` and `/stock` costs bounded; what owners asked for | §4.9, §4.10 |
 | 2026-09-28 | **S7 server additions** (planning): `/auth/me` returns the caller's effective permissions, tenant, `display_tz` and session expiry; `/fleet` and `/stock` take `tenant=`; the sales CSV gains `local_time` (`DISPLAY_TZ`); `/dashboard` gets its own strict CSP (`script-src 'self'`, `style-src 'self'`, `img-src` from the storage settings + `IMAGE_ORIGINS`) | The UI never copies the role table; staff inside a tenant don't load the fleet; spreadsheets show local times; the Vite build runs with no inline code (spike A) | §4.4, §4.6, §4.9, §4.12 |
 | 2026-09-28 | **Dashboard: light theme only for now** (product owner, revising the same day's "dark + light"): no dark mode and no theme toggle. Tokens stay in one block so a dark theme can be added later. **No separate claude.design session for S7** (product owner): the plan's wireframes plus styled mock-ups of Home, the provisioning card, the Menu editor, the Stock tab and the Sales filters are the design; the claude.design prompt stays as an option | Less to build and test (half the screenshots); the mock-ups cover the riskiest screens | §4.10 |
+| 2026-09-28 | **Dashboard UI: Ant Design 6** instead of hand-written CSS, and **JavaScript** (product owner). antd's runtime styles run under the strict dashboard CSP through a **per-request style nonce**: the server renders `index.html` with a fresh nonce in a meta tag and in `style-src`, and the app stamps it on every `<style>`. Spike G: 63 violations without it, 0 with it; antd's `zeroRuntime` doesn't work with a custom theme in 6.6.5 | Ready-made accessible components (tables, forms, date-range picker, selects, drawers) for a small team; no `unsafe-inline` | §4.6, §4.10 |
+| 2026-09-28 | **Tenant in dashboard URLs is safe**, as the product owner asked. The URL only names what to ask for; every `/api/v1` call is checked against the session's own tenant (another tenant → 404). S7 adds a test sweeping every `/tenants/:tid` route with another tenant's id (SRV-28) | Staff deep links need the tenant in the URL; tenant users gain nothing by editing it | §4.7 |
 
 ## 1. Context
 
@@ -672,7 +674,9 @@ There are no alerts in v1 (§8), but lists sort by status.
   one is made per process, and sessions end on restart.
 - `helmet` headers. The API keeps helmet's default CSP. `/dashboard` has
   its own strict CSP (S7, SRV-29):
-  - `script-src 'self'`; `style-src 'self'`;
+  - `script-src 'self'`; `style-src 'self' 'nonce-<per request>'`. Ant
+    Design writes its styles at runtime, so the server renders
+    `index.html` per request with a fresh nonce. There's no `unsafe-inline`;
   - `img-src 'self' data:` + the storage origins + `IMAGE_ORIGINS`;
   - `frame-ancestors 'none'`;
   - `upgrade-insecure-requests` in production only.
@@ -795,7 +799,8 @@ are
 (SRV-27 to SRV-49). In short (product-owner decisions of 2026-09-28 in §0):
 
 - **Stack and serving:**
-  - a React + Vite app in `/webdashboard`;
+  - a React + Vite app in `/webdashboard`, JavaScript, UI components from
+    **Ant Design 6** themed for FuelBot;
   - `npm run build` → `webdashboard/dist`, served by this server at
     `/dashboard/` with its own strict CSP (§4.6), an SPA fallback, and
     long-cache hashed assets;

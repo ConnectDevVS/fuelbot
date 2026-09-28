@@ -81,7 +81,9 @@ and layout are tested and screenshots can be looked at.
    - `shot(name)` → `.screenshots/<project>-<name>.png`;
    - an **auto fixture** that:
      - collects `securitypolicyviolation` events (via `addInitScript`)
-       and `pageerror`, and fails the test if any occur;
+       and `pageerror`, and fails the test if any occur. With Ant Design
+       this proves the style nonce on every run: an antd upgrade that adds a
+       style path the nonce misses fails here (DP §10.1a);
      - fails on `document.documentElement.scrollWidth > innerWidth`
        (horizontal overflow) at the end of every test;
      - ignores console "Failed to load resource" lines (expected 401/403,

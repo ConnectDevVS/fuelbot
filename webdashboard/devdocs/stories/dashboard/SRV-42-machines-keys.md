@@ -22,7 +22,7 @@ later, **so that** provisioning never fails because of a typo.
    `MachineStatusList` in a full table.
 2. `src/pages/machines/RegisterMachinePage.jsx`
    (`/t/:tid/machines/new`, `machines:manage`): step 1 details → step 2
-   menu (copy / build / later) → step 3 key.
+   menu (copy / build / later) → step 3 key, with antd `Steps`.
 3. `src/pages/machines/ProvisioningCard.jsx`: the tenant id, machine id and
    key; copy buttons, typing tips, a Print button, and an
    acknowledgement.
