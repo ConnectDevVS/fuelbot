@@ -46,6 +46,7 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
                fake_arduino_serial.py (Level 1), check_firmware.sh, test_fakes.py,
                trim_flavor_images.gd (bundled fallbacks → trimmed, ≤ 600×800)
 devdocs/       plans/, stories/<set>/, image-spec.md (flavor images, for the content team)
+webdashboard/  the web dashboard (S7: React + Vite + Ant Design, .gdignore'd); rules in webdashboard/CLAUDE.md
 ```
 
 ## Commands (run from repo root)

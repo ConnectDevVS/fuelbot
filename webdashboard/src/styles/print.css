@@ -1,0 +1,16 @@
+/* Print (the sales report, the provisioning card): the same tokens on white, no navigation. */
+@media print {
+  html,
+  body {
+    background: var(--fb-surface);
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  a {
+    color: var(--fb-text);
+    text-decoration: none;
+  }
+}

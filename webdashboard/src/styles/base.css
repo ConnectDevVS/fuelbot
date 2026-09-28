@@ -1,0 +1,72 @@
+/* Fonts, page basics and our own type classes (antd's Typography doesn't do these). */
+@font-face {
+  font-family: Archivo;
+  src: url('./fonts/archivo.woff2') format('woff2');
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url('./fonts/jetbrains-mono.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--fb-bg);
+  color: var(--fb-text);
+  font-family: var(--fb-font-sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* The heavy uppercase headings of the kiosk ("FUEL UP"). */
+.page-title {
+  margin: 0;
+  font-family: var(--fb-font-sans);
+  font-weight: 900;
+  font-size: clamp(26px, 5vw, 36px);
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--fb-text);
+}
+
+/* Small mono caps: context lines, table headers, labels. */
+.overline {
+  font-family: var(--fb-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fb-muted);
+}
+
+.mono {
+  font-family: var(--fb-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fb-primary);
+  outline-offset: 2px;
+}
+
+/* The SRV-30 placeholder page (replaced by the shell in SRV-33). */
+.placeholder {
+  box-sizing: border-box;
+  display: grid;
+  gap: 16px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}

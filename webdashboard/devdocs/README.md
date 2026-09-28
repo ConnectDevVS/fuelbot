@@ -1,7 +1,7 @@
 # Web dashboard docs
 
-The docs for the FuelBot web dashboard (Milestone S7). The code arrives
-with the stories; until then this folder holds the plan only.
+The docs for the FuelBot web dashboard (Milestone S7). The code is one
+level up ([../README.md](../README.md), rules in [../CLAUDE.md](../CLAUDE.md)).
 
 - [plans/dashboard-plan.md](plans/dashboard-plan.md): the design brief and
   page-by-page spec, decisions, wireframes, spikes, risks.
