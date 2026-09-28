@@ -24,7 +24,16 @@ machine configured only through it has run in the real app. S2: dashboard users,
 S1:
 the three kiosk endpoints serve real data, and the app sends its machine id
 and keeps 401/403 records. The real app has run end to end against the
-server (`tools/dev_run.sh --backend=server`). Next: S7 (dashboard; needs its own detailed plan first); S5 (product images) deferred; Deploy after the hosting decision. Nothing is deployed. The mock (`mockserver/`) stays as the app's test
+server (`tools/dev_run.sh --backend=server`).
+
+**Next: S7, the dashboard.** It's planned in detail (2026-09-28) and
+awaits product-owner review before any code. The plan is
+[dashboard-plan.md](../../../webdashboard/devdocs/plans/dashboard-plan.md),
+and the stories are SRV-27 to SRV-49 in
+[webdashboard/devdocs/stories/dashboard/](../../../webdashboard/devdocs/stories/dashboard/README.md).
+
+S5 (product images) is deferred. Deploy comes after the hosting decision.
+Nothing is deployed. The mock (`mockserver/`) stays as the app's test
 backend.
 
 **Decision log.** Newest last. Sections are edited in place; this list is
@@ -51,6 +60,14 @@ the index.
 | 2026-09-27 | **Weekly and monthly sales are required in S7** (product owner): the summary gains `group=week` (ISO weeks, Monday–Sunday, key `2026-W39`) and `group=month` (key `2026-09`), both in `DISPLAY_TZ`; the dashboard's Sales page shows day / week / month | Owners review sales by week and month | §4.9, §4.10, §6 |
 | 2026-09-27 | **Estimated stock per hopper** (product owner): no sensors; the server estimates what's left in each hopper from recorded refills minus a **per-product portion size** for every cycle that actually dosed. **Refills are recorded by the tenant_admin** (and platform_admin). New milestone S6b, before the dashboard | Know when to refill without new hardware; sensors can feed the same record later | §4.13, §6 |
 | 2026-09-26 | **Missing identity → 401, and the app keeps records on 401/403** (app change in S1) | A machine that isn't provisioned yet must not lose sales | §3.5 |
+| 2026-09-28 | **Dashboard: React + Vite, with a build step** (product owner). This replaces the previous session's "no build, no framework". JavaScript + JSX (planning decision; TypeScript is an open question, dashboard plan §10.1) | Maintainability and familiarity for a ~20-page, form-heavy app | §2.3, §4.10, §5 |
+| 2026-09-28 | **Dashboard code lives in `/webdashboard`** (repo root), and **its docs in `/webdashboard/devdocs`** (product owner). The server serves the built `webdashboard/dist` at `/dashboard/`; `server/public/` is dropped | The dashboard is its own project with its own tooling | §2.3, §5 |
+| 2026-09-28 | **Dashboard devices: fully responsive** (phone, tablet, desktop). **Look:** one FuelBot look (the kiosk's dark + lime) **plus a light mode**; the tenant's name and logo text in the top bar, no per-tenant themes. **Landing:** staff → Fleet, tenant users → Home (product owner) | Owners check sales and technicians record refills on phones; one product look | §4.10 |
+| 2026-09-28 | **Dashboard charts:** revenue over time (day / ISO week / month) and flavor mix only. **No auto-refresh:** a Refresh button with an "Updated" time. **English only, best-effort accessibility.** **Extras:** a "Not dispensed" work list and a print-friendly sales report (product owner) | Keeps `/fleet` and `/stock` costs bounded; what owners asked for | §4.9, §4.10 |
+| 2026-09-28 | **S7 server additions** (planning): `/auth/me` returns the caller's effective permissions, tenant, `display_tz` and session expiry; `/fleet` and `/stock` take `tenant=`; the sales CSV gains `local_time` (`DISPLAY_TZ`); `/dashboard` gets its own strict CSP (`script-src 'self'`, `style-src 'self'`, `img-src` from the storage settings + `IMAGE_ORIGINS`) | The UI never copies the role table; staff inside a tenant don't load the fleet; spreadsheets show local times; the Vite build runs with no inline code (spike A) | §4.4, §4.6, §4.9, §4.12 |
+| 2026-09-28 | **Dashboard: light theme only for now** (product owner, revising the same day's "dark + light"): no dark mode and no theme toggle. Tokens stay in one block so a dark theme can be added later. **No separate claude.design session for S7** (product owner): the plan's wireframes plus styled mock-ups of Home, the provisioning card, the Menu editor, the Stock tab and the Sales filters are the design; the claude.design prompt stays as an option | Less to build and test (half the screenshots); the mock-ups cover the riskiest screens | §4.10 |
+| 2026-09-28 | **Dashboard UI: Ant Design 6** instead of hand-written CSS, and **JavaScript** (product owner). antd's runtime styles run under the strict dashboard CSP through a **per-request style nonce**: the server renders `index.html` with a fresh nonce in a meta tag and in `style-src`, and the app stamps it on every `<style>`. Spike G: 63 violations without it, 0 with it; antd's `zeroRuntime` doesn't work with a custom theme in 6.6.5 | Ready-made accessible components (tables, forms, date-range picker, selects, drawers) for a small team; no `unsafe-inline` | §4.6, §4.10 |
+| 2026-09-28 | **Tenant in dashboard URLs is safe**, as the product owner asked. The URL only names what to ask for; every `/api/v1` call is checked against the session's own tenant (another tenant → 404). S7 adds a test sweeping every `/tenants/:tid` route with another tenant's id (SRV-28) | Staff deep links need the tenant in the URL; tenant users gain nothing by editing it | §4.7 |
 
 ## 1. Context
 
@@ -97,9 +114,10 @@ for each company. The kiosk plan's open items that land here:
    persistent local database (`server/.data/`); tests get a fresh
    in-memory one per test file.
 3. **One app, two faces:** the kiosk API (`/fuelbot/*`) and the admin API
-   (`/api/v1/*`) run in the same process and database. The dashboard is
-   static files served by the same process at `/dashboard/`, and it uses
-   only the admin API.
+   (`/api/v1/*`) run in the same process and database. The dashboard is a
+   React app built by Vite in `/webdashboard` (2026-09-28). Its built
+   static files (`webdashboard/dist`, `DASHBOARD_DIR`) are served by the
+   same process at `/dashboard/`, and it uses only the admin API.
 4. **Configuration by environment variables** (`server/.env` in dev,
    gitignored; `.env.example` lists every key). No secrets in the repo.
 5. **Tenant → machines.** A **tenant** is a company. It owns a **product
@@ -517,7 +535,7 @@ tenant check happens once per request.
 |---|---|---|
 | `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns the user. Rate-limited |
 | `POST /auth/logout` | signed in | clears the cookie |
-| `GET /auth/me` | signed in | the user, role, tenant, machines |
+| `GET /auth/me` | signed in | the user, role, tenant, machines. **S7 adds** `permissions` (the effective set from `auth/rbac.js`), `all_machines`, `tenant {id, name, logo_text}` (null for platform), `display_tz`, `session_expires_at` |
 | `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end) |
 | `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant |
 | `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions). **No deletion**: a disabled user can be re-enabled |
@@ -654,8 +672,16 @@ There are no alerts in v1 (§8), but lists sort by status.
   IP + email. The error doesn't say whether the email exists.
 - `JWT_SECRET` is **required** when `NODE_ENV=production`. In dev a random
   one is made per process, and sessions end on restart.
-- `helmet` headers, with a strict CSP for the dashboard (no inline
-  scripts).
+- `helmet` headers. The API keeps helmet's default CSP. `/dashboard` has
+  its own strict CSP (S7, SRV-29):
+  - `script-src 'self'`; `style-src 'self' 'nonce-<per request>'`. Ant
+    Design writes its styles at runtime, so the server renders
+    `index.html` per request with a fresh nonce. There's no `unsafe-inline`;
+  - `img-src 'self' data:` + the storage origins + `IMAGE_ORIGINS`;
+  - `frame-ancestors 'none'`;
+  - `upgrade-insecure-requests` in production only.
+  - The details are in the
+    [dashboard plan §2.4](../../../webdashboard/devdocs/plans/dashboard-plan.md).
 
 ### 4.7 Roles (RBAC)
 
@@ -745,10 +771,10 @@ All are scoped to what the user can see (§4.7). Filters: `tenant`
 
 | Method & path | Who | Returns |
 |---|---|---|
-| `GET /fleet` | all | visible machines with status (§4.5, per view), grouped by tenant for platform |
+| `GET /fleet` | all | visible machines with status (§4.5, per view), grouped by tenant for platform. `tenant=` filter (**S7**: platform any; tenant users only their own, else 404) |
 | `GET /sales` | all | filters: `tenant`, `machine`, `from`, `to`, `flavor`, `dispensed`; platform also `result`. Newest first |
 | `GET /sales/summary` | all | `group=day\|week\|month\|flavor\|machine\|tenant`: count, revenue (`sum charged_price`), not-dispensed count and amount. `week` = ISO week (Monday–Sunday) keyed `2026-W39`, `month` keyed `2026-09`, both in `DISPLAY_TZ` (**week and month: S7**) |
-| `GET /sales/export.csv` | all | the `/sales` filters as CSV (streamed), same columns as the caller's view |
+| `GET /sales/export.csv` | all | the `/sales` filters as CSV (streamed), same columns as the caller's view; **S7:** a first column `local_time` (`YYYY-MM-DD HH:MM:SS` in `DISPLAY_TZ`) |
 | `GET /telemetry` | **platform_admin** | filters: `tenant`, `machine`, `type`, `from`, `to`, `order_id` |
 | `GET /faults` | **platform_admin** | fault log: `machine_fault` / `machine_ok` / `bridge_down` / `bridge_up` as open/closed intervals per machine |
 | `GET /orders/:order_id` | all | the sale; for platform also every telemetry event for that order (joined on `order_id`) |
@@ -764,42 +790,45 @@ sales next to revenue rather than subtracting them.
 
 ### 4.10 Dashboard (`/dashboard/`)
 
-Plain HTML, CSS and JavaScript modules served statically. **No build
-step**, no framework, and it uses only `/api/v1`.
+**Specified in its own document:**
+[webdashboard/devdocs/plans/dashboard-plan.md](../../../webdashboard/devdocs/plans/dashboard-plan.md).
+It covers the design brief, the page-by-page spec, the permission → UI map,
+the error messages, the wireframes, the spikes and the risks. The stories
+are
+[webdashboard/devdocs/stories/dashboard/](../../../webdashboard/devdocs/stories/dashboard/README.md)
+(SRV-27 to SRV-49). In short (product-owner decisions of 2026-09-28 in §0):
 
-- **Sign in.** Then **Fleet**: machines with a status dot, last seen and
-  today's sales. Platform: full status, faults and maintenance, grouped by
-  tenant. Tenant users: online/offline and in service / out of service.
-- **Tenant** (platform_admin picks one; others land in their own):
-  - *Products*: the library. Table and edit drawer (all fields, image
-    upload with preview and the checks above, "on N machines").
-  - *Machines*: list, then a **machine** page with tabs:
-    - *Menu*: items in order (drag to reorder), product picker, hopper,
-      price override, badge, sold out, enabled, and the config preview.
-      Save shows validation errors inline and the reminder "reaches the
-      machine at its next restart".
-    - *Sales* (tenant users: "Not dispensed" instead of reasons).
-    - *Maintenance*: toggle, message, faults (**platform only**).
-    - *Telemetry* (dispense-cycle stages as a timeline) and *Faults*
-      (**platform only**).
-    - *Stock*: each hopper's product, estimated portions left, days left,
-      low / empty flags, last refill; "Record refill" and "Adjust"
-      (tenant_admin+). A fleet-wide "refill soon" list on the Fleet page.
-    - *Settings*: name, location, bases, keys (tenant_admin+).
-  - *Sales* across the tenant's machines: filters, **day / week / month**
-    totals and chart (revenue, orders, not dispensed), by flavor and by
-    machine, the sales table, CSV.
-  - *Users* (tenant_admin+).
-- **Platform only:** *Tenants*, *Users* across tenants, *Audit*,
-  *Unregistered machines*.
-- **First sign-in** with a temporary password shows only the
-  change-password form (§4.4).
-- Role-aware: controls a role can't use aren't shown. For an operator,
-  price and offer fields are read-only. Currency is shown as
-  `₹` with whole rupees, and times in `DISPLAY_TZ`.
-- Styling: a small hand-written stylesheet. It reuses the kiosk palette's
-  brand colours (`ui/theme/palette.gd`) as CSS variables so it looks like
-  one product.
+- **Stack and serving:**
+  - a React + Vite app in `/webdashboard`, JavaScript, UI components from
+    **Ant Design 6** themed for FuelBot;
+  - `npm run build` → `webdashboard/dist`, served by this server at
+    `/dashboard/` with its own strict CSP (§4.6), an SPA fallback, and
+    long-cache hashed assets;
+  - it uses only `/api/v1`, same origin, with the session cookie and the
+    CSRF header.
+- **Two audiences, one UI:**
+  - staff land on **Fleet** (all tenants, problems first) and get a
+    tenant switcher plus Platform pages (Tenants, Faults, Telemetry,
+    Audit, Unregistered, all users, all sales);
+  - tenant users land on **Home** (today's KPIs, revenue and flavor-mix
+    charts, machines, refill soon).
+  - Both share Sales, Stock, Machines (with tabs: Menu, Config preview,
+    Stock, Sales, Settings, Bases, Keys; staff also Maintenance,
+    Telemetry, Faults), Products, Users and Company.
+- **Role-aware from `/auth/me` permissions:** controls a role can't use
+  aren't shown, and operators see prices read-only. The server still
+  enforces everything; tenant screens show no platform-only data (§4.7),
+  and a failed sale is "Not dispensed".
+- **Fully responsive** (phone, tablet, desktop); the FuelBot look in a
+  light theme (no dark mode for now); English; no auto-refresh (a Refresh button).
+- **Sales** by day / ISO week / month (§4.9), by flavor and machine, CSV,
+  a Not-dispensed work list, and a printable report.
+- **Provisioning card:** tenant id, machine id and the once-shown key in a
+  typeable, copyable, printable form.
+- **Notes next to Save:** "reaches the machine at its next restart";
+  maintenance "within about 2 minutes".
+- **Not in S7:** image upload (S5), alerts, refunds, per-tenant themes,
+  i18n.
 
 ### 4.11 Logging & secrets
 
@@ -819,8 +848,18 @@ step**, no framework, and it uses only `/api/v1`.
 `MACHINE_AUTH` (`required`), `STOCK_LOW_PORTIONS` (15), `OFFLINE_AFTER_SEC` (300), `DISPLAY_TZ`
 (`Asia/Kolkata`), `STORAGE` (`local`), `LOCAL_STORAGE_DIR`, `S3_BUCKET`,
 `S3_REGION` (`ap-south-1`), `S3_PREFIX`, `S3_PUBLIC_BASE_URL`,
-`LOG_REQUESTS` (true). Ports in use locally: the mock on 8787, the test
-mock on 8788, and **the server on 8790**.
+`LOG_REQUESTS` (true).
+
+S7 adds:
+- `DASHBOARD_DIR` (default `<repo>/webdashboard/dist`);
+- `IMAGE_ORIGINS` (extra `https://` image origins for the dashboard CSP).
+
+Ports in use locally:
+- 8787: the mock;
+- 8788: the test mock;
+- **8790: the server**;
+- S7: 5173 for the dashboard's Vite dev server, and 8795 for the
+  dashboard's browser-test server.
 
 ### 4.13 Estimated stock (no sensors)
 
@@ -887,7 +926,8 @@ days_left = portions_left / rate   (null when there were no doses)
 | `GET …/stock/history` | members | refills and adjustments, newest first (cursor pages) |
 
 Plus `GET /api/v1/stock?state=low,empty` (scoped): every visible hopper
-that needs attention across the fleet, for the "refill soon" list.
+that needs attention across the fleet, for the "refill soon" list. **S7**
+adds a `tenant=` filter, with the same rule as `/fleet`.
 `portion_g` is set through the product (`PATCH …/products/:pid`) and
 `low_portions` through the menu item.
 
@@ -925,10 +965,15 @@ server/
 │   ├── services/             catalog.js (every catalog write), health.js (status), audit.js,
 │   │                         views.js (platform / tenant projections, §4.7), stock.js (§4.13)
 │   └── storage/              index.js, local.js, s3.js
-├── public/                   the dashboard (index.html, js/, css/)
 ├── scripts/                  db.js (local mongod), seed.js, create-admin.js, import-config.js
 └── test/                     helpers.js + *.test.js (node:test, supertest, in-memory MongoDB)
+
+webdashboard/                 the dashboard (S7, 2026-09-28): React + Vite; src/, e2e/, devdocs/
+                              (plan, stories, design); its build (dist/) is served at /dashboard/
 ```
+
+`server/public/` from the earlier sketch is dropped: the dashboard is its
+own project at the repo root.
 
 ## 6. Build order
 
@@ -945,7 +990,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S5 | Product images (**deferred**, after S6) | §4.8, local and S3 drivers (S3 tested against a stubbed client) | the images SIGNOFF's pending "real S3" item, once a bucket exists |
 | S6 | Read APIs | §4.9, fleet status | reporting without the dashboard |
 | S6b | Estimated stock | §4.13: `portion_g`, `low_portions`, `StockEvent`, refills / adjustments, the estimate, stock APIs | knowing when to refill, before the dashboard shows it |
-| S7 | Dashboard | §4.10, plus `group=week\|month` in the sales summary (§4.9) | FuelBot staff and tenants |
+| S7 | Dashboard (**planned 2026-09-28; review pending**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
@@ -1035,3 +1080,10 @@ chained with `&&` after the checks.
 7. **Stock:** should an empty estimate ever mark the flavor sold out
    automatically (e.g. as an opt-in per machine)? Should low stock notify
    someone (with alerting, §8)?
+8. **Dashboard (S7), before SRV-30:**
+   - JavaScript or TypeScript for `/webdashboard`? The recommendation is
+     JavaScript, matching the server.
+   - Is it acceptable that tenant users see who recorded a refill,
+     including a FuelBot staff email (`last_refill.by`)?
+   - The rest is in
+     [dashboard plan §10](../../../webdashboard/devdocs/plans/dashboard-plan.md).
