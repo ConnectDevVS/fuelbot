@@ -190,6 +190,35 @@ const STRINGS = {
   'conflict.discard': 'Discard mine',
   'config.reject': 'The machine would reject this',
   'config.nothingSaved': 'Nothing was saved.',
+
+  // Fleet (DP §5.2)
+  'fleet.filter': 'Filter by status',
+  'fleet.tenant': 'Filter by tenant',
+  'fleet.search': 'Search name or id',
+  'fleet.empty': 'No machines registered yet.',
+  'fleet.noMatch': 'No machines match these filters.',
+  'fleet.noMachines': 'No machines registered yet.',
+  'fleet.machineCount': '{n} machines',
+  'fleet.machineCount.one': '{n} machine',
+  'fleet.col.machine': 'Machine',
+  'fleet.col.status': 'Status',
+  'fleet.col.seen': 'Last seen',
+  'fleet.col.today': 'Today',
+  'fleet.orders': '{n} orders',
+  'fleet.orders.one': '{n} order',
+  'fleet.notDispensed': '{n} not dispensed',
+  'fleet.maintenance': 'Maintenance: {message}',
+  'fleet.flaggedBy': 'by {who} at {time}',
+  'fleet.refill.title': 'Refill soon',
+  'fleet.refill.none': 'Nothing needs refilling.',
+  'stock.col.product': 'Product',
+  'stock.col.state': 'State',
+  'stock.col.machine': 'Machine',
+  'stock.col.tenant': 'Tenant',
+  'stock.col.left': 'Left',
+  'stock.hopper': 'hopper {n}',
+  'stock.portions': '{n} portions',
+  'stock.portions.one': '{n} portion',
 };
 
 export function t(key, params = {}) {
@@ -200,4 +229,10 @@ export function t(key, params = {}) {
 
 export function hasString(key) {
   return key in STRINGS;
+}
+
+/** Like t(), with `${key}.one` when n is 1 (English plurals: a key has both forms or just one). */
+export function tn(key, n, params = {}) {
+  const one = `${key}.one`;
+  return t(Number(n) === 1 && one in STRINGS ? one : key, { n, ...params });
 }

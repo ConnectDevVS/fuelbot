@@ -67,7 +67,8 @@ covers the Godot kiosk, which S7 never touches.
 - **Platform-only data never reaches a tenant screen** (telemetry,
   maintenance, faults, failure reasons, audit, unregistered machines). A
   failed sale is "Not dispensed".
-- **Strings** only in `src/strings.js` (`t(key, params)`).
+- **Strings** only in `src/strings.js` (`t(key, params)`; `tn(key, n)` picks
+  `key.one` for 1: "1 machine", "3 machines").
 - **Colours** only in `src/theme/palette.js` and `src/styles/tokens.css`
   (kept identical by a test; another test fails on a hex/rgb literal
   anywhere else in `src/`). Light theme only. The lime is a fill with dark
@@ -114,6 +115,11 @@ covers the Godot kiosk, which S7 never touches.
 - JetBrains Mono has no `₹`; Archivo is its fallback in `--fb-font-mono`.
 - The shell is zsh (`${var^^}` fails; unquoted `$var` isn't word-split).
 - Headless browser only: headed windows pop up in front of the user.
+- Screenshots right after a click catch antd's 0.2 s colour transitions
+  and the hover state (a pressed lime chip looked pale): move the pointer
+  away and wait for the final colour (`toHaveCSS`) before `shot()`. antd 6
+  panels (Collapse) animate too: wait until `.ant-collapse-panel` has no
+  `motion` class.
 - Screenshots of dialogs and sheets: `shot(name, { fullPage: false })`
   (fixed overlays don't render in a full-page capture), and wait for antd's
   open animation first (poll the modal's opacity/transform or the drawer's

@@ -68,7 +68,7 @@ test('staff tenant switcher', async ({ page, signInAs, shot }) => {
   await signInAs('staff');
   await page.goto('');
   await expect(page).toHaveURL(/\/dashboard\/fleet$/);
-  const switcher = page.getByRole('combobox', { name: 'Tenant' });
+  const switcher = page.getByRole('combobox', { name: 'Tenant', exact: true });
   await switcher.click();
   await page.getByRole('option', { name: 'PowerFuel Gym' }).click();
   await expect(page).toHaveURL(/\/dashboard\/t\/powerfuel\/home$/);

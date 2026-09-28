@@ -34,3 +34,8 @@ export function relativeTime(value, now = Date.now(), tz = 'Asia/Kolkata') {
   if (secs < 86400) return `${Math.floor(secs / 3600)} h ago`;
   return dayjs(value).tz(tz).format('D MMM, HH:mm');
 }
+
+/** 'Sunday 28 Sep 2026' (page overlines). */
+export function formatDayHeading(value, tz) {
+  return valid(value) ? dayjs(value).tz(tz).format('dddd D MMM YYYY') : '—';
+}
