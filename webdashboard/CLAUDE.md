@@ -91,6 +91,13 @@ covers the Godot kiosk, which S7 never touches.
 - JetBrains Mono has no `₹`; Archivo is its fallback in `--fb-font-mono`.
 - The shell is zsh (`${var^^}` fails; unquoted `$var` isn't word-split).
 - Headless browser only: headed windows pop up in front of the user.
+- `npx playwright test` serves whatever is in `dist/`: after changing `src/`,
+  use `npm run e2e` (it builds first), or the screenshots show old code.
+- Never keep a password in a React Query mutation (`useMutation` keeps its
+  variables in the cache): sign-in and password changes are plain async
+  calls (`src/auth/session.js`).
+- antd derives `colorWarningBg`/`colorErrorBg` from our dark status
+  colours (a muddy fill), so `antdTheme.js` sets them from the palette.
 - The e2e seed runs through the server's own modules
   (`../../server/src/…`, `../../server/test/helpers.js`), which resolve
   their packages from `server/node_modules`: run `npm ci` in `server/` too.

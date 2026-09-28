@@ -1,0 +1,29 @@
+.frame {
+  min-height: 100vh;
+}
+
+.topbar {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--fb-border);
+  background: var(--fb-surface);
+}
+
+.brand {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.main {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}

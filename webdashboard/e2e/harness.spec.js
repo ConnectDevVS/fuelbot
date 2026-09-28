@@ -1,10 +1,13 @@
 // The harness's own tests (SRV-31).
 import { CSRF, expect, resetData, test, USERS } from './fixtures.js';
 
-test('placeholder loads with no CSP violation', async ({ page, shot }) => {
+// The first page anyone sees (the SRV-30 placeholder until SRV-32; now sign-in): no CSP violation,
+// the nonce on every <style>, the theme applied.
+test('first page loads with no CSP violation', async ({ page, shot }) => {
   await page.goto('');
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/fuelbot dashboard/i);
-  const button = page.getByRole('button', { name: 'Refresh' });
+  await expect(page).toHaveURL(/\/dashboard\/sign-in/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/sign in/i);
+  const button = page.getByRole('button', { name: 'Sign in' });
   await expect(button).toHaveCSS('background-color', 'rgb(200, 255, 62)');
   await expect(button).toHaveCSS('color', 'rgb(17, 18, 21)');
   const styles = await page.evaluate(() => [...document.querySelectorAll('style')].map((s) => s.nonce));
@@ -12,7 +15,7 @@ test('placeholder loads with no CSP violation', async ({ page, shot }) => {
   expect(styles.every(Boolean), 'every <style> carries the nonce').toBe(true);
   expect(await page.evaluate(async () => { await document.fonts.ready; return document.fonts.check('900 20px Archivo'); }))
     .toBe(true);
-  await shot('placeholder');
+  await shot('first-page');
 });
 
 test('the guard catches a CSP violation', async ({ page, guard }) => {

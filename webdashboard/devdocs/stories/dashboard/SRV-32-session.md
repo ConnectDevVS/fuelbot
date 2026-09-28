@@ -28,8 +28,11 @@ and safe.
    - `useMe()` (query key `['me']`, `staleTime: Infinity`);
    - `useCan()` → `can(permission)`;
    - `useDisplayTz()`;
-   - `signIn`, `signOut`, `changePassword` mutations (they reset or
-     refetch `['me']` and clear the cache on sign-out).
+   - `signIn`, `signOut`, `changePassword` (they reset or refetch `['me']`
+     and clear the cache on sign-out). **Built as plain async functions,
+     not React Query mutations** (changed while building SRV-32): a
+     mutation keeps its variables, here the password, in the query
+     client's mutation cache, which DP §2.3 forbids.
 5. `src/auth/RequireAuth.jsx`:
    - no session → `/sign-in?next=<path>`;
    - `must_change_password` → `/change-password`.

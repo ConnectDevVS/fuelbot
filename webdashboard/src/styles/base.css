@@ -61,12 +61,20 @@ body {
   outline-offset: 2px;
 }
 
-/* The SRV-30 placeholder page (replaced by the shell in SRV-33). */
-.placeholder {
-  box-sizing: border-box;
+/* Shared page pieces. */
+.page {
   display: grid;
   gap: 16px;
+  justify-items: start;
+}
+
+.page-skeleton {
+  box-sizing: border-box;
   max-width: 960px;
-  margin: 0 auto;
-  padding: 24px 16px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.form-alert {
+  margin-bottom: 16px;
 }

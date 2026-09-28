@@ -14,7 +14,11 @@ export const antdTheme = {
     colorBgContainer: palette.surface,
     colorSuccess: palette.ok,
     colorWarning: palette.warn,
+    // antd derives these from the (dark) status colours, which gives a muddy fill: use ours.
+    colorWarningBg: palette.warnSurface,
+    colorWarningBorder: palette.warnBorder,
     colorError: palette.bad,
+    colorErrorBg: palette.badSurface,
     borderRadius: 10,
     borderRadiusLG: 16,
     fontFamily: fonts.sans,

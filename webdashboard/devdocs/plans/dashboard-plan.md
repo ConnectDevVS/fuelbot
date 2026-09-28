@@ -193,6 +193,9 @@ from the plan.
   `sessionStorage`, the React Query cache, or a `console.*` call. The key
   response is read by a plain `fetch` in the issuing component and kept in
   component state only. An ESLint rule forbids `console` in `src/`.
+  Sign-in and password changes are plain async calls, not React Query
+  mutations, for the same reason: a mutation keeps its variables (the
+  password) in the mutation cache (SRV-32).
 - **Sales CSV:** a plain `<a href="/api/v1/sales/export.csv?…" download>`
   with the current filters. It's a same-origin GET, so the cookie goes along
   and no JS is involved.
