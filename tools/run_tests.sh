@@ -11,6 +11,11 @@ if grep -nE '(print|push_warning|push_error|printerr).*(key_id|key_secret|_auth_
 	echo "run_tests: RazorpayManager may log credentials (see above)" >&2
 	exit 1
 fi
+# The machine key likewise (server plan §4.3): `machine_key` itself, not machine_key_path.
+if grep -rnE '(print|push_warning|push_error|printerr).*machine_key([^_a-zA-Z0-9]|$)' autoload core scenes tools --include=*.gd; then
+	echo "run_tests: the machine key may be logged (see above)" >&2
+	exit 1
+fi
 
 # --- mock server (IDLE-04) ---
 MOCK_PORT=8788

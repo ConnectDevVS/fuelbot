@@ -13,6 +13,8 @@ func test_test_run_is_sandboxed() -> void:
 func test_autoload_paths_are_in_the_sandbox() -> void:
 	var paths := {
 		"tenant": ConfigManager.tenant_id_path,
+		"machine": ConfigManager.machine_id_path,
+		"machine key": ConfigManager.machine_key_path,
 		"config cache": ConfigManager.cache_path,
 		"override": ConfigManager.local_settings_override_path,
 		"order counter": OrderCounter.counter_path,

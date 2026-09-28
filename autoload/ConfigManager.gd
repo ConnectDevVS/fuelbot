@@ -23,6 +23,10 @@ const SANDBOX_DIR := "user://sandbox"
 
 # Overridable for tests: plain vars, not consts.
 var tenant_id_path := "user://tenant_id.txt"
+## The machine's own id (server plan §3.1): sent as X-Machine-Id; provisioned like the tenant id.
+var machine_id_path := "user://machine_id.txt"
+## The machine's key (server plan §4.3): Authorization: Bearer on backend calls. Never logged.
+var machine_key_path := "user://machine_key.txt"
 var cache_path := "user://config_cache.json"
 var default_config_path := "res://config/default_config.json"
 var local_settings_path := "res://config/local_settings.json"
@@ -32,6 +36,8 @@ var auto_boot := true
 var sandboxed := is_sandbox_run()
 
 var tenant_id: String = ""
+var machine_id: String = ""
+var machine_key: String = ""
 var current_config: Dictionary = {}
 var local_settings: Dictionary = {}
 var config_source: String = ""
@@ -66,6 +72,8 @@ func _ready() -> void:
 	if auto_boot:
 		if sandboxed:
 			tenant_id_path = user_path(tenant_id_path)
+			machine_id_path = user_path(machine_id_path)
+			machine_key_path = user_path(machine_key_path)
 			cache_path = user_path(cache_path)
 			local_settings_override_path = user_path(local_settings_override_path)
 			DirAccess.make_dir_recursive_absolute(SANDBOX_DIR)   # HTTPRequest.download_file needs it
@@ -98,6 +106,17 @@ func boot() -> void:
 		tenant_id = FileAccess.get_file_as_string(tenant_id_path).strip_edges()
 	if tenant_id == "":
 		push_warning("[ConfigManager] no tenant id at %s; skipping remote fetch" % tenant_id_path)
+	machine_id = ""
+	if FileAccess.file_exists(machine_id_path):
+		machine_id = FileAccess.get_file_as_string(machine_id_path).strip_edges()
+	if machine_id == "" and tenant_id != "":
+		push_warning("[ConfigManager] no machine id at %s; the backend will refuse this machine" % machine_id_path)
+	machine_key = ""
+	if FileAccess.file_exists(machine_key_path):
+		machine_key = FileAccess.get_file_as_string(machine_key_path).strip_edges()
+	if machine_key == "" and tenant_id != "":
+		push_warning("[ConfigManager] no machine key at %s; a backend that requires keys will refuse this machine"
+			% machine_key_path)
 
 	current_config = {}
 	if FileAccess.file_exists(cache_path):
@@ -438,8 +457,14 @@ func _ensure_nodes() -> void:
 	add_child(_poll_timer)
 
 
+## Backend calls only (config, telemetry, sales): never the image GET or Razorpay.
 func _headers() -> PackedStringArray:
-	return ["X-Tenant-Id: " + tenant_id, "Accept: application/json"]
+	var headers: PackedStringArray = ["X-Tenant-Id: " + tenant_id, "Accept: application/json"]
+	if machine_id != "":
+		headers.append("X-Machine-Id: " + machine_id)
+	if machine_key != "":
+		headers.append("Authorization: Bearer " + machine_key)
+	return headers
 
 
 func _on_boot_completed(result: int, code: int, _headers_in: PackedStringArray, body: PackedByteArray) -> void:

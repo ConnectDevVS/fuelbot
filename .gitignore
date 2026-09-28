@@ -19,6 +19,8 @@ mono_crash.*.json
 # Provisioning / credentials: must never be committed (plan §5 M0)
 *.local.cfg
 tenant_id.txt
+machine_id.txt
+machine_key.txt
 razorpay_credentials.cfg
 local_settings.override.json
 

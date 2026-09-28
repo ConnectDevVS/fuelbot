@@ -111,6 +111,16 @@ every request, so edits apply immediately.
 | payments | `server_error` | 500 |
 | close | `default` | Closed on demand |
 
+## Report scenarios (telemetry, sales)
+
+| Route | Scenario | Purpose |
+|-------|----------|---------|
+| telemetry, sales | `default` | 201 accepted |
+| telemetry, sales | `bad_request` | 400: the app drops the record |
+| telemetry, sales | `server_error` | 500: kept and retried |
+| telemetry | `unauthorized` | 401: kept and retried (machine not identified or key refused) |
+| telemetry | `forbidden` | 403: kept and retried (machine or tenant disabled) |
+
 `assets/qr_demo.png` comes from `make_demo_qr.py`. It looks like a QR but is
 **not scannable**: real QRs come only from Razorpay.
 

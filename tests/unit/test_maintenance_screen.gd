@@ -69,6 +69,15 @@ func test_flag_clearing_returns_to_idle() -> void:
 	assert_eq(Nav.last_requested, ScenePaths.IDLE, "navigated to idle")
 
 
+func test_machine_id_cell() -> void:
+	var prev := ConfigManager.machine_id
+	ConfigManager.machine_id = "machine-042"
+	ConfigManager.set_local_hardware_fault(true)
+	_open()
+	assert_eq(_scene.get_cell_value("diag_machine_id"), "machine-042", "the machine id, not the tenant")
+	ConfigManager.machine_id = prev
+
+
 func test_static_cells() -> void:
 	ConfigManager.set_local_hardware_fault(true)
 	_open()

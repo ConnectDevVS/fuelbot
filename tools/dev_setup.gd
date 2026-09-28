@@ -1,17 +1,22 @@
 extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
-##     [--tenant=machine-042] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
-##     [--payments=mock|razorpay-test] [--bridge-check=off|on] [--clear] [--print-dir]
+##     [--tenant=powerfuel] [--machine=DEV00001] [--machine-key=<key>] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
+##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
-##   + razorpay_base_url -> mock server. Your real razorpay_credentials.cfg is never touched.
+##   + razorpay_base_url -> mock server (the --api origin, or --razorpay-api when the config API
+##   is the real backend server). Your real razorpay_credentials.cfg is never touched.
 ## --payments=razorpay-test: real Razorpay (test mode) using razorpay_credentials.cfg.
 ##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
 ## --bridge-check=off (default): no dead-bridge watchdog, so the app runs without a bridge.
 ##   on: out of service after 30 s without a bridge heartbeat (run a real or fake bridge).
 
 const TENANT_PATH := "user://tenant_id.txt"
+const MACHINE_PATH := "user://machine_id.txt"
+const MACHINE_KEY_PATH := "user://machine_key.txt"
+## The server seed's key for DEV00001 (dev only; server/src/services/keys.js DEV_KEY).
+const DEV_MACHINE_KEY := "DEVK-EYDE-VKEY-DEVK-EY01"
 const OVERRIDE_PATH := "user://local_settings.override.json"
 const CACHE_PATH := "user://config_cache.json"
 const CREDS_PATH := "user://razorpay_credentials.cfg"
@@ -21,15 +26,22 @@ const IMAGE_CACHE_DIR := "user://image_cache"
 
 
 func _initialize() -> void:
-	var tenant := "machine-042"
+	var tenant := "powerfuel"
+	var machine_key := DEV_MACHINE_KEY
+	var machine := "DEV00001"   # the server seed's pinned dev id; real machines get generated ids
 	var api := "http://127.0.0.1:8787/fuelbot"
 	var poll := 10.0
 	var payments := "mock"
+	var razorpay_api := ""
 	var bridge_check := "off"
 	var clear := false
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--tenant="):
 			tenant = arg.trim_prefix("--tenant=")
+		elif arg.begins_with("--machine="):
+			machine = arg.trim_prefix("--machine=")
+		elif arg.begins_with("--machine-key="):
+			machine_key = arg.trim_prefix("--machine-key=")
 		elif arg.begins_with("--api="):
 			api = arg.trim_prefix("--api=")
 		elif arg.begins_with("--poll="):
@@ -38,6 +50,8 @@ func _initialize() -> void:
 			payments = "mock"
 		elif arg.begins_with("--payments="):
 			payments = arg.trim_prefix("--payments=")
+		elif arg.begins_with("--razorpay-api="):
+			razorpay_api = arg.trim_prefix("--razorpay-api=")
 		elif arg.begins_with("--bridge-check="):
 			bridge_check = arg.trim_prefix("--bridge-check=")
 		elif arg == "--clear":
@@ -48,7 +62,7 @@ func _initialize() -> void:
 			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
-		for path in [TENANT_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
+		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
@@ -75,7 +89,7 @@ func _initialize() -> void:
 		"bridge": {"require_heartbeat": bridge_check == "on"},
 	}
 	if payments == "mock":
-		override.api["razorpay_base_url"] = _origin(api)
+		override.api["razorpay_base_url"] = razorpay_api if razorpay_api != "" else _origin(api)
 		override["payments"] = {"credentials_path": MOCK_CREDS_PATH}
 		var cfg := ConfigFile.new()
 		cfg.set_value("razorpay", "key_id", "mock_key")
@@ -89,8 +103,11 @@ func _initialize() -> void:
 		return
 
 	_write(TENANT_PATH, tenant)
+	_write(MACHINE_PATH, machine)
+	_write(MACHINE_KEY_PATH, machine_key)
 	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
-	print("tenant=%s api=%s poll=%ss payments=%s bridge-check=%s" % [tenant, api, poll, payments, bridge_check])
+	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s" % [
+		tenant, machine, api, poll, payments, bridge_check])
 	quit(0)
 
 

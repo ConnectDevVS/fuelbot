@@ -109,11 +109,12 @@ func get_listen_port() -> int:
 	return _listener.get_local_port() if _listening else 0
 
 
-## Stamps event_id / tenant_id / timestamp / source (+ order context for a cycle) and queues it.
+## Stamps event_id / tenant_id / machine_id / timestamp / source (+ order context for a cycle) and queues it.
 func report_event(event: Dictionary, source := "app") -> void:
 	var record := event.duplicate(true)
 	record["event_id"] = Ulid.generate()
 	record["tenant_id"] = ConfigManager.tenant_id
+	record["machine_id"] = ConfigManager.machine_id
 	record["timestamp"] = Time.get_datetime_string_from_system(true) + "Z"  # Godot omits the Z
 	record["source"] = source
 	if record.get("event_type") == "dispense_cycle":

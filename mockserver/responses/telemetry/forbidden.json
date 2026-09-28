@@ -1,0 +1,5 @@
+{
+  "description": "HTTP 403: machine or tenant disabled (the app keeps the record and retries)",
+  "status": 403,
+  "body": {"error": "machine_disabled"}
+}

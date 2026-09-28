@@ -8,6 +8,7 @@ const QUEUE := "user://test_sales/queue.json"
 
 var _snap: Dictionary
 var _tenant := ""
+var _machine := ""
 var _prev_queue := ""
 var _scene: Control
 var _reply: PacketPeerUDP
@@ -19,6 +20,8 @@ func before_each() -> void:
 	_snap = snapshot_app_state()
 	_tenant = ConfigManager.tenant_id
 	ConfigManager.tenant_id = "t-test"
+	_machine = ConfigManager.machine_id
+	ConfigManager.machine_id = "m-test"
 	ConfigManager.local_settings.api.base_url = MOCK_ORIGIN + "/fuelbot"
 	var timing: Dictionary = ConfigManager.local_settings.timing
 	timing.sale_report_retry_interval_sec = 0.3
@@ -53,6 +56,7 @@ func after_each() -> void:
 	await wait_frames(2)
 	_reply.close()
 	ConfigManager.tenant_id = _tenant
+	ConfigManager.machine_id = _machine
 	restore_app_state(_snap)
 	SalesReporter.queue_path = _prev_queue   # the runner's test queue, never the real one
 	SalesReporter.start_queue()
@@ -98,6 +102,7 @@ func test_done_reports_success() -> void:
 		[90, 75, 75, "INR", "upi"], "money")
 	assert_eq([b.dispensing_result, b.dispensing_reason], ["success", ""], "outcome")
 	assert_eq(b.tenant_id, "t-test", "tenant")
+	assert_eq(b.machine_id, "m-test", "machine")
 	assert_true(String(b.timestamp).ends_with("Z") and String(b.timestamp).length() == 20, "UTC timestamp")
 	await wait_seconds(0.5)
 	assert_eq(await _posts(), 1, "exactly one POST")

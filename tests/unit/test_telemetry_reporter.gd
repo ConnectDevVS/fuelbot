@@ -9,6 +9,7 @@ const QUEUE := "user://test_tel/queue.json"
 var _snap: Dictionary
 var _prev_queue := ""
 var _tenant := ""
+var _machine := ""
 var _sender: PacketPeerUDP
 var _order_peer: PacketPeerUDP
 var _scene: Control
@@ -20,6 +21,8 @@ func before_each() -> void:
 	_snap = snapshot_app_state()
 	_tenant = ConfigManager.tenant_id
 	ConfigManager.tenant_id = "t-test"
+	_machine = ConfigManager.machine_id
+	ConfigManager.machine_id = "m-test"
 	ConfigManager.local_settings.api.base_url = MOCK_ORIGIN + "/fuelbot"
 	ConfigManager.local_settings.timing.telemetry_retry_interval_sec = 0.3
 	DirAccess.make_dir_recursive_absolute(QUEUE.get_base_dir())
@@ -45,6 +48,7 @@ func after_each() -> void:
 	_sender.close()
 	_order_peer.close()
 	ConfigManager.tenant_id = _tenant
+	ConfigManager.machine_id = _machine
 	restore_app_state(_snap)
 	TelemetryReporter.queue_path = _prev_queue   # the runner's test queue, never the real one
 	TelemetryReporter.configure_from_settings()
@@ -80,6 +84,7 @@ func test_cycle_event_enriched() -> void:
 	var body := await _last_body()
 	assert_true(Ulid.is_valid(String(body.event_id)), "event_id is a ULID")
 	assert_eq(body.tenant_id, "t-test", "tenant")
+	assert_eq(body.machine_id, "m-test", "machine")
 	assert_true(String(body.timestamp).ends_with("Z") and String(body.timestamp).length() == 20, "UTC timestamp %s" % body.timestamp)
 	assert_eq(body.source, "bridge", "source")
 	assert_eq([body.transaction_id, body.flavor_id, body.base_id, int(body.order_number)],

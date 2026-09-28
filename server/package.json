@@ -1,0 +1,35 @@
+{
+  "name": "fuelbot-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FuelBot backend: kiosk API (config, telemetry, sales), admin API, dashboard",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "dev": "node --env-file-if-exists=.env --watch src/index.js",
+    "db": "node scripts/db.js",
+    "seed": "node --env-file-if-exists=.env scripts/seed.js",
+    "import-config": "node --env-file-if-exists=.env scripts/import-config.js",
+    "create-admin": "node --env-file-if-exists=.env scripts/create-admin.js",
+    "test": "node --test --test-concurrency=4 \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1141.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "image-size": "^2.0.4",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.10.2",
+    "multer": "^2.4.0"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.0"
+  }
+}

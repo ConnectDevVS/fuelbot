@@ -1,0 +1,41 @@
+// /api/v1: the admin API used by the dashboard (plan §4.4). CSRF header on every write;
+// /auth handles sign-in; everything else needs a session and a changed password.
+import express from 'express';
+import { csrfGuard, requirePasswordChanged, requireSession } from '../auth/session.js';
+import { authRouter } from './auth.js';
+import { usersRouter } from './users.js';
+import { auditRouter } from './audit.js';
+import { tenantsRouter } from './tenants.js';
+import { productsRouter } from './products.js';
+import { machinesRouter } from './machines.js';
+import { menusRouter } from './menus.js';
+import { keysRouter } from './keys.js';
+import { fleetStockRouter, stockRouter } from './stock.js';
+import { unregisteredRouter } from './unregistered.js';
+import { fleetRouter } from './fleet.js';
+import { salesRouter } from './sales.js';
+import { faultsRouter, telemetryRouter } from './telemetry.js';
+import { ordersRouter } from './orders.js';
+
+export function apiRouter(settings) {
+  const router = express.Router();
+  router.use(csrfGuard);
+  router.use('/auth', authRouter(settings));
+  router.use(requireSession, requirePasswordChanged);
+  router.use('/users', usersRouter(settings));
+  router.use('/audit', auditRouter());
+  router.use('/tenants/:tid/products', productsRouter());
+  router.use('/tenants/:tid/machines/:mid/menu', menusRouter());
+  router.use('/tenants/:tid/machines/:mid/keys', keysRouter());
+  router.use('/tenants/:tid/machines/:mid/stock', stockRouter());
+  router.use('/tenants/:tid/machines', machinesRouter());
+  router.use('/unregistered', unregisteredRouter());
+  router.use('/fleet', fleetRouter());
+  router.use('/stock', fleetStockRouter());
+  router.use('/sales', salesRouter());
+  router.use('/telemetry', telemetryRouter());
+  router.use('/faults', faultsRouter());
+  router.use('/orders', ordersRouter());
+  router.use('/tenants', tenantsRouter());
+  return router;
+}
