@@ -219,6 +219,30 @@ const STRINGS = {
   'stock.hopper': 'hopper {n}',
   'stock.portions': '{n} portions',
   'stock.portions.one': '{n} portion',
+
+  // Charts (SRV-37)
+  'chart.revenue': 'Revenue',
+  'chart.revenueAria': 'Revenue chart, {n} periods',
+  'chart.flavorMix': 'Flavor mix',
+  'chart.dispensed': 'Dispensed',
+  'chart.notDispensed': 'Not dispensed',
+  'chart.noSales': 'No sales in this period',
+  'chart.revenueWord': 'revenue',
+  'chart.ordersWord': 'orders',
+  'chart.ordersWord.one': 'order',
+  'chart.orders': '{n} orders',
+  'chart.orders.one': '{n} order',
+  'chart.ndShort': '{n} not dispensed ({amount})',
+  'chart.ndTip': 'not dispensed ({n})',
+  'chart.other': 'Other ({n} flavors)',
+  'chart.total': 'Total',
+  'chart.showTable': 'Show as table',
+  'chart.hideTable': 'Hide table',
+  'chart.col.period': 'Period',
+  'chart.col.revenue': 'Revenue',
+  'chart.col.orders': 'Orders',
+  'chart.col.nd': 'Not dispensed',
+  'chart.col.flavor': 'Flavor',
 };
 
 export function t(key, params = {}) {

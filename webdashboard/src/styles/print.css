@@ -5,6 +5,14 @@
     background: var(--fb-surface);
   }
 
+  /* Charts keep their colours and hatching on paper. */
+  svg,
+  figure {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    break-inside: avoid;
+  }
+
   .no-print {
     display: none !important;
   }

@@ -18,6 +18,7 @@ import { Sheet } from '../ui/Sheet.jsx';
 import { machineName } from '../lib/names.js';
 import { formatMoney } from '../lib/money.js';
 import { GalleryForm } from './GalleryForm.jsx';
+import { GalleryCharts } from './GalleryCharts.jsx';
 import styles from './gallery.module.css';
 
 const NOW = Date.parse('2026-09-28T07:12:00Z');
@@ -124,6 +125,10 @@ function GalleryBody() {
           <Col xs={24} lg={12}><Card size="small"><NotFoundState /></Card></Col>
           <Col xs={24} lg={12}><Card size="small"><NotAvailableState /></Card></Col>
         </Row>
+      </Section>
+
+      <Section title="Charts">
+        <GalleryCharts />
       </Section>
 
       <Section title="Forms (a stub server: no requests)">

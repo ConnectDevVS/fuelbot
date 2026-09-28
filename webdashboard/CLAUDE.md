@@ -102,7 +102,13 @@ covers the Godot kiosk, which S7 never touches.
   without upgrading.
 - antd `List` is deprecated in 6.6: phone card lists use `Card`s.
 - Charts: an SVG with a fixed `width` overflows at 390 px. Use `viewBox` +
-  `width: 100%`.
+  `width: 100%`. `src/charts/` measures its box (`useWidth`) and draws at
+  that size, so SVG text stays 11 px on a phone. Bucket keys come from
+  `lib/time.js` `bucketKeys()` (the server's `%Y-%m-%d` / `%G-W%V` / `%Y-%m`,
+  walked by calendar date so DST can't skip a day). Marks use
+  `--fb-chart-*` only (validated with the dataviz checker); x labels go
+  through `placeLabels()` (centred, clamped, never touching). A
+  not-dispensed part under 1 px isn't drawn; the tooltip and table keep it.
 - In a CSS grid layout, `main` needs `min-width: 0`, or a wide child makes
   the page scroll sideways.
 - Expected 401/403s show as console "Failed to load resource" lines. The
