@@ -166,6 +166,30 @@ const STRINGS = {
   'confirm.archiveProduct.title': 'Archive {name}?',
   'confirm.archiveProduct.body': "It disappears from the product list and can't be added to menus. Old sales keep its name.",
   'confirm.archiveProduct.ok': 'Archive product',
+
+  // Forms (SRV-35, DP §4 patterns 10–13)
+  'form.body': 'request',
+  'price.locked': 'Only tenant admins change prices',
+  'price.required': 'Enter a price',
+  'price.whole': 'Whole rupees, more than 0',
+  'note.restart': 'Changes reach the machine at its next restart.',
+  'note.maintenance': 'Takes effect within about 2 minutes.',
+  'unsaved.label': 'Unsaved changes',
+  'unsaved.discard': 'Discard',
+  'unsaved.save': 'Save',
+  'unsaved.leave.title': 'Leave without saving?',
+  'unsaved.leave.body': 'Your changes on this page will be lost.',
+  'unsaved.leave.ok': 'Leave',
+  'unsaved.leave.stay': 'Stay',
+  'conflict.title': 'Someone else changed this since you opened it.',
+  'conflict.body': 'Here is what differs. Keep your changes on top of theirs, or take theirs.',
+  'conflict.field': 'Field',
+  'conflict.theirs': 'Theirs (saved)',
+  'conflict.yours': 'Yours',
+  'conflict.keep': 'Keep my changes',
+  'conflict.discard': 'Discard mine',
+  'config.reject': 'The machine would reject this',
+  'config.nothingSaved': 'Nothing was saved.',
 };
 
 export function t(key, params = {}) {

@@ -30,6 +30,9 @@ export default defineConfig({
     locale: 'en-GB',
     timezoneId: 'Asia/Kolkata',
     trace: 'retain-on-failure',
+    // A hung step fails fast and names itself (one run hung 1.3 min past the test timeout).
+    actionTimeout: 10000,
+    navigationTimeout: 15000,
   },
   projects: [
     { name: 'phone', use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } },

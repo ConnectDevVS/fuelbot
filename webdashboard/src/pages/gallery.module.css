@@ -40,3 +40,11 @@
 .copyCard {
   max-width: 640px;
 }
+
+.formCard {
+  max-width: 820px;
+}
+
+.form {
+  margin-top: 12px;
+}

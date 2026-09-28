@@ -35,6 +35,7 @@ export default [
         { selector: 'JSXAttribute[name.name="dangerouslySetInnerHTML"]', message: 'No HTML injection (dashboard CLAUDE.md).' },
         { selector: 'MemberExpression[property.name=/^(innerHTML|outerHTML|insertAdjacentHTML)$/]', message: 'No HTML injection.' },
         { selector: STATIC_MODAL, message: 'Use App.useApp().modal: the static Modal methods miss the theme and CSP nonce.' },
+        { selector: 'JSXAttribute[name.name="autoSize"]', message: "TextArea autoSize writes a style attribute string, which the CSP blocks: use rows." },
       ],
       'no-restricted-globals': ['error',
         { name: 'localStorage', message: 'The dashboard stores nothing in the browser.' },

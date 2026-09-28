@@ -74,6 +74,14 @@ covers the Godot kiosk, which S7 never touches.
   text, never text on white and never a chart mark.
 - CSS Modules (`*.module.css`) for layout and our own pieces; no CSS
   framework besides antd.
+- **Writes use `src/ui/forms/`** (DP §4 patterns 10–13):
+  `useVersionedSave` (If-Match, the Conflict dialog on 409, generic error
+  on 428, field errors + `FormError` summary, `configError` for
+  `InvalidConfigPanel` on 422), `PriceField` (read-only without
+  `price:write`, still submitted), `RestartNote`, `UnsavedBar` with
+  `useFormDirty` (router blocker + `beforeunload`). Numbers go over the wire
+  as JSON numbers (`InputNumber`, `precision={0}` for rupees and grams).
+  The gallery's form section runs them against a stub server.
 - **Pages are data:** `src/shell/pages.js` lists every URL with the
   permission(s) it needs, its title and nav placement (DP §3). A story that
   builds a page adds its lazy component to `COMPONENTS` in
@@ -114,6 +122,10 @@ covers the Godot kiosk, which S7 never touches.
   leaves the page for the browser UI, and the next Tab is pulled back. Test
   that page content behind never gets focus, not that `activeElement` is
   always inside.
+- **`Input.TextArea autoSize` breaks the CSP**: `@rc-component/input`
+  measures with `setAttribute('style', …)`, which `style-src` blocks
+  (`style-src-attr` violation). Use `rows`; lint bans `autoSize`. The e2e
+  guard found it: expect other antd props that write style strings.
 - `npx playwright test` serves whatever is in `dist/`: after changing `src/`,
   use `npm run e2e` (it builds first), or the screenshots show old code.
 - Never keep a password in a React Query mutation (`useMutation` keeps its
