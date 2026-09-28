@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { can, denial, recordScope, ROLE_PERMISSIONS } from '../src/auth/rbac.js';
+import { can, denial, effectivePermissions, recordScope, ROLE_PERMISSIONS } from '../src/auth/rbac.js';
 
 const platform = { role: 'platform_admin' };
 const tAdmin = { role: 'tenant_admin', tenant_id: 'acme', machines: [] };
@@ -58,5 +58,21 @@ describe('rbac', () => {
 
   it('an unknown role has no permissions', () => {
     assert.equal(denial({ role: 'root', tenant_id: 'acme' }, 'catalog:read', { tenantId: 'acme' }), 'forbidden');
+  });
+  it('effectivePermissions equals the role table', () => {
+    const sorted = (role) => [...ROLE_PERMISSIONS[role]].sort();
+    assert.deepEqual(effectivePermissions(platform), sorted('platform_admin'));
+    assert.deepEqual(effectivePermissions(tAdmin), sorted('tenant_admin'));
+    assert.deepEqual(effectivePermissions({ ...tAdmin, machines: ['m1'] }), sorted('tenant_admin'), 'admins see every machine');
+    assert.deepEqual(effectivePermissions(op), sorted('operator'));
+    assert.deepEqual(effectivePermissions(opOne), sorted('operator').filter((p) => p !== 'products:edit'));
+    assert.deepEqual(effectivePermissions(viewer), sorted('viewer'), 'a limited viewer is unchanged');
+    assert.deepEqual(effectivePermissions({ role: 'nobody' }), []);
+    // Every listed permission passes can() in the user's own scope; nothing else does.
+    for (const user of [platform, tAdmin, op, opOne, viewer]) {
+      for (const p of ROLE_PERMISSIONS.platform_admin) {
+        assert.equal(effectivePermissions(user).includes(p), can(user, p, { tenantId: 'acme' }), `${user.role} ${p}`);
+      }
+    }
   });
 });

@@ -4,7 +4,7 @@
 import { HttpError } from '../errors.js';
 
 // Platform-only data and controls (plan §4.7): no tenant role ever holds these.
-const PLATFORM_ONLY = [
+export const PLATFORM_ONLY = [
   'tenants:create', 'tenants:disable', 'telemetry:read', 'faults:read', 'maintenance:read',
   'maintenance:write', 'audit:read', 'unregistered:read',
 ];
@@ -57,6 +57,15 @@ export function denial(user, permission, { tenantId, machine } = {}) {
   if (!hasPermission(user, permission)) return 'forbidden';
   if (NEEDS_ALL_MACHINES.has(permission) && !hasAllMachines(user)) return 'forbidden';
   return null;
+}
+
+/**
+ * What the user may do, for /auth/me (DP §2.5): the role's set minus the permissions that need
+ * every machine when the user is limited to some. Sorted. The same table can() uses.
+ */
+export function effectivePermissions(user) {
+  const all = hasAllMachines(user);
+  return [...(ROLE_PERMISSIONS[user?.role] ?? [])].filter((p) => all || !NEEDS_ALL_MACHINES.has(p)).sort();
 }
 
 export function can(user, permission, scope) {

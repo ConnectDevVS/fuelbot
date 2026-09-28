@@ -533,10 +533,10 @@ tenant check happens once per request.
 
 | Method & path | Who | What |
 |---|---|---|
-| `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns the user. Rate-limited |
+| `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns `{user}` (the dashboard calls `/auth/me` next). Rate-limited |
 | `POST /auth/logout` | signed in | clears the cookie |
-| `GET /auth/me` | signed in | the user, role, tenant, machines. **S7 adds** `permissions` (the effective set from `auth/rbac.js`), `all_machines`, `tenant {id, name, logo_text}` (null for platform), `display_tz`, `session_expires_at` |
-| `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end) |
+| `GET /auth/me` | signed in (also while a password change is required) | `{user, permissions, all_machines, tenant, display_tz, session_expires_at}` (SRV-28): `permissions` is the effective set from `auth/rbac.js` `effectivePermissions()` (the role's set, minus `products:edit` for a user limited to some machines), sorted; `tenant` is `{id, name, logo_text}`, null for platform; `session_expires_at` is ISO UTC without milliseconds |
+| `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end); answers like `/auth/me`, with the new session's expiry |
 | `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant |
 | `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions). **No deletion**: a disabled user can be re-enabled |
 | `POST /users/:id/password` | same | set a new temporary password (ends sessions) |

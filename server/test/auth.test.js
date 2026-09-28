@@ -4,6 +4,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { CSRF, PASSWORD, makeUser, startServer } from './helpers.js';
 import { Tenant, User } from '../src/models/index.js';
+import { PLATFORM_ONLY } from '../src/auth/rbac.js';
 
 function cookieOf(res) {
   return (res.headers['set-cookie'] ?? []).find((c) => c.startsWith('fb_session='));
@@ -18,7 +19,7 @@ describe('sessions (/api/v1/auth)', () => {
   after(async () => { await ctx.stop(); });
   beforeEach(async () => {
     await ctx.reset();
-    await Tenant.create({ _id: 'powerfuel', name: 'PowerFuel Gym' });
+    await Tenant.create({ _id: 'powerfuel', name: 'PowerFuel Gym', branding: { logo_text: 'PF' } });
     await makeUser({ email: 'ops@fuelbot.example', role: 'platform_admin' });
     await makeUser({ email: 'owner@powerfuel.example', role: 'tenant_admin', tenant_id: 'powerfuel' });
   });
@@ -161,5 +162,69 @@ describe('sessions (/api/v1/auth)', () => {
     assert.equal(res.status, 200);
     assert.match(cookieOf(res), /fb_session=;/);
     assert.equal((await agent.get('/api/v1/auth/me')).status, 401);
+  });
+  const meAs = async (fields) => {
+    if (fields) await makeUser(fields);
+    const agent = request.agent(ctx.app);
+    const res = await login(agent, fields?.email ?? 'ops@fuelbot.example');
+    assert.equal(res.status, 200);
+    return { agent, me: (await agent.get('/api/v1/auth/me')).body };
+  };
+
+  it('/auth/me returns permissions, tenant, tz, expiry', async () => {
+    const { me: ops } = await meAs();
+    assert.equal(ops.tenant, null);
+    assert.equal(ops.all_machines, true);
+    assert.equal(ops.display_tz, 'Asia/Kolkata');
+    for (const p of ['telemetry:read', 'audit:read', 'tenants:create', 'maintenance:write']) assert.ok(ops.permissions.includes(p), p);
+    assert.equal(ops.user.email, 'ops@fuelbot.example');
+    assert.ok(!('password_hash' in ops.user));
+
+    const { me: owner } = await meAs({ email: 'o2@powerfuel.example', role: 'tenant_admin', tenant_id: 'powerfuel' });
+    assert.deepEqual(owner.tenant, { id: 'powerfuel', name: 'PowerFuel Gym', logo_text: 'PF' });
+    for (const p of ['price:write', 'stock:write', 'keys:manage']) assert.ok(owner.permissions.includes(p), p);
+
+    const { me: limited } = await meAs({ email: 'op1@powerfuel.example', role: 'operator', tenant_id: 'powerfuel',
+      machines: ['DEV00001'] });
+    assert.equal(limited.all_machines, false);
+    assert.deepEqual(limited.user.machines, ['DEV00001']);
+    assert.ok(!limited.permissions.includes('products:edit'));
+    assert.ok(!limited.permissions.includes('price:write'));
+    assert.ok(limited.permissions.includes('menu:edit'));
+
+    const { me: viewer } = await meAs({ email: 'v@powerfuel.example', role: 'viewer', tenant_id: 'powerfuel' });
+    assert.deepEqual(viewer.permissions, ['catalog:read', 'machines:read', 'sales:read', 'tenant:read']);
+    assert.equal(viewer.all_machines, true);
+  });
+
+  it('no tenant user ever gets a platform-only permission', async () => {
+    for (const [i, role] of ['tenant_admin', 'operator', 'viewer'].entries()) {
+      for (const machines of [[], ['DEV00001']]) {
+        if (role === 'tenant_admin' && machines.length) continue;
+        const { me } = await meAs({ email: `t${i}-${machines.length}@powerfuel.example`, role, tenant_id: 'powerfuel', machines });
+        assert.deepEqual(me.permissions.filter((p) => PLATFORM_ONLY.includes(p)), [], role);
+      }
+    }
+  });
+
+  it('session_expires_at is 48 h after sign-in', async () => {
+    const { agent, me } = await meAs({ email: 'exp@powerfuel.example', role: 'viewer', tenant_id: 'powerfuel' });
+    assert.match(me.session_expires_at, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/, 'ISO UTC, no milliseconds');
+    const drift = Date.parse(me.session_expires_at) - (Date.now() + 48 * 3600 * 1000);
+    assert.ok(Math.abs(drift) < 5000, `drift ${drift} ms`);
+    await new Promise((r) => { setTimeout(r, 1100); });   // JWT exp has whole seconds
+    const changed = await agent.post('/api/v1/auth/password').set(CSRF).send({ current: PASSWORD, new: 'a brand new secret' });
+    assert.equal(changed.status, 200);
+    assert.ok(changed.body.permissions.includes('sales:read'), 'the same shape as /auth/me');
+    assert.ok(changed.body.session_expires_at > me.session_expires_at, 'a new session, a later expiry');
+    assert.equal((await agent.get('/api/v1/auth/me')).body.session_expires_at, changed.body.session_expires_at);
+  });
+
+  it('/auth/me works while a password change is required', async () => {
+    const { agent, me } = await meAs({ email: 'temp@powerfuel.example', role: 'operator', tenant_id: 'powerfuel',
+      must_change_password: true });
+    assert.equal(me.user.must_change_password, true);
+    assert.ok(Array.isArray(me.permissions));
+    assert.equal((await agent.get('/api/v1/sales')).body.error, 'password_change_required');
   });
 });

@@ -48,6 +48,12 @@ the Godot kiosk app. Read it only when a change touches the app.
   / `assertCan(user, 'menu:edit', {tenantId, machine})` from `auth/rbac.js`.
   Outside the caller's scope is 404, inside without the permission 403. Add a
   row to the RBAC table test (`test/audit.test.js`) for every new route.
+  A new `/tenants/:tid/…` route also needs an entry (a valid body) in
+  `CALLS` in `test/tenant-isolation.test.js`: that test enumerates the router
+  stack and fails on a route it doesn't cover.
+- **`/auth/me` permissions come from `effectivePermissions()`** (`auth/rbac.js`);
+  the dashboard gates on them. A new permission or a `NEEDS_ALL_MACHINES`
+  rule changes what the UI shows, so check `webdashboard/` in the same change.
 - **Admin writes:** raw body through `checkBody()` (`catalog/input.js`) first;
   versioned resources check `If-Match` (`checkVersion()`); config-affecting
   machine writes go through `saveMachine()` (bumps `menu_version`, model hook
