@@ -12,7 +12,8 @@ later, **so that** provisioning never fails because of a typo.
   - SP §4.3, §4.4 (machines, keys);
   - machine-keys decisions 1–6; catalog-admin decisions 1, 3;
   - `server/README.md` "Setting up a machine";
-  - DP §5.4, §5.5, §5.6.7 (+ wireframes).
+  - DP §5.4, §5.5, §5.6.7 (+ wireframes);
+  - mock-ups `design/provisioning-desktop.png`, `provisioning-phone.png`.
 - **Depends on:** SRV-41 (the machine page frame).
 
 ## Deliverables
@@ -56,7 +57,7 @@ later, **so that** provisioning never fails because of a typo.
   - the key is shown `7KQM - 2XPA - …` and copied as
     `7KQM-2XPA-9TRD-4WZC-HN3B`;
   - tips per DP §5.5;
-  - **Print** prints only the card (light, no checkbox);
+  - **Print** prints only the card (no checkbox);
   - "I've written down or printed the key" enables Done;
   - leaving early → a confirm.
 - **Keys tab** (`keys:manage`):
@@ -97,7 +98,7 @@ later, **so that** provisioning never fails because of a typo.
 - [ ] `e2e/machines.spec.js` › "operators and viewers can't register or
       see keys".
 - [ ] Screenshots: the list, each register step, the card (phone and
-      desktop, both themes), the Keys tab. Looked at: key legibility on
+      desktop, compared with the provisioning mock-ups), the Keys tab. Looked at: key legibility on
       phone.
 
 ## Out of scope

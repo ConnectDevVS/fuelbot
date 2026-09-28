@@ -12,8 +12,8 @@ off.
 ## Deliverables
 
 1. `e2e/walkthrough.spec.js`: each of the 6 active seeded roles walks
-   every page it can see (from the nav, not hard-coded), on all 3 projects
-   and in both themes, with a screenshot per page.
+   every page it can see (from the nav, not hard-coded), on all 3 projects,
+   with a screenshot per page.
 2. `e2e/leak-scan.spec.js`: the platform-only data scan (below).
 3. `webdashboard/devdocs/stories/dashboard/SIGNOFF.md`, filled in.
 4. Docs:
@@ -62,13 +62,12 @@ off.
   6. Register a new machine in the dashboard, provision the app with the
      card's three values (`dev_setup.gd --tenant= --machine=
      --machine-key=`), copy a menu, restart: the app boots with that menu.
-- **Screenshots:** the walkthrough's full matrix (≈ 6 roles × pages × 3 ×
-  2) goes in `.screenshots/`; **every one is looked at**. SIGNOFF lists the
+- **Screenshots:** the walkthrough's full matrix (≈ 6 roles × pages × 3) goes in `.screenshots/`; **every one is looked at**. SIGNOFF lists the
   anomalies found and fixed.
 
 ## Acceptance criteria
 
-- [ ] `e2e/walkthrough.spec.js` passes for every role, project and theme,
+- [ ] `e2e/walkthrough.spec.js` passes for every role and project,
       with no CSP violation, no page error and no horizontal overflow (the
       harness guard).
 - [ ] `e2e/leak-scan.spec.js` › "no platform-only keys in tenant

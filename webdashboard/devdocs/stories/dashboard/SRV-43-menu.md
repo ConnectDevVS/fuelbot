@@ -12,6 +12,7 @@ receives a menu it would reject.
   - SP §3.2 (config build and rules), §4.4 (menus, `If-Match`, copy);
   - catalog-admin decisions 2–5;
   - DP §5.6.1, §5.6.2 (+ wireframe), §4.10–4.12;
+  - mock-up `design/menu-desktop.png`;
   - captured 422 `invalid_config`.
 - **Depends on:** SRV-42.
 
@@ -91,7 +92,7 @@ receives a menu it would reject.
       preview has no maintenance block" (the response and the page text).
 - [ ] `e2e/menu.spec.js` › "unsaved changes block leaving the tab".
 - [ ] Screenshots: the menu (owner, operator, viewer), 422 state, conflict
-      dialog, config preview, 3 sizes × 2 themes. Looked at: phone row
+      dialog, config preview, 3 sizes. Looked at: phone row
       layout.
 
 ## Out of scope

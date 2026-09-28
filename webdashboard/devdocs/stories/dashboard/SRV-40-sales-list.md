@@ -88,7 +88,7 @@ share the numbers.
       `.screenshots/sales-report.pdf`. **Opened and looked at** (charts
       legible in light, pages break cleanly).
 - [ ] Screenshots: table, Not dispensed (owner, staff), order (owner,
-      staff), 3 sizes × 2 themes. Looked at.
+      staff), 3 sizes. Looked at.
 
 ## Out of scope
 

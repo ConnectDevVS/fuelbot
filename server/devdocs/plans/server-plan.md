@@ -65,6 +65,7 @@ the index.
 | 2026-09-28 | **Dashboard devices: fully responsive** (phone, tablet, desktop). **Look:** one FuelBot look (the kiosk's dark + lime) **plus a light mode**; the tenant's name and logo text in the top bar, no per-tenant themes. **Landing:** staff → Fleet, tenant users → Home (product owner) | Owners check sales and technicians record refills on phones; one product look | §4.10 |
 | 2026-09-28 | **Dashboard charts:** revenue over time (day / ISO week / month) and flavor mix only. **No auto-refresh:** a Refresh button with an "Updated" time. **English only, best-effort accessibility.** **Extras:** a "Not dispensed" work list and a print-friendly sales report (product owner) | Keeps `/fleet` and `/stock` costs bounded; what owners asked for | §4.9, §4.10 |
 | 2026-09-28 | **S7 server additions** (planning): `/auth/me` returns the caller's effective permissions, tenant, `display_tz` and session expiry; `/fleet` and `/stock` take `tenant=`; the sales CSV gains `local_time` (`DISPLAY_TZ`); `/dashboard` gets its own strict CSP (`script-src 'self'`, `style-src 'self'`, `img-src` from the storage settings + `IMAGE_ORIGINS`) | The UI never copies the role table; staff inside a tenant don't load the fleet; spreadsheets show local times; the Vite build runs with no inline code (spike A) | §4.4, §4.6, §4.9, §4.12 |
+| 2026-09-28 | **Dashboard: light theme only for now** (product owner, revising the same day's "dark + light"): no dark mode and no theme toggle. Tokens stay in one block so a dark theme can be added later. **No separate claude.design session for S7** (product owner): the plan's wireframes plus styled mock-ups of Home, the provisioning card, the Menu editor, the Stock tab and the Sales filters are the design; the claude.design prompt stays as an option | Less to build and test (half the screenshots); the mock-ups cover the riskiest screens | §4.10 |
 
 ## 1. Context
 
@@ -813,8 +814,8 @@ are
   aren't shown, and operators see prices read-only. The server still
   enforces everything; tenant screens show no platform-only data (§4.7),
   and a failed sale is "Not dispensed".
-- **Fully responsive** (phone, tablet, desktop); the FuelBot dark look
-  plus a light mode; English; no auto-refresh (a Refresh button).
+- **Fully responsive** (phone, tablet, desktop); the FuelBot look in a
+  light theme (no dark mode for now); English; no auto-refresh (a Refresh button).
 - **Sales** by day / ISO week / month (§4.9), by flavor and machine, CSV,
   a Not-dispensed work list, and a printable report.
 - **Provisioning card:** tenant id, machine id and the once-shown key in a

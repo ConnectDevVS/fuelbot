@@ -1,12 +1,12 @@
 # SRV-33: App shell and navigation
 
 **As a** user on any device, **I want** navigation that shows only what my
-role can use, my company's name, a theme switch, and a sensible landing
+role can use, my company's name, and a sensible landing
 page, **so that** I get where I need to be quickly on a phone or a desk.
 
 - **Refs:**
   - DP §0.1 (landing, look, devices);
-  - DP §2.7 (gating), §2.8 (theme toggle), §2.9 (layouts);
+  - DP §2.7 (gating), §2.9 (layouts);
   - DP §3 (IA: nav per role, landing, URL map), §6 (permission map);
   - mock-up `design/home-*.png`.
 - **Depends on:** SRV-32.
@@ -26,11 +26,7 @@ page, **so that** I get where I need to be quickly on a phone or a desk.
    - tenant badge (`logo_text` in a lime square + name);
    - for staff, a **TenantSwitcher** (`GET /tenants`): "All tenants" →
      `/fleet`, a tenant → `/t/<id>/home`;
-   - ThemeToggle;
    - UserMenu (name, role label, Change password, Sign out).
-5. `src/shell/theme.js`: `getTheme/setTheme` (`system|dark|light` in
-   `localStorage['fb_theme']`, in try/catch), a live `prefers-color-scheme`
-   listener for `system`.
 6. `src/shell/icons.jsx`: inline SVG icons as React components. They're
    JSX, which is fine under the CSP.
 7. `src/pages/NotFound.jsx`, `NotAvailable.jsx`,
@@ -76,13 +72,13 @@ page, **so that** I get where I need to be quickly on a phone or a desk.
 - [ ] `e2e/shell.spec.js` › "gated route shows Not available": the viewer
       at `/t/powerfuel/users` → NotAvailable, and no `/api/v1/users`
       request.
-- [ ] `e2e/shell.spec.js` › "theme toggle persists and follows system":
-      Dark/Light survive reload; System follows `emulateMedia({colorScheme})`.
+- [ ] `e2e/shell.spec.js` › "stays light in OS dark mode":
+      with `emulateMedia({colorScheme: 'dark'})` the body background is still
+      the light `bg` token.
 - [ ] `e2e/shell.spec.js` › "layouts by width": the sidebar at 1440, the
       rail at 820, the tab bar at 390; no horizontal overflow (the harness
       guard).
-- [ ] Screenshots: the shell for staff and tenant_admin, 3 sizes × 2
-      themes; the phone More sheet. Looked at.
+- [ ] Screenshots: the shell for staff and tenant_admin, 3 sizes; the phone More sheet. Looked at.
 
 ## Out of scope
 

@@ -64,7 +64,7 @@ without digging.
 - [ ] `e2e/home.spec.js` › "empty tenant": `boss@globex.test` after a
       reset with globex sales removed → "No sales in the last 14 days",
       and no chart errors.
-- [ ] Screenshots: Home for owner and desk, 3 sizes × 2 themes, compared
+- [ ] Screenshots: Home for owner and desk, 3 sizes, compared
       with `design/home-*.png`. Looked at.
 
 ## Out of scope

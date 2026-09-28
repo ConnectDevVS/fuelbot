@@ -1,7 +1,7 @@
 # SRV-31: Browser test harness (Playwright, seeded server, screenshots)
 
 **As a** developer, **I want** a one-command browser test run against a real
-server with known data, three screen sizes and both themes, and a guard
+server with known data, three screen sizes, and a guard
 that fails on any CSP violation or page error, **so that** role visibility
 and layout are tested and screenshots can be looked at.
 
@@ -78,8 +78,7 @@ and layout are tested and screenshots can be looked at.
 6. `webdashboard/e2e/fixtures.js`:
    - a `test` extended with `signInAs(role)` (API login through
      `page.request`, then go);
-   - `theme(t)` (sets `localStorage.fb_theme` via `addInitScript`);
-   - `shot(name)` → `.screenshots/<project>-<theme>-<name>.png`;
+   - `shot(name)` → `.screenshots/<project>-<name>.png`;
    - an **auto fixture** that:
      - collects `securitypolicyviolation` events (via `addInitScript`)
        and `pageerror`, and fails the test if any occur;
@@ -97,7 +96,7 @@ and layout are tested and screenshots can be looked at.
 ## Acceptance criteria
 
 - [ ] `harness.spec.js` › "placeholder loads with no CSP violation" (all
-      3 projects × dark/light, 6 screenshots, looked at).
+      3 projects, 3 screenshots, looked at).
 - [ ] `harness.spec.js` › "the guard catches a CSP violation": a page
       that adds an inline `<script>` element via `page.evaluate` →
       `securitypolicyviolation` captured and asserted. The guard is reset

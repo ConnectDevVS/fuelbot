@@ -12,7 +12,7 @@ so the evidence has a place.
 | Server | `cd server && npm test` | — |
 | Dashboard unit | `cd webdashboard && npm test` | — |
 | Lint + build | `npm run lint && npm run build` | — |
-| Browser (3 sizes × 2 themes) | `npm run e2e` | — |
+| Browser (3 sizes) | `npm run e2e` | — |
 | Leak scan (tenant roles × pages) | `e2e/leak-scan.spec.js` | — |
 | Kiosk untouched | `tools/run_tests.sh && tools/check_boot.sh` | — |
 

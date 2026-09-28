@@ -64,7 +64,7 @@ and nothing injected can execute.
 
 ## Acceptance criteria
 
-Tests use a temp `DASHBOARD_DIR` with `index.html`, `theme-boot.js` and
+Tests use a temp `DASHBOARD_DIR` with `index.html`, `favicon.svg` and
 `assets/app-abc123.js`.
 
 - [ ] `dashboard.test.js` › "serves index.html with the dashboard CSP":

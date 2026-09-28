@@ -45,9 +45,8 @@ see trends and what sells at a glance, on any screen and on paper.
   - single series, so no legend: the title says "revenue";
   - values labelled at the bar end (₹);
   - more than 8 flavors → the top 7 + "Other".
-- **Tokens:** `--chart-a` / `--chart-b` from `tokens.css` (dark `#7A9F28` /
-  `#AF6ADF`, light `#4D7C0F` / `#9D3FD6`). Text uses text tokens, never the
-  series colour. Print uses the light tokens.
+- **Tokens:** `--chart-a` / `--chart-b` from `tokens.css` (`#4D7C0F` /
+  `#9D3FD6`). Text uses text tokens, never the series colour.
 - **Sizing:** SVG `viewBox` + `width: 100%` (the spike D lesson); the
   height is fixed per breakpoint (200 / 180 / 160).
 - **Hover:** a tooltip with the bucket label, revenue, orders, and not
@@ -70,8 +69,8 @@ see trends and what sells at a glance, on any screen and on paper.
 - [ ] `e2e/charts.spec.js` (gallery charts section) › "no overflow at 390";
       "tooltip on hover and on focus"; "table toggle shows the same
       totals".
-- [ ] Screenshots: both charts, 3 sizes × 2 themes + print emulation.
-      **Looked at:** hatching visible in both themes, labels not
+- [ ] Screenshots: both charts, 3 sizes + print emulation.
+      **Looked at:** hatching visible on screen and in print, labels not
       colliding on phone.
 
 ## Out of scope

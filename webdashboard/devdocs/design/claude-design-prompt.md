@@ -1,9 +1,19 @@
 # Prompt for claude.design: FuelBot web dashboard
 
-Paste everything below the line into claude.design. Attach the four
-reference images from this folder (`home-desktop-dark.png`,
-`home-desktop-light.png`, `home-tablet-light.png`, `home-phone-dark.png`).
-They're a first styled mock-up of one page, and they set the direction.
+**Optional.** S7 doesn't need a claude.design session (product owner,
+2026-09-28): the plan's wireframes and the mock-ups in this folder are the
+design. Use this prompt later if a fuller visual design is wanted (e.g.
+before launch).
+
+Paste everything below the line into claude.design. Attach the mock-ups
+from this folder:
+- `home-desktop.png`, `home-tablet.png`, `home-phone.png`;
+- `provisioning-desktop.png`, `provisioning-phone.png`;
+- `menu-desktop.png`;
+- `stock-phone.png`, `stock-refill-phone.png`;
+- `sales-filters-phone.png`.
+
+They're styled mock-ups of the key screens, and they set the direction.
 
 The full spec behind this prompt is
 [../plans/dashboard-plan.md](../plans/dashboard-plan.md). If the design
@@ -35,10 +45,11 @@ glass effects, and no gradients except the hatch pattern described below.
 
 ## Brand and visual language (keep this)
 
-The dashboard must look like the same product as the machine's own
-touchscreen: near-black surfaces, a single electric-lime accent, heavy
-uppercase display type, and small monospace labels. The attached mock-up
-shows the direction. Refine it; don't replace it.
+The dashboard must feel like the same product as the machine's own
+touchscreen, carried into a **light** office UI: one electric-lime accent,
+heavy uppercase display type, and small monospace labels. **Light theme
+only: don't design a dark mode.** The attached mock-ups show the direction.
+Refine them; don't replace them.
 
 **Fonts** (both OFL, already licensed):
 - **Archivo** (variable, weights 100–900, width 62–125%):
@@ -48,24 +59,7 @@ shows the direction. Refine it; don't replace it.
 - **JetBrains Mono**: small uppercase labels with 0.06em tracking
   ("REVENUE TODAY", "TENANT · POWERFUEL"), plus ids, keys and codes.
 
-**Dark theme** (the default; from the kiosk):
-
-| Token | Hex |
-|---|---|
-| bg | #111215 |
-| surface | #17191E |
-| raised | #1A1C21 |
-| border | #262930 |
-| text | #F4F5F2 |
-| muted | #9AA0A8 |
-| dim | #6B717A |
-| accent (lime) | #C8FF3E |
-| text on accent | #111215 |
-| ok | #4ADE80 |
-| warning / warning surface / warning border | #F5B014 / #211A04 / #5A4309 |
-| bad / bad surface | #F87171 / #2A1414 |
-
-**Light theme** (a user toggle; also used for printing):
+**Colours** (the only theme; also used for printing):
 
 | Token | Hex |
 |---|---|
@@ -76,19 +70,16 @@ shows the direction. Refine it; don't replace it.
 | text | #111215 |
 | muted | #4B5159 |
 | dim | #6B717A |
-| accent | #C8FF3E, used **only as a fill** behind dark text, never as text on white |
+| accent (lime) | #C8FF3E, used **only as a fill** behind dark text (primary buttons, the company badge, the selected segment), never as text on white |
+| text on accent | #111215 |
 | ok | #15803D |
 | warning | #A16207 on #FEF7E6 (border #F2D58A) |
 | bad | #B91C1C on #FDECEC |
 
 **Chart colours** (validated for colour-blind separation; don't change
 them without re-checking):
-
-| Theme | Main series ("Dispensed", single-series bars) | "Not dispensed" |
-|---|---|---|
-| Dark | #7A9F28 | #AF6ADF with a 135° hatch |
-| Light | #4D7C0F | #9D3FD6 with a 135° hatch |
-
+- Main series ("Dispensed", and single-series bars): #4D7C0F.
+- "Not dispensed": #9D3FD6 with a 135° hatch.
 - The bright lime is **not** a chart colour.
 - Bars are ≤ 24 px wide with 4 px rounded tops and square bottoms.
 - A 2 px gap separates stacked segments.
@@ -97,7 +88,8 @@ them without re-checking):
 - Always show a legend when there are two series.
 
 **Shape and space:**
-- 16 px card radius; 10 px control radius; 1 px borders; no shadows in dark.
+- 16 px card radius; 10 px control radius; 1 px borders; shadows only on
+  dialogs and sheets.
 - 8 px spacing grid.
 - Numbers use tabular figures and are right-aligned in tables.
 
@@ -119,7 +111,7 @@ them without re-checking):
 | < 760 px (design at 390 × 844) | top bar + bottom tab bar (4 pages + "More") | one column; tables become cards; side drawers become full-screen sheets; filters open in a bottom sheet behind a "Filters (2)" button |
 
 - **Top bar:** the company badge (a lime square with 2–4 letters, e.g.
-  "PF"), the company name, a theme toggle (System / Dark / Light), and the
+  "PF"), the company name, and the
   user menu (name, role, Change password, Sign out).
 - **Staff** get a **tenant switcher** there instead: "All tenants", then
   each company.
@@ -159,10 +151,8 @@ them without re-checking):
 
 ## Screens to design
 
-Design each at **desktop 1440**, and the key ones also at **phone 390**,
-in **dark**. Design at least Home, Sales, the Stock tab and the
-Provisioning card in **light** too. Use the sample data given (it's real
-data shape).
+Design each at **desktop 1440**, and the key ones also at **phone 390**
+(light theme only). Use the sample data given (it's real data shape).
 
 1. **Sign in:**
    - centred card: FuelBot logo, "SIGN IN", Email, Password (show/hide),
@@ -338,7 +328,7 @@ data shape).
 
 ## Deliverables
 
-1. The screen set above, desktop + phone, dark + light where listed.
+1. The screen set above, desktop + phone where listed.
 2. A component sheet with all states.
 3. Notes on anything you changed from the reference mock-up and why.
 

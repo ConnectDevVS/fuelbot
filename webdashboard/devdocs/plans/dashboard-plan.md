@@ -26,7 +26,7 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 | 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop | Three layouts (§2.9); every page gets e2e screenshots at 390, 820 and 1440 px |
 | 4 | Charts | **Revenue over time** (day / week / month) and **flavor mix**. No machine-comparison chart | Two chart components (§4.9); per-machine numbers are a table |
 | 5 | Refresh | **No auto-refresh.** Data loads on page entry, with a Refresh button and an "Updated hh:mm" stamp | No polling, so `/fleet` and `/stock` costs stay bounded (§2.6) |
-| 6 | Look | **One FuelBot look (dark + lime from the kiosk) plus a light mode toggle.** The tenant's name and `logo_text` badge sit in the top bar | Two validated themes (§2.8); no per-tenant colours or logo uploads |
+| 6 | Look | **One FuelBot look, light theme only** (revised 2026-09-28: "no need of dark mode for now"; the first answer was dark + a light toggle). The kiosk brand carries over through the lime accent, Archivo/JetBrains Mono type and uppercase headings. The tenant's name and `logo_text` badge sit in the top bar | One validated theme (§2.8); no theme toggle; tokens kept in one block so a dark theme can be added later; no per-tenant colours or logo uploads |
 | 7 | Landing page | **Staff → Fleet; tenant users → Home** | §3.2 |
 | 8 | Language & accessibility | **English only, best-effort accessibility** (no formal WCAG target, no axe gate). Browsers: the last 2 versions of Chrome, Edge, Safari (incl. iOS) and Firefox | Strings in one module (§2.10); keyboard and labels done well, but not gated |
 | 9 | Extras | **A "Not dispensed" work list** and a **print-friendly sales report** | Sales page preset and print stylesheet (§5.8) |
@@ -54,8 +54,8 @@ next restart, and maintenance within one poll (≤ 120 s).
    - dev: `vite`, `@vitejs/plugin-react`, `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@playwright/test`, `eslint` with `eslint-plugin-react-hooks`.
    - No UI kit and no CSS framework: hand-written CSS with custom properties.
 3. **Charts are hand-written SVG React components** (two bar charts), not a
-   chart library. They need both themes, print, hatching and tooltips, which
-   comes to about 250 lines, with no dependency to keep patched.
+   chart library. They need print, hatching and tooltips, which comes to
+   about 250 lines, with no dependency to keep patched.
 4. **`/auth/me` returns the caller's effective permissions**, plus
    `display_tz`, the session expiry and the tenant's name. The UI never
    copies the role table (SRV-28).
@@ -77,8 +77,8 @@ next restart, and maintenance within one poll (≤ 120 s).
 
 ## 1. Scope & goals
 
-**In S7:** every page in §5 for all four roles, at three widths, in two
-themes. The server additions listed below. Unit and browser tests. An
+**In S7:** every page in §5 for all four roles, at three widths, in the
+light theme. The server additions listed below. Unit and browser tests. An
 end-to-end sign-off in which each role walks its pages against a seeded
 server, with a scan for platform-only data on tenant screens.
 
@@ -94,7 +94,8 @@ views intact):**
 **Not in S7:**
 - product image upload (S5 is deferred; the drawer shows the current image);
 - alerts, email, refunds (the Not-dispensed list is read-only);
-- per-tenant themes, i18n, auto-refresh;
+- dark mode and a theme toggle (product owner: not for now), per-tenant
+  themes, i18n, auto-refresh;
 - the `platform_viewer` role;
 - a machine-comparison chart;
 - deploy.
@@ -120,19 +121,18 @@ webdashboard/
 ├── package.json         scripts: dev, build, preview, test (vitest), e2e (playwright), lint
 ├── vite.config.js       base '/dashboard/'; dev proxy /api and /files → DASHBOARD_API_URL (default http://127.0.0.1:8790)
 ├── playwright.config.js projects: phone 390×844, tablet 820×1180, desktop 1440×900
-├── index.html           no inline script or style
-├── public/theme-boot.js sets data-theme before first paint (plain <script src>, no inline code)
+├── index.html           no inline script or style; <meta name="color-scheme" content="light">
 ├── src/
 │   ├── main.jsx         router + QueryClient + providers
 │   ├── api/             client.js (fetch wrapper), errors.js (code → message), queries.js (query keys + hooks)
 │   ├── auth/            session (useMe, can()), RequireAuth, sign-in, change-password
-│   ├── shell/           Layout, Sidebar, TabBar, TopBar, TenantSwitcher, ThemeToggle, routes.jsx
+│   ├── shell/           Layout, Sidebar, TabBar, TopBar, TenantSwitcher, routes.jsx
 │   ├── ui/              components (§4) + forms kit; one folder each, with its CSS module
 │   ├── charts/          RevenueChart, FlavorMixChart, scales.js
 │   ├── lib/             time.js (DISPLAY_TZ days, ISO weeks, ranges), money.js, names.js, csv links
 │   ├── pages/           one folder per page (§5)
 │   ├── strings.js       every user-facing string (English; later translatable)
-│   └── styles/          tokens.css (both themes), base.css, print.css, fonts/ (WOFF2 + OFL texts)
+│   └── styles/          tokens.css (the light theme), base.css, print.css, fonts/ (WOFF2 + OFL texts)
 ├── e2e/                 server.mjs (seeded test server), seed.mjs, fixtures.js, *.spec.js
 └── devdocs/             plans/, stories/, design/
 ```
@@ -199,7 +199,7 @@ from the plan.
     broken icon.
 - **Caching:**
   - `/dashboard/assets/*` (content-hashed): `Cache-Control: public, max-age=31536000, immutable`;
-  - `index.html` and `theme-boot.js`: `no-cache`.
+  - `index.html`: `no-cache`.
 - **SPA fallback:** any other `GET /dashboard/*` gets `index.html`, so deep
   links work. A missing file under `/dashboard/assets/` is a real 404.
 - **No build yet:** if `DASHBOARD_DIR/index.html` is missing, `/dashboard/`
@@ -277,25 +277,14 @@ Today `/auth/me` returns only the user view. After SRV-28:
 
 ### 2.8 Theme and brand
 
-- **Tokens** are CSS custom properties on `:root[data-theme=dark|light]`
-  (`src/styles/tokens.css`).
-- **Dark** is the kiosk palette (`ui/theme/palette.gd`):
-
-| Token | Value |
-|---|---|
-| bg | `#111215` |
-| surface | `#17191E` |
-| raised | `#1A1C21` |
-| border | `#262930` |
-| text | `#F4F5F2` |
-| muted | `#9AA0A8` |
-| dim | `#6B717A` |
-| accent | `#C8FF3E` |
-| on-accent | `#111215` |
-| warn / warn surface / warn border | `#F5B014` / `#211A04` / `#5A4309` |
-| ok | `#4ADE80` |
-
-- **Light:**
+- **Light theme only** (product owner, 2026-09-28: no dark mode for now).
+  There's no theme toggle and no theme stored in the browser. The page sets
+  `<meta name="color-scheme" content="light">`, so it stays light when the
+  OS is in dark mode.
+- **Tokens** are CSS custom properties in one `:root` block
+  (`src/styles/tokens.css`). Components use only tokens, so a dark theme
+  later means adding one block (the kiosk palette in `ui/theme/palette.gd`
+  is its starting point) and a toggle.
 
 | Token | Value |
 |---|---|
@@ -306,37 +295,26 @@ Today `/auth/me` returns only the user view. After SRV-28:
 | text | `#111215` |
 | muted | `#4B5159` |
 | dim | `#6B717A` |
-| accent | `#C8FF3E` (as a fill with `on-accent` text, never as text on white) |
+| accent | `#C8FF3E`, as a fill with `on-accent` text only, never as text on white |
+| on-accent | `#111215` |
 | ok | `#15803D` |
-| warn | `#A16207` |
-| bad | `#B91C1C` |
+| warn / warn surface / warn border | `#A16207` / `#FEF7E6` / `#F2D58A` |
+| bad / bad surface | `#B91C1C` / `#FDECEC` |
 
-- **Bad** is not in the kiosk palette: dark `#F87171` on `#2A1414`, light
-  `#B91C1C` on `#FDECEC`.
 - **Chart marks** (validated with the dataviz checker for lightness,
-  chroma, colour-blind separation and contrast):
-
-| Theme | Dispensed / single series | Not dispensed |
-|---|---|---|
-| dark | `#7A9F28` | `#AF6ADF`, hatched |
-| light | `#4D7C0F` | `#9D3FD6`, hatched |
-
-  The brand lime `#C8FF3E` is too light to be a chart mark on the dark
-  surface (lightness 0.93 is outside the band), and green against orange
-  fails colour-blind separation. So "not dispensed" is violet with a 135°
-  hatch, always with a legend.
+  chroma, colour-blind separation and contrast on white):
+  - Dispensed, or a single series: `#4D7C0F`.
+  - Not dispensed: `#9D3FD6`, hatched at 135°, always with a legend.
+  - The brand lime is for UI accents only, never chart marks. Green against
+    orange was rejected because it fails colour-blind separation.
 - **Type:**
   - Archivo (variable): headings 900 uppercase (the kiosk's "FUEL UP"
     look) and body text.
   - JetBrains Mono: small uppercase labels, ids, keys and codes. Its dotted
     zero tells `0` from `O`, which matters for typed machine ids.
 - **Shape:** 16 px card radius, 10 px control radius, 1 px borders, no
-  shadows in dark.
-- **Theme toggle:** System (default) / Dark / Light, stored in
-  `localStorage['fb_theme']` (a preference, not data).
-  `public/theme-boot.js` applies it before first paint, with no inline
-  script.
-- **Print** always uses the light tokens.
+  shadows except on dialogs and drawers.
+- **Print** uses the same tokens.
 - **Status is never colour alone:** every status has a label or icon
   ("Online", "Out of service", "LOW").
 
@@ -356,7 +334,8 @@ Today `/auth/me` returns only the user view. After SRV-28:
 - **Bottom tabs per role:**
   - tenant users: Home, Sales, Stock, Machines, More;
   - staff: Fleet, Sales, Stock, Machines, More.
-- The mock-up in `design/` shows desktop, tablet and phone.
+- The mock-ups in `design/` show Home at desktop, tablet and phone, and
+  the provisioning card, Menu editor, Stock tab and Sales filters (§5).
 
 ### 2.10 Money, time, text
 
@@ -401,7 +380,7 @@ Today `/auth/me` returns only the user view. After SRV-28:
 | Users | ✓ (all, or one tenant's) | ✓ (own tenant) | – | – |
 | Company (branding) | ✓ | ✓ | – | – |
 | **Platform:** Tenants, Faults, Telemetry, Audit, Unregistered | ✓ | – | – | – |
-| Account menu: Change password, Sign out, Theme | ✓ | ✓ | ✓ | ✓ |
+| Account menu: Change password, Sign out | ✓ | ✓ | ✓ | ✓ |
 
 ### 3.2 Landing
 
@@ -635,10 +614,11 @@ FLEET                                        Updated 12:42 IST [↻ Refresh]
     tenant_admin+.
   - No sales in the range: the charts show "No sales in the last 14 days".
 - **Refresh:** the button (refetches all five).
-- **Visual:** the mock-up in `design/home-*.png`.
+- **Visual:** the mock-ups `design/home-desktop.png`, `home-tablet.png`
+  and `home-phone.png`.
 
 ```
-[PF] PowerFuel Gym                                   [◐] (O) Owner ▾
+[PF] PowerFuel Gym                                       (O) Owner ▾
 SUNDAY 28 SEP 2026
 TODAY                                          Updated 12:42 IST [↻]
 [REVENUE ₹2,280][ORDERS 24][NOT DISPENSED 1 · ₹95 →][MACHINES 2/2 · 1 out of service]
@@ -722,13 +702,14 @@ Bay 4 · K7Q2M9XA        ○Offline                      never         —      
 ```
 
 - **Card rules:**
-  - Big JetBrains Mono (28 px desktop, 22 px phone), grouped for reading.
+  - Big JetBrains Mono, grouped for reading: ids 28 px (desktop) / 22 px
+    (phone); the key 25 / 19 px so its five groups stay on one line. On
+    phone, Copy sits under each value (mock-ups `design/provisioning-*.png`).
     Copy puts the canonical value (`SHC816DJ`, `7KQM-2XPA-9TRD-4WZC-HN3B`)
     on the clipboard.
   - The key lives in component state only. It's cleared on Done, on
     leaving the page, and on unmount. There's no "show again".
-  - Print uses a print stylesheet: the card only, light theme, without the
-    checkbox.
+  - Print uses a print stylesheet: the card only, without the checkbox.
   - Leaving before ticking asks: "You haven't confirmed you saved the key.
     Leave anyway?"
 - **Errors:** 400 `invalid_body` → fields. 403 → Not available.
@@ -851,8 +832,11 @@ MENU · Bay 02                                      [Copy menu from… ▾]
 - **History:** a list (when, kind, hopper, product, level, by, note) with
   Load more.
 - **Viewers and operators:** no buttons.
-- **Phone:** hopper cards stack. The Record refill button is sticky at the
-  bottom (the technician use case).
+- **Phone:** hopper cards stack, each with full-width Record refill /
+  Adjust buttons (the technician use case). There's no sticky page-level
+  button: the mock-up showed it covering the cards' own buttons. The dialog
+  opens as a bottom sheet (`design/stock-phone.png`,
+  `design/stock-refill-phone.png`).
 
 ```
 STOCK · Bay 02                                   Updated 12:42 [↻]
@@ -1028,7 +1012,7 @@ TIME (IST)   ORDER  MACHINE  FLAVOR     CHARGED   TXN          STATUS
 - **Print report:** `@media print` on the Sales page:
   - hides nav, filters, buttons and the sales table;
   - prints a header (tenant name, period, group, "Generated 28 Sep 2026
-    12:42 IST by owner@…"), KPIs, both charts (light tokens), the breakdown
+    12:42 IST by owner@…"), KPIs, both charts, the breakdown
     tables, and the not-dispensed list (if any);
   - A4 portrait, page breaks between blocks;
   - the e2e test produces a PDF (`page.pdf`) that's looked at.
@@ -1239,7 +1223,7 @@ AT               USER                  ACTION         TARGET       TENANT · MAC
 
 ```
 ┌───────────────────────────┐
-│ [PF] PowerFuel Gym  [◐](O)│  top bar (staff: tenant switcher)
+│ [PF] PowerFuel Gym     (O)│  top bar (staff: tenant switcher)
 │ SUNDAY 28 SEP             │
 │ TODAY           [↻]       │
 │ …one column of cards…     │
@@ -1323,12 +1307,12 @@ fields; SRV-27 adds rows for `/fleet?tenant=globex` and
 
 | # | Spike | Result |
 |---|---|---|
-| A | A Vite 8 + React 19 production build (`base: '/dashboard/'`), served by the real `createApp` behind helmet: (a) the default CSP, (b) the strict dashboard CSP of §2.4. Headless Chrome via Playwright 1.63 at 390 and 1440 px | **Pass.** The build emits only `<script type="module" src>` and `<link rel=stylesheet>` (no inline code). **0 CSP violations** under both policies. Archivo loaded from a hashed asset (`document.fonts.check('900 20px Archivo')` true). Deep link `/dashboard/sales` served `index.html` and routed. An SVG chart rendered with CSS-variable fills; the theme toggle via `data-theme` worked. Default helmet `upgrade-insecure-requests` didn't break `http://127.0.0.1`, but is kept for production only |
+| A | A Vite 8 + React 19 production build (`base: '/dashboard/'`), served by the real `createApp` behind helmet: (a) the default CSP, (b) the strict dashboard CSP of §2.4. Headless Chrome via Playwright 1.63 at 390 and 1440 px | **Pass.** The build emits only `<script type="module" src>` and `<link rel=stylesheet>` (no inline code). **0 CSP violations** under both policies. Archivo loaded from a hashed asset (`document.fonts.check('900 20px Archivo')` true). Deep link `/dashboard/sales` served `index.html` and routed. An SVG chart rendered with CSS-variable fills. Default helmet `upgrade-insecure-requests` didn't break `http://127.0.0.1`, but is kept for production only |
 | B | Cookie auth and CSRF from `fetch` (built app and Vite dev proxy on :5199 → :8890) | **Pass.** `POST /auth/login` with `X-Requested-With` set `fb_session` (httpOnly, SameSite=Strict, not Secure in dev). `document.cookie` was empty (invisible to JS). `/auth/me` and `/sales/summary` worked with the cookie. A POST without the header → **403** `csrf_header_required`. The same works through the Vite dev proxy. Expected 401/403s appear as console "Failed to load resource" lines, so the e2e harness fails on CSP violations and page errors, not on console resource errors |
 | C | Mongo `$dateToString` `%G-W%V` and `%Y-%m` with `timezone: 'Asia/Kolkata'` (MongoDB 8.2.6, the version `mongodb-memory-server` runs) | **Pass on all 8 edge cases:** Sun 27 Sep 23:59 IST → `2026-W39`, Mon 00:00 → `2026-W40`; 1 Jan 2027 and 3 Jan 2027 → `2026-W53`; 4 Jan 2027 → `2027-W01`; 29 Dec 2025 → `2026-W01`; 30 Sep 23:59 IST → `2026-09`, 1 Oct 00:00 → `2026-10`. Keys sort chronologically as strings |
-| D | Headless browser test that signs in and screenshots | **Pass** with Playwright's `channel: 'chrome'` (the installed Chrome; no browser download), in dark and light, at phone and desktop widths. Screenshots were looked at. Lesson: an SVG with a fixed `width` overflows at 390 px, so charts use `viewBox` + `width: 100%` |
+| D | Headless browser test that signs in and screenshots | **Pass** with Playwright's `channel: 'chrome'` (the installed Chrome; no browser download), at phone and desktop widths. Screenshots were looked at. Lesson: an SVG with a fixed `width` overflows at 390 px, so charts use `viewBox` + `width: 100%` |
 | E | Fonts for phones | The kiosk's TTFs subset with `pyftsubset` (Latin-1, `₹`, dashes, quotes, bullets, arrows; both variable axes kept) → Archivo **88 KB**, JetBrains Mono **39 KB** WOFF2 (from 658 KB + 187 KB); `₹` present |
-| F | Chart palette | Validated with the dataviz checker: dark `#7A9F28` / `#AF6ADF`, light `#4D7C0F` / `#9D3FD6` pass lightness, chroma, colour-blind separation and contrast. Rejected: brand lime as a mark (too light on dark), green/orange pairs (colour-blind ΔE 1.3–6.6) |
+| F | Chart palette | Validated with the dataviz checker: `#4D7C0F` / `#9D3FD6` on white pass lightness, chroma, colour-blind separation and contrast. Rejected: green/orange pairs (colour-blind ΔE 1.3–6.6). A dark pair (`#7A9F28` / `#AF6ADF`) also passed, for a later dark theme |
 
 API captures (the same session, a scratch server on :8890, seeded with 183
 sales over 41 days, all four roles). Findings that shaped this plan:

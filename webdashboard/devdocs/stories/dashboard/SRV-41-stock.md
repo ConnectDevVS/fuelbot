@@ -10,7 +10,9 @@ refilling. **So that** machines don't run empty.
     and Adjust for tenant_admin+; a fleet-wide refill-soon list;
   - SP §4.13 (the estimate, API), §4.7 (`stock:write`); stock decisions
     1–7;
-  - DP §5.6 (the machine page frame), §5.6.3, §5.10 (+ wireframes).
+  - DP §5.6 (the machine page frame), §5.6.3, §5.10 (+ wireframes);
+  - mock-ups `design/stock-phone.png` and `stock-refill-phone.png` (the
+    Stock tab and the Record refill sheet on a phone).
 - **Depends on:** SRV-35 (forms), SRV-38 (`RefillSoonList`).
 
 ## Deliverables
@@ -63,8 +65,9 @@ refilling. **So that** machines don't run empty.
 - **Roles:**
   - `stock:write` (tenant_admin, staff): buttons and threshold edit;
   - operator and viewer: read-only, and no buttons are rendered.
-- **Phone:** on the Stock tab, a sticky bottom "Record refill" (a hopper
-  select inside the dialog).
+- **Phone:** hopper cards stack with full-width Record refill / Adjust
+  buttons; the dialog is a bottom sheet. No sticky page-level button (the
+  mock-up showed it covering the cards' buttons).
 
 ## Acceptance criteria
 
@@ -91,8 +94,8 @@ refilling. **So that** machines don't run empty.
       far (Stock for all); `desk@` at `/t/powerfuel/machines/E2E00002/stock`
       → Not found.
 - [ ] Screenshots: the Stock tab (owner, viewer), the dialog, the refill
-      page, 3 sizes × 2 themes. **Looked at on phone:** the sticky button
-      doesn't cover the content.
+      page, 3 sizes. **Looked at on phone:** against
+      `design/stock-phone.png` and `stock-refill-phone.png`.
 
 ## Out of scope
 

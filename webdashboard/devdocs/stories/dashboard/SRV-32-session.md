@@ -94,7 +94,7 @@ and safe.
 - [ ] `e2e/session.spec.js` › "expiry banner" (the clock is faked with
       `page.clock` to 47 h 40 min after sign-in → the banner text shows).
 - [ ] Screenshots: sign-in (empty, error), change password (forced), the
-      expiry banner, in 3 sizes × 2 themes. Looked at.
+      expiry banner, in 3 sizes. Looked at.
 
 ## Out of scope
 

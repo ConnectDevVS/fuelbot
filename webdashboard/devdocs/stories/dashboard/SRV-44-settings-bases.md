@@ -55,7 +55,7 @@ in one place.
 - [ ] `e2e/machine-settings.spec.js` › "machine Sales tab totals equal
       /sales/summary?machine=".
 - [ ] Screenshots: Settings (owner, viewer), Bases, the disable confirm,
-      the Sales tab, 3 sizes × 2 themes. Looked at.
+      the Sales tab, 3 sizes. Looked at.
 
 ## Out of scope
 

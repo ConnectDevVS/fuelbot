@@ -75,7 +75,7 @@ show a platform status by accident.
 - [ ] `src/ui/CopyField.test.jsx` › "copies the canonical value; falls back
       to selecting on denial".
 - [ ] `e2e/gallery.spec.js` › "gallery renders every component" (staff,
-      `?gallery`); screenshots 3 sizes × 2 themes. **Looked at**: contrast
+      `?gallery`); screenshots 3 sizes. **Looked at**: contrast
       of chips in light mode, card layout on phone.
 - [ ] `e2e/gallery.spec.js` › "confirm dialog traps focus and closes on
       Escape".

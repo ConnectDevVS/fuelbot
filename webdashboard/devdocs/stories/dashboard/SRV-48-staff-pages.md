@@ -61,7 +61,7 @@ provisioning mistakes across tenants.
 - [ ] `e2e/staff-pages.spec.js` › "tenant roles: every staff page URL →
       NotAvailable with no API request" (owner, ops, desk, look × 4
       pages).
-- [ ] Screenshots: each page, 3 sizes × 2 themes, and the audit diff.
+- [ ] Screenshots: each page, 3 sizes, and the audit diff.
       Looked at.
 
 ## Out of scope

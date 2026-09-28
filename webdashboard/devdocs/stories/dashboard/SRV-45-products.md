@@ -88,7 +88,7 @@ operator with all machines, I edit text but never prices.
       422 panel" (clear `image` on a product without `image_url` that's on
       a menu).
 - [ ] Screenshots: the library, the drawer (owner, operator, viewer),
-      create, 422, 3 sizes × 2 themes (the drawer as a full-screen sheet
+      create, 422, 3 sizes (the drawer as a full-screen sheet
       on phone). Looked at.
 
 ## Out of scope

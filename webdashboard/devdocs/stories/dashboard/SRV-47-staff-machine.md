@@ -73,7 +73,7 @@ users must never see any of it.
       Maintenance/Telemetry/Faults, the direct URLs → NotAvailable, and no
       request to `/telemetry`, `/faults` or `…/maintenance` is made.
 - [ ] Screenshots: Tenants, Maintenance (off/on), Telemetry (expanded),
-      Faults, 3 sizes × 2 themes. Looked at.
+      Faults, 3 sizes. Looked at.
 
 ## Out of scope
 

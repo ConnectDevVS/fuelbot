@@ -8,7 +8,8 @@ machine, **so that** I can review the business at the grain I plan it.
   - product owner: day/week/month required; charts revenue + flavor mix;
   - SP §4.9 (summary, filters, `group=tenant` platform-only);
   - read-apis decisions 1–5;
-  - DP §5.7 (+ wireframe), §2.10 (ranges in `display_tz`).
+  - DP §5.7 (+ wireframe), §2.10 (ranges in `display_tz`);
+  - mock-up `design/sales-filters-phone.png` (the phone filter sheet).
 - **Depends on:** SRV-27 (week/month), SRV-37 (charts).
 
 ## Deliverables
@@ -77,7 +78,7 @@ machine, **so that** I can review the business at the grain I plan it.
 - [ ] `e2e/sales-summary.spec.js` › "limited operator's Machine select
       lists only DEV00001".
 - [ ] Screenshots: overview (owner, staff all tenants), the phone filter
-      sheet, 3 sizes × 2 themes. Looked at.
+      sheet, 3 sizes. Looked at.
 
 ## Out of scope
 

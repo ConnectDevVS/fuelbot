@@ -3,7 +3,7 @@
 The FuelBot dashboard for FuelBot staff and tenant users: a React + Vite app
 in `/webdashboard`, served by the backend at `/dashboard/`. It covers every
 page in the dashboard plan, for four roles, at phone, tablet and desktop
-widths, in dark and light themes, plus the small server additions it needs.
+widths in a light theme, plus the small server additions it needs.
 
 - **Plan:** [dashboard-plan.md](../../plans/dashboard-plan.md). It's the
   design brief, with the page-by-page spec, patterns, wireframes, spikes and
@@ -20,8 +20,11 @@ widths, in dark and light themes, plus the small server additions it needs.
   - `webdashboard/CLAUDE.md` (written in SRV-30) for dashboard stories;
   - the root [CLAUDE.md](../../../../CLAUDE.md) only for the "no Godot
     changes" rule. The kiosk app is **not touched** in S7.
-- **Visual direction:** [design/](../../design/): the mock-ups
-  `home-*.png` and the [claude.design prompt](../../design/claude-design-prompt.md).
+- **Visual direction:** [design/](../../design/): mock-ups of Home
+  (desktop, tablet, phone), the provisioning card, the Menu editor, the
+  Stock tab (phone) and the Sales filters (phone). The
+  [claude.design prompt](../../design/claude-design-prompt.md) is
+  optional, for a fuller design later; S7 doesn't need it.
 
 ## Goals
 
@@ -41,10 +44,10 @@ widths, in dark and light themes, plus the small server additions it needs.
 | 27 | [Read API additions](SRV-27-read-api-additions.md) | S6b | `group=week\|month`; CSV `local_time`; `tenant` filter on `/fleet` and `/stock` |
 | 28 | [`/auth/me` for the dashboard](SRV-28-auth-me.md) | S2 | `permissions`, `all_machines`, `tenant`, `display_tz`, `session_expires_at` |
 | 29 | [Serve the dashboard](SRV-29-serve-dashboard.md) | — | `DASHBOARD_DIR`, `/dashboard` static + SPA fallback + dashboard CSP + cache headers; `IMAGE_ORIGINS`; `/` → `/dashboard/` |
-| 30 | [Scaffold `/webdashboard`](SRV-30-scaffold.md) | 29 | Vite + React app, tokens (dark/light), fonts, lint, vitest, CLAUDE.md, README, `.gdignore` |
+| 30 | [Scaffold `/webdashboard`](SRV-30-scaffold.md) | 29 | Vite + React app, tokens (light), fonts, lint, vitest, CLAUDE.md, README, `.gdignore` |
 | 31 | [Browser test harness](SRV-31-browser-tests.md) | 29, 30 | Playwright, seeded e2e server, CSP/page-error guard, screenshot matrix |
 | 32 | [API client, session, sign-in](SRV-32-session.md) | 28, 31 | `api/client.js`, error mapping, `useMe`/`can`, sign-in, change password, sign-out, expiry banner |
-| 33 | [App shell & navigation](SRV-33-shell.md) | 32 | layout (sidebar / rail / tab bar), top bar, tenant switcher, theme toggle, routes + gates, landing |
+| 33 | [App shell & navigation](SRV-33-shell.md) | 32 | layout (sidebar / rail / tab bar), top bar, tenant switcher, routes + gates, landing |
 | 34 | [Display components & gallery](SRV-34-components.md) | 33 | tables→cards, status/stock/dispensed chips, Money/DateTime/Id/CopyField, states, dialogs, `/_gallery` |
 | 35 | [Forms & write patterns](SRV-35-forms.md) | 34 | `useVersionedSave`, Conflict dialog, field errors, 422 panel, PriceField, RestartNote, unsaved bar |
 | 36 | [Fleet](SRV-36-fleet.md) | 33, 34 | staff landing: all tenants, problems first, refill-soon panel |
@@ -75,8 +78,8 @@ widths, in dark and light themes, plus the small server additions it needs.
   - `cd server && npm test` also passes, since e2e runs the real server.
 - **Screenshots are looked at:**
   - every UI story lists the shots it adds (`webdashboard/.screenshots/`,
-    gitignored), taken at **phone 390 / tablet 820 / desktop 1440** in
-    **dark and light**;
+    gitignored), taken at **phone 390 / tablet 820 / desktop 1440** (light theme
+    only);
   - the story's commit message says they were checked;
   - check for overflow, clipping, wrong role controls, and unreadable
     states.
@@ -106,8 +109,10 @@ widths, in dark and light themes, plus the small server additions it needs.
 3. **Fully responsive:** phone, tablet, desktop.
 4. **Charts:** revenue over time (day/week/month) and flavor mix only.
 5. **No auto-refresh:** a Refresh button and an "Updated" time.
-6. **FuelBot look with dark and light modes.** The tenant's name and logo
-   text are shown; there are no per-tenant themes.
+6. **FuelBot look, light theme only** (revised the same day: no dark mode
+   for now, so no theme toggle). The tenant's name and logo text are
+   shown; there are no per-tenant themes. No separate claude.design
+   session for S7: the plan's wireframes and the mock-ups are the design.
 7. **Landing:** staff → Fleet; tenant users → Home.
 8. **English only; best-effort accessibility;** evergreen browsers.
 9. **Extras:** a Not-dispensed work list and a print-friendly sales
@@ -138,7 +143,7 @@ whole rupees, `DISPLAY_TZ`, and the restart / ≤ 120 s notes.
    `createApp`, on a fixed port (**8795**).
 8. **Fonts** subset to WOFF2 once (88 KB + 39 KB), committed with their OFL
    texts.
-9. **Chart palette** validated per theme (DP §2.8). The brand lime is for UI
+9. **Chart palette** validated on white (DP §2.8). The brand lime is for UI
    accents, never chart marks.
 10. **Refresh model:** React Query with no focus refetch and no intervals;
     `staleTime` 5 min; targeted invalidation after writes.

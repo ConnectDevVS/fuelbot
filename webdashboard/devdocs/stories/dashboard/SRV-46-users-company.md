@@ -84,7 +84,7 @@ and for FuelBot staff. **So that** each company runs its own team.
 - [ ] `e2e/company.spec.js` › "owner changes logo text; the config preview
       header shows it"; "logo text > 4 characters → field error".
 - [ ] Screenshots: users list, create (with generated password), edit,
-      Company, 3 sizes × 2 themes. Looked at.
+      Company, 3 sizes. Looked at.
 
 ## Out of scope
 

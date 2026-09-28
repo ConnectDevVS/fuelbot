@@ -57,7 +57,7 @@ that** I see what needs attention the moment I sign in.
       page.
 - [ ] `e2e/fleet.spec.js` › "Refresh refetches; nothing refetches by
       itself" (no request over 70 s of `page.clock` time).
-- [ ] Screenshots: fleet 3 sizes × 2 themes; the chips filtered; the panel
+- [ ] Screenshots: fleet 3 sizes; the chips filtered; the panel
       open. Looked at.
 
 ## Out of scope

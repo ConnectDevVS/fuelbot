@@ -5,7 +5,7 @@ theme, fonts, linting, unit tests and written rules, **so that** every
 later story adds pages, not plumbing.
 
 - **Refs:** DP §0.1 (React + Vite; `/webdashboard`), §0.3 (libraries, JS,
-  fonts), §2.1 (layout), §2.2 (dev workflow), §2.8 (tokens, theme boot),
+  fonts), §2.1 (layout), §2.2 (dev workflow), §2.8 (tokens, light only),
   §2.10 (strings). Spike E (fonts), spike A (a build with no inline code).
 - **Depends on:** SRV-29 (so `npm run build` output is served at
   `/dashboard/`).
@@ -30,18 +30,14 @@ later story adds pages, not plumbing.
    - `build.outDir: 'dist'`;
    - vitest `environment: 'jsdom'`.
 3. `webdashboard/index.html`:
-   - no inline script or style;
-   - `<script src="/dashboard/theme-boot.js"></script>` in `<head>`
-     (classic, from `public/`), then the module entry;
-   - `<meta name="color-scheme" content="dark light">`.
-4. `webdashboard/public/theme-boot.js`:
-   - reads `localStorage['fb_theme']` (`system|dark|light`) in try/catch;
-   - resolves `system` via `matchMedia('(prefers-color-scheme: light)')`;
-   - sets `document.documentElement.dataset.theme`.
+   - no inline script or style; only the module entry;
+   - `<meta name="color-scheme" content="light">` (it stays light when
+     the OS is in dark mode).
+4. `webdashboard/public/favicon.svg` (the lime FB badge). There's no
+   theme script: the dashboard is light only (product owner).
 5. Styles:
-   - `src/styles/tokens.css` (DP §2.8, both themes; chart tokens
-     included), `base.css` (reset, type scale, focus ring), `print.css`
-     (forces light tokens);
+   - `src/styles/tokens.css` (DP §2.8, one `:root` block; chart tokens
+     included), `base.css` (reset, type scale, focus ring), `print.css`;
    - `src/styles/fonts/archivo.woff2` and `jetbrains-mono.woff2`, subset
      from `assets/fonts/*.ttf` with `pyftsubset` (the command is recorded
      in `webdashboard/README.md`), plus `OFL-Archivo.txt` and
@@ -53,9 +49,8 @@ later story adds pages, not plumbing.
    - `no-console: error` in `src/`;
    - `no-restricted-syntax` banning `dangerouslySetInnerHTML`, `innerHTML`
      and `eval`;
-   - `no-restricted-globals` for `localStorage`/`sessionStorage`, except
-     in `src/shell/theme.js` and `public/theme-boot.js` (a per-file
-     override).
+   - `no-restricted-globals` for `localStorage`/`sessionStorage` (the
+     dashboard stores nothing in the browser).
 8. `webdashboard/.gitignore`: `node_modules/`, `dist/`, `.screenshots/`,
    `test-results/`, `playwright-report/`.
 9. `webdashboard/.gdignore` (empty; Godot must not scan `node_modules/`).
@@ -90,7 +85,7 @@ later story adds pages, not plumbing.
 
 - [ ] `npm ci && npm run build` produces `dist/index.html` + hashed assets;
       `http://127.0.0.1:8790/dashboard/` (server from SRV-29) shows the
-      placeholder in the dark theme. Seen by hand, noted in the commit.
+      placeholder in the light theme. Seen by hand, noted in the commit.
 - [ ] `test/build.test.js` › "built index.html has no inline code":
       - every `<script>` has a `src`;
       - no `<style>` element, no `style=` attribute;
@@ -100,8 +95,8 @@ later story adds pages, not plumbing.
       texts shipped".
 - [ ] `src/App.test.jsx` › "renders the placeholder" (jsdom).
 - [ ] `src/styles/tokens.test.js` › "no colour literals outside tokens.css".
-- [ ] `src/styles/tokens.test.js` › "both themes define the same token
-      names".
+- [ ] `src/styles/tokens.test.js` › "every `var(--…)` used in `src/` is
+      defined in tokens.css".
 - [ ] `npm run lint` passes. A deliberate `console.log` in `src/` fails it
       (checked once, not committed).
 - [ ] `git status` shows no `dist/` or `node_modules/`; Godot's
