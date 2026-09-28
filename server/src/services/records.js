@@ -1,7 +1,7 @@
 // Queries over sales and telemetry (stories/read-apis decisions 1–3): the caller's scope first,
 // then filters; client-time order with a (ts, _id) cursor; days in DISPLAY_TZ.
 import mongoose from 'mongoose';
-import { canSeeMachine, hasAllMachines, isPlatform, recordScope } from '../auth/rbac.js';
+import { canSeeMachine, canSeeTenant, hasAllMachines, isPlatform, recordScope } from '../auth/rbac.js';
 import { Sale } from '../models/index.js';
 import { HttpError } from '../errors.js';
 import { DEFAULT_LIMIT, MAX_LIMIT } from './pages.js';
@@ -30,6 +30,17 @@ export function scopedFilter(user, query) {
   const to = dateParam(query.to, 'to');
   if (from || to) filter.ts = { ...(from ? { $gte: from } : {}), ...(to ? { $lt: to } : {}) };
   return filter;
+}
+
+/**
+ * The machine query for /fleet and /stock: the caller's tenant (platform: all), narrowed by
+ * ?tenant=. A tenant user naming another tenant gets 404, as in scopedFilter.
+ */
+export function machineTenantFilter(user, query) {
+  const tenant = typeof query.tenant === 'string' && query.tenant ? query.tenant : undefined;
+  if (tenant !== undefined && !canSeeTenant(user, tenant)) throw new HttpError(404, 'not_found');
+  if (tenant !== undefined) return { tenant_id: tenant };
+  return isPlatform(user) ? {} : { tenant_id: user.tenant_id };
 }
 
 function decodeCursor(cursor) {
@@ -67,6 +78,16 @@ export async function recordPage(Model, filter, query, view) {
 export function dayKey(date, tz) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
     .format(date);
+}
+
+/** 'YYYY-MM-DD HH:MM:SS' of `date` in the time zone (the CSV's local_time). */
+export function localTime(date, tz) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(date).map((p) => [p.type, p.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
 /** machine_id → today's {count, revenue, not_dispensed, not_dispensed_amount, last_sale_at} (tz days). */

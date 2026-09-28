@@ -4,14 +4,14 @@ import express from 'express';
 import { once } from 'node:events';
 import { Sale } from '../models/index.js';
 import { guard, isPlatform } from '../auth/rbac.js';
-import { dayKey, recordPage, scopedFilter } from '../services/records.js';
+import { dayKey, localTime, recordPage, scopedFilter } from '../services/records.js';
 import { platformSaleView, tenantSaleView } from '../services/views.js';
 import { HttpError } from '../errors.js';
 
-const PLATFORM_COLUMNS = ['ts', 'order_id', 'order_number', 'tenant_id', 'machine_id', 'flavor_id', 'hopper', 'base_id',
+const PLATFORM_COLUMNS = ['local_time', 'ts', 'order_id', 'order_number', 'tenant_id', 'machine_id', 'flavor_id', 'hopper', 'base_id',
   'actual_price', 'offer_price', 'charged_price', 'currency', 'payment_method', 'transaction_id', 'dispensing_result',
   'dispensing_reason', 'machine_known', 'received_at'];
-const TENANT_COLUMNS = ['ts', 'order_id', 'order_number', 'machine_id', 'flavor_id', 'base_id', 'actual_price',
+const TENANT_COLUMNS = ['local_time', 'ts', 'order_id', 'order_number', 'machine_id', 'flavor_id', 'base_id', 'actual_price',
   'offer_price', 'charged_price', 'currency', 'payment_method', 'transaction_id', 'dispensed'];
 
 /** Scope + filters, including the sales-only ones (flavor, dispensed; result for platform). */
@@ -39,10 +39,15 @@ export function csvCell(value) {
 
 const GROUPS = {
   day: (tz) => ({ $dateToString: { format: '%Y-%m-%d', date: '$ts', timezone: tz } }),
+  week: (tz) => ({ $dateToString: { format: '%G-W%V', date: '$ts', timezone: tz } }),   // ISO week: 2026-W39
+  month: (tz) => ({ $dateToString: { format: '%Y-%m', date: '$ts', timezone: tz } }),
   flavor: () => '$flavor_id',
   machine: () => '$machine_id',
   tenant: () => '$tenant_id',
 };
+
+// Time keys sort chronologically as strings; the others sort by revenue.
+const TIME_GROUPS = new Set(['day', 'week', 'month']);
 
 export function salesRouter() {
   const router = express.Router();
@@ -68,7 +73,7 @@ export function salesRouter() {
         not_dispensed: { $sum: { $cond: [notDispensed, 1, 0] } },
         not_dispensed_amount: { $sum: { $cond: [notDispensed, { $ifNull: ['$charged_price', 0] }, 0] } },
       } },
-      { $sort: group === 'day' ? { _id: 1 } : { revenue: -1, _id: 1 } },
+      { $sort: TIME_GROUPS.has(group) ? { _id: 1 } : { revenue: -1, _id: 1 } },
     ]);
     const items = rows.map(({ _id, ...r }) => ({ key: _id, ...r }));
     const totals = items.reduce((t, r) => ({
@@ -84,11 +89,12 @@ export function salesRouter() {
     const filter = salesFilter(req.user, req.query);
     const columns = platform ? PLATFORM_COLUMNS : TENANT_COLUMNS;
     const view = platform ? platformSaleView : tenantSaleView;
+    const tz = req.app.locals.settings.displayTz;
     res.type('text/csv; charset=utf-8');
-    res.attachment(`sales-${dayKey(new Date(), req.app.locals.settings.displayTz)}.csv`);
+    res.attachment(`sales-${dayKey(new Date(), tz)}.csv`);
     res.write(`${columns.join(',')}\r\n`);
     for await (const sale of Sale.find(filter).sort({ ts: -1, _id: -1 }).lean().cursor()) {
-      const row = view(sale);
+      const row = { local_time: localTime(sale.ts, tz), ...view(sale) };
       if (!res.write(`${columns.map((c) => csvCell(row[c])).join(',')}\r\n`)) await once(res, 'drain');
     }
     res.end();

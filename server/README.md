@@ -76,9 +76,12 @@ It's an estimate (dosing is timed): weigh ten portions to calibrate
 
 All under `/api/v1`, scoped to the signed-in user: `GET /fleet` (machines,
 status, today's sales), `GET /sales` (filters: `machine`, `flavor`,
-`dispensed`, `from`, `to`), `GET /sales/summary?group=day|flavor|machine`,
-`GET /sales/export.csv`, `GET /orders/<order id>`. FuelBot staff also get
-`GET /telemetry`, `GET /faults` and `group=tenant`. Days are in
+`dispensed`, `from`, `to`), `GET /sales/summary?group=day|week|month|flavor|machine`
+(weeks are ISO weeks, `2026-W39`; months `2026-09`), `GET /sales/export.csv`
+(its first column, `local_time`, is in `DISPLAY_TZ`; `ts` is UTC),
+`GET /orders/<order id>`. `GET /fleet` and `GET /stock` take `tenant=<id>`
+(tenant users: only their own). FuelBot staff also get `GET /telemetry`,
+`GET /faults` and `group=tenant`. Days, weeks and months are in
 `DISPLAY_TZ` (default `Asia/Kolkata`).
 
 To replace a key: issue a new one, update `machine_key.txt`, then revoke the

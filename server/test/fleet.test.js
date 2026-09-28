@@ -81,4 +81,18 @@ describe('/api/v1/fleet', () => {
     const limited = await as.opOne.get('/api/v1/fleet');
     assert.deepEqual(limited.body.items.map((m) => m.id), ['DEV00001']);
   });
+  it('tenant filter', async () => {
+    const one = (await as.ops.get('/api/v1/fleet?tenant=powerfuel')).body;
+    assert.deepEqual(one.items.map((m) => m.id).sort(), ['DEV00001', other].sort());
+    assert.deepEqual(one.tenants.map((t) => t.id), ['powerfuel']);
+    assert.equal(one.tenants[0].machines, 2);
+    const none = (await as.ops.get('/api/v1/fleet?tenant=nosuch')).body;
+    assert.deepEqual([none.items, none.tenants], [[], []]);
+    const own = await as.owner.get('/api/v1/fleet?tenant=powerfuel');
+    assert.equal(own.status, 200);
+    assert.equal(own.body.items.length, 2);
+    assert.equal((await as.owner.get('/api/v1/fleet?tenant=globex')).status, 404);
+    assert.equal((await as.opOne.get('/api/v1/fleet?tenant=globex')).status, 404);
+    assert.deepEqual((await as.opOne.get('/api/v1/fleet?tenant=powerfuel')).body.items.map((m) => m.id), ['DEV00001']);
+  });
 });

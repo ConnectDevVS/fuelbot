@@ -771,10 +771,10 @@ All are scoped to what the user can see (§4.7). Filters: `tenant`
 
 | Method & path | Who | Returns |
 |---|---|---|
-| `GET /fleet` | all | visible machines with status (§4.5, per view), grouped by tenant for platform. `tenant=` filter (**S7**: platform any; tenant users only their own, else 404) |
+| `GET /fleet` | all | visible machines with status (§4.5, per view), grouped by tenant for platform. `tenant=` filter (SRV-27): platform any tenant (an unknown one gives empty `items` and `tenants`); tenant users only their own, else 404 |
 | `GET /sales` | all | filters: `tenant`, `machine`, `from`, `to`, `flavor`, `dispensed`; platform also `result`. Newest first |
-| `GET /sales/summary` | all | `group=day\|week\|month\|flavor\|machine\|tenant`: count, revenue (`sum charged_price`), not-dispensed count and amount. `week` = ISO week (Monday–Sunday) keyed `2026-W39`, `month` keyed `2026-09`, both in `DISPLAY_TZ` (**week and month: S7**) |
-| `GET /sales/export.csv` | all | the `/sales` filters as CSV (streamed), same columns as the caller's view; **S7:** a first column `local_time` (`YYYY-MM-DD HH:MM:SS` in `DISPLAY_TZ`) |
+| `GET /sales/summary` | all | `group=day\|week\|month\|flavor\|machine\|tenant`: count, revenue (`sum charged_price`), not-dispensed count and amount. `week` = ISO week (Monday–Sunday) keyed `2026-W39`, `month` keyed `2026-09`, both in `DISPLAY_TZ`, sorted ascending like `day` (SRV-27) |
+| `GET /sales/export.csv` | all | the `/sales` filters as CSV (streamed), same columns as the caller's view, with a first column `local_time` (`YYYY-MM-DD HH:MM:SS` in `DISPLAY_TZ`, SRV-27) before `ts` (UTC) |
 | `GET /telemetry` | **platform_admin** | filters: `tenant`, `machine`, `type`, `from`, `to`, `order_id` |
 | `GET /faults` | **platform_admin** | fault log: `machine_fault` / `machine_ok` / `bridge_down` / `bridge_up` as open/closed intervals per machine |
 | `GET /orders/:order_id` | all | the sale; for platform also every telemetry event for that order (joined on `order_id`) |
@@ -926,8 +926,8 @@ days_left = portions_left / rate   (null when there were no doses)
 | `GET …/stock/history` | members | refills and adjustments, newest first (cursor pages) |
 
 Plus `GET /api/v1/stock?state=low,empty` (scoped): every visible hopper
-that needs attention across the fleet, for the "refill soon" list. **S7**
-adds a `tenant=` filter, with the same rule as `/fleet`.
+that needs attention across the fleet, for the "refill soon" list, with a
+`tenant=` filter (SRV-27) under the same rule as `/fleet`.
 `portion_g` is set through the product (`PATCH …/products/:pid`) and
 `low_portions` through the menu item.
 
