@@ -38,8 +38,31 @@ answers 503.
 ```sh
 npm run lint    # eslint, including the security bans
 npm test        # vitest: unit tests + a build check
-npm run e2e     # Playwright on the installed Chrome (from SRV-31)
+npm run e2e     # build, then Playwright on the installed Chrome
 ```
+
+### Browser tests (e2e)
+
+`npm run e2e` builds `dist/`, starts `e2e/server.mjs` (the real server on an
+in-memory MongoDB, **port 8795**, seeded by `e2e/seed.mjs`), and runs
+`e2e/*.spec.js` headless at three widths: phone 390, tablet 820, desktop
+1440. Every test fails on a CSP violation, a page error, or horizontal page
+overflow (`e2e/fixtures.js`).
+
+- **Screenshots** land in `.screenshots/<project>-<name>.png` (gitignored).
+  Look at them: overflow, clipping, wrong role controls, unreadable states.
+- Seeded accounts (password `e2e password 123`): `staff@fuelbot.test`
+  (platform), `owner@powerfuel.test` (tenant admin), `desk@powerfuel.test`
+  (operator on DEV00001 only), `ops@powerfuel.test` (operator),
+  `look@powerfuel.test` (viewer), `new@powerfuel.test` (must change
+  password), `boss@globex.test` (Globex admin). See `e2e/seed.mjs` for the
+  machines, sales and stock states.
+- A spec that writes calls `resetData()` (`POST /__e2e/reset`, test server
+  only) and signs in again.
+- It uses the installed Google Chrome (`channel: 'chrome'`). Without it:
+  `npx playwright install chromium` once, then `E2E_CHANNEL=chromium npm run e2e`.
+- `npm run e2e:ui` opens Playwright's UI for debugging (a window).
+- Port 8795 taken → the server refuses to start; stop the other copy.
 
 ## Fonts
 

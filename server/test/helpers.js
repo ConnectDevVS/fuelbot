@@ -1,5 +1,6 @@
 // Test harness: one in-memory MongoDB and app per test file.
-//   const ctx = await startServer({ MACHINE_AUTH: 'required' });
+//   const ctx = await startServer({ MACHINE_AUTH: 'required' });   // a free port
+//   const ctx = await startServer(env, { port: 8795 });              // a fixed one (the dashboard's e2e)
 //   request(ctx.app).get(...);   await ctx.reset();   await ctx.stop();
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,7 +14,7 @@ import { createApp } from '../src/app.js';
 
 export const TENANT = 'machine-042';
 
-export async function startServer(env = {}) {
+export async function startServer(env = {}, { port = 0 } = {}) {
   const mongo = await MongoMemoryServer.create();
   const uploads = fs.mkdtempSync(path.join(os.tmpdir(), 'fuelbot-uploads-'));
   const settings = loadSettings({
@@ -31,7 +32,7 @@ export async function startServer(env = {}) {
   // with another process's 127.0.0.1 socket (e.g. a parallel file's mongod) and send the request
   // there: a rare "404 {}" that isn't ours.
   const app = createApp({ settings });
-  const server = app.listen(0, '127.0.0.1');
+  const server = app.listen(port, '127.0.0.1');
   await once(server, 'listening');
   return {
     app: server,

@@ -18,15 +18,15 @@ export default [
       parserOptions: { ecmaFeatures: { jsx: true } },
       globals: { ...globals.browser },
     },
-    plugins: { 'react-hooks': reactHooks },
     rules: {
-      ...reactHooks.configs.recommended.rules,
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
     },
   },
   {
     files: ['src/**/*.{js,jsx}'],
+    plugins: { 'react-hooks': reactHooks },
     rules: {
+      ...reactHooks.configs.recommended.rules,
       'no-console': 'error',
       'no-eval': 'error',
       'no-implied-eval': 'error',
@@ -56,5 +56,10 @@ export default [
   {
     files: ['*.config.js', 'test/**/*.js', 'e2e/**/*.{js,mjs}', 'src/**/*.test.{js,jsx}', 'src/test/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
+    // Playwright fixtures are destructured even when unused: test.beforeEach(({}, testInfo) => …).
+    files: ['e2e/**/*.{js,mjs}'],
+    rules: { 'no-empty-pattern': 'off' },
   },
 ];

@@ -21,7 +21,14 @@ covers the Godot kiosk, which S7 never touches.
 - `npm test`: vitest (jsdom; files that only read files use
   `// @vitest-environment node`). `test/build.test.js` builds into a temp dir.
 - `npm run lint`: eslint (the security bans below are lint errors).
-- `npm run e2e`: Playwright (from SRV-31).
+- `npm run e2e`: build, then Playwright (`e2e/`): the seeded server on
+  **:8795** (`e2e/server.mjs`, in-memory Mongo), installed Chrome, headless,
+  phone 390 / tablet 820 / desktop 1440. Import `test`/`expect` from
+  `e2e/fixtures.js`: its auto `guard` fails on CSP violations, page errors
+  and horizontal overflow; `signInAs(key)` (keys of `USERS` in
+  `e2e/seed.mjs`), `shot(name)`, `resetData()` after writes. API-only
+  specs run on the desktop project only. `E2E_CHANNEL=chromium` after
+  `npx playwright install chromium` (ask before downloading).
 - **Gate for a story:** `cd server && npm test && cd ../webdashboard && npm run lint && npm test && npm run build && npm run e2e`,
   chained with `&&`, then stage the story's files explicitly (never
   `git add -A`) and commit.
@@ -78,9 +85,15 @@ covers the Godot kiosk, which S7 never touches.
   e2e guard fails on CSP violations and page errors, not on those.
 - jsdom: antd needs `matchMedia` and `ResizeObserver`, and calls
   `getComputedStyle(el, pseudo)`; `src/test/setup.js` provides/quiets them.
-- The seeded `DEV00001` has an empty `name`: show
-  `name || location_label || id`. Summaries and sales carry ids, not
+- The dev seed's `DEV00001` (`npm run seed`) has an empty `name` (the e2e
+  seed calls it Bay 02): show `name || location_label || id`. Summaries and sales carry ids, not
   names (resolve via products `?archived=true` and machines).
 - JetBrains Mono has no `₹`; Archivo is its fallback in `--fb-font-mono`.
 - The shell is zsh (`${var^^}` fails; unquoted `$var` isn't word-split).
 - Headless browser only: headed windows pop up in front of the user.
+- The e2e seed runs through the server's own modules
+  (`../../server/src/…`, `../../server/test/helpers.js`), which resolve
+  their packages from `server/node_modules`: run `npm ci` in `server/` too.
+  Don't import `mongoose` from `webdashboard/` (not installed here).
+- The seed's stock states are exact because refills are stamped after
+  every seeded dose; keep new seeded sales older than `now - 10 min`.
