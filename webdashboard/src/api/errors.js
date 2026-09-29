@@ -15,8 +15,9 @@ export const CODES = [
 // Codes whose message says something went wrong on our side (a bug, never expected).
 const BUGS = new Set(['if_match_required', 'csrf_header_required']);
 
-// Users API errors are top-level codes, not invalid_body (DP §7): the field each one belongs to.
+// Top-level codes that belong to one field (DP §7): the users API's, and a taken product id.
 const USER_FIELDS = {
+  product_exists: 'product_id',
   invalid_email: 'email',
   email_taken: 'email',
   invalid_role: 'role',

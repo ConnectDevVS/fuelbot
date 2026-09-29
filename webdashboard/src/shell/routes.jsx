@@ -27,6 +27,7 @@ export const COMPONENTS = {
   stock: lazy(() => import('../pages/stock/RefillSoonPage.jsx')),
   machine: lazy(() => import('../pages/machine/MachinePage.jsx')),
   machines: lazy(() => import('../pages/machines/MachinesPage.jsx')),
+  products: lazy(() => import('../pages/products/ProductsPage.jsx')),
   'machine-new': lazy(() => import('../pages/machines/RegisterMachinePage.jsx')),
   'sales-all': SalesPage,
 };
