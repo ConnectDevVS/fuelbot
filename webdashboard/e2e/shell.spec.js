@@ -32,7 +32,7 @@ test('nav per role', async ({ page, signInAs, shot }, testInfo) => {
   for (const [key, expected] of Object.entries(EXPECTED)) {
     await signInAs(key);
     await page.goto('t/powerfuel/home');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/home/i);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/today/i);   // Home's title (DP §5.3)
     if (check) expect((await navItems(page)).sort(), key).toEqual([...expected].sort());
     if (key === 'staff' || key === 'owner') await shot(`shell-${key}`);
     if (key === 'owner' && testInfo.project.name === 'phone') {

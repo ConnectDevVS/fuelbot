@@ -1,0 +1,17 @@
+/* Stock rows (Home, Fleet's panel, the Stock page). Colours from tokens.css only. */
+.product {
+  display: grid;
+  gap: 2px;
+}
+
+.left {
+  display: inline-grid;
+  gap: 2px;
+  justify-items: end;
+  white-space: nowrap;
+}
+
+.days {
+  color: var(--fb-muted);
+  font-size: 13px;
+}

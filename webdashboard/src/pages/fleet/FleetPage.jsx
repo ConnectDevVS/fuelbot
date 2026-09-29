@@ -11,8 +11,7 @@ import { DataTable } from '../../ui/DataTable.jsx';
 import { StatusBadge } from '../../ui/Chips.jsx';
 import { EmptyState, ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
 import { RelativeTime } from '../../ui/DateTime.jsx';
-import { Money } from '../../ui/Money.jsx';
-import { machineName } from '../../lib/names.js';
+import { MachineCell, machineHref, TodayCell } from '../machines/MachineStatusList.jsx';
 import { formatClock, formatDayHeading } from '../../lib/time.js';
 import { buildFleet, STATUS_ORDER } from './fleetModel.js';
 import { RefillSoonPanel } from './RefillSoonPanel.jsx';
@@ -20,15 +19,6 @@ import { t, tn } from '../../strings.js';
 import styles from './fleet.module.css';
 
 export const fleetKey = ['fleet'];
-
-function MachineCell({ m }) {
-  return (
-    <span className={styles.machine}>
-      <b>{machineName(m)}</b>
-      <span className="mono">{m.id}</span>
-    </span>
-  );
-}
 
 function StatusCell({ m }) {
   const tz = useDisplayTz();
@@ -42,17 +32,6 @@ function StatusCell({ m }) {
           {maintenance.flagged_by && ` · ${t('fleet.flaggedBy', { who: maintenance.flagged_by, time: maintenance.flagged_at ? formatClock(maintenance.flagged_at, tz) : '—' })}`}
         </span>
       )}
-    </span>
-  );
-}
-
-function TodayCell({ m }) {
-  const today = m.today ?? {};
-  return (
-    <span className={styles.today}>
-      <Money value={today.revenue ?? 0} />
-      <span> · {tn('fleet.orders', today.count ?? 0)}</span>
-      {today.not_dispensed > 0 && <span className={styles.nd}> · {t('fleet.notDispensed', { n: today.not_dispensed })}</span>}
     </span>
   );
 }
@@ -117,7 +96,7 @@ export default function FleetPage() {
               {rows.length === 0
                 ? <p className={styles.none}>{t('fleet.noMachines')}</p>
                 : <DataTable columns={columns} rows={rows}
-                    rowHref={(m) => `/t/${encodeURIComponent(m.tenant_id)}/machines/${encodeURIComponent(m.id)}/menu`} />}
+                    rowHref={machineHref} />}
             </section>
           ))}
 

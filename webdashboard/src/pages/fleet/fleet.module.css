@@ -51,11 +51,6 @@
   color: var(--fb-muted);
 }
 
-.machine {
-  display: grid;
-  gap: 2px;
-}
-
 .status {
   display: grid;
   gap: 4px;
@@ -66,22 +61,10 @@
   font-size: 13px;
 }
 
-.today {
-  white-space: nowrap;
-}
-
-.nd {
-  color: var(--fb-bad);
-}
-
 @media (max-width: 759px) {
   .filters,
   .tenant,
   .search {
     width: 100%;
-  }
-
-  .today {
-    white-space: normal;
   }
 }

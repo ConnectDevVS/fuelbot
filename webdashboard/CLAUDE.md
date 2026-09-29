@@ -26,7 +26,9 @@ covers the Godot kiosk, which S7 never touches.
   phone 390 / tablet 820 / desktop 1440. Import `test`/`expect` from
   `e2e/fixtures.js`: its auto `guard` fails on CSP violations, page errors
   and horizontal overflow; `signInAs(key)` (keys of `USERS` in
-  `e2e/seed.mjs`), `shot(name)`, `resetData()` after writes. API-only
+  `e2e/seed.mjs`), `shot(name)`, `resetData()` after writes
+  (`resetData(request, { withoutSales: 'globex' })` for an empty tenant;
+  reset again after, in a `finally`). API-only
   specs run on the desktop project only. `E2E_CHANNEL=chromium` after
   `npx playwright install chromium` (ask before downloading).
 - **Gate for a story:** `cd server && npm test && cd ../webdashboard && npm run lint && npm test && npm run build && npm run e2e`,

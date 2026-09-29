@@ -20,15 +20,18 @@ export function PageHeader({ overline, title, actions }) {
   );
 }
 
-/** queries: React Query results (useQuery return values). */
-export function RefreshButton({ queries }) {
+/**
+ * queries: React Query results (useQuery return values). onRefresh: replaces the default (refetch
+ * them all), e.g. when a page's ranges must move to a new day first.
+ */
+export function RefreshButton({ queries, onRefresh }) {
   const tz = useDisplayTz();
   const updated = Math.max(0, ...queries.map((q) => q.dataUpdatedAt ?? 0));
   const fetching = queries.some((q) => q.isFetching);
   return (
     <>
       {updated > 0 && <span className={`overline ${styles.updated}`}>{t('refresh.updated', { time: formatClock(updated, tz) })}</span>}
-      <Button icon={<ReloadOutlined />} loading={fetching} onClick={() => Promise.all(queries.map((q) => q.refetch()))}>
+      <Button icon={<ReloadOutlined />} loading={fetching} onClick={() => (onRefresh ? onRefresh() : Promise.all(queries.map((q) => q.refetch())))}>
         {t('refresh.button')}
       </Button>
     </>

@@ -19,6 +19,7 @@ const Gallery = lazy(() => import('../pages/Gallery.jsx'));
 // Built pages, by page id (lazy). Anything not here is a ComingSoon placeholder.
 export const COMPONENTS = {
   fleet: lazy(() => import('../pages/fleet/FleetPage.jsx')),
+  home: lazy(() => import('../pages/home/HomePage.jsx')),
 };
 
 function pageElement(page) {

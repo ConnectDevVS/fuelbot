@@ -6,7 +6,10 @@ import { messageFor } from '../api/errors.js';
 import { t } from '../strings.js';
 import styles from './ui.module.css';
 
-/** Skeletons shaped like the content: 'table' | 'cards' | 'kpis'. No spinners for page loads. */
+/**
+ * Skeletons shaped like the content: 'table' | 'cards' | 'kpis', or 'plain' (no card of its own,
+ * for a block inside a card). No spinners for page loads.
+ */
 export function PageSkeleton({ kind = 'table', rows = 5 }) {
   if (kind === 'kpis') {
     return (
@@ -24,6 +27,7 @@ export function PageSkeleton({ kind = 'table', rows = 5 }) {
       </div>
     );
   }
+  if (kind === 'plain') return <div aria-busy="true"><Skeleton active title={false} paragraph={{ rows }} /></div>;
   return <Card aria-busy="true"><Skeleton active title={false} paragraph={{ rows }} /></Card>;
 }
 

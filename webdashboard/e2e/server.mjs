@@ -1,5 +1,6 @@
 // The browser tests' server (SRV-31): the real createApp on an in-memory MongoDB, fixed port 8795,
-// serving the built dist/, seeded with e2e/seed.mjs. POST /__e2e/reset reseeds; it's added here
+// serving the built dist/, seeded with e2e/seed.mjs. POST /__e2e/reset reseeds
+// (?without_sales=<tenant>: then deletes that tenant's sales, for empty states); it's added here
 // by wrapping the listening server's handler, never in the server's createApp.
 //   node e2e/server.mjs      (playwright.config.js starts it)
 import net from 'node:net';
@@ -30,8 +31,9 @@ await seed();
 const [handler] = ctx.app.listeners('request');
 ctx.app.removeAllListeners('request');
 ctx.app.on('request', (req, res) => {
-  if (req.method === 'POST' && req.url === '/__e2e/reset') {
-    reseed(ctx).then(() => {
+  const url = new URL(req.url, 'http://e2e');
+  if (req.method === 'POST' && url.pathname === '/__e2e/reset') {
+    reseed(ctx, { withoutSales: url.searchParams.get('without_sales') }).then(() => {
       res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"ok":true}');
     }, (err) => {
       console.error('[e2e] reseed failed', err);

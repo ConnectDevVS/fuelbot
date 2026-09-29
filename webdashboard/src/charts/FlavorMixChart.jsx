@@ -23,14 +23,14 @@ export function flavorRows(items, names) {
   }];
 }
 
-export function FlavorMixChart({ items, names, title }) {
+export function FlavorMixChart({ items, names, title, emptyMessage }) {
   const rows = flavorRows(items, names);
   const max = Math.max(0, ...rows.map((r) => r.revenue));
   const total = rows.reduce((s, r) => ({ key: 'total', name: t('chart.total'), revenue: s.revenue + r.revenue, count: s.count + r.count }),
     { revenue: 0, count: 0 });
   return (
     <figure className={styles.figure} aria-label={title ?? t('chart.flavorMix')}>
-      {rows.length === 0 ? <EmptyState message={t('chart.noSales')} /> : (
+      {rows.length === 0 ? <EmptyState message={emptyMessage ?? t('chart.noSales')} /> : (
         <div className={styles.mix} role="list">
           {rows.map((r) => {
             const pct = max > 0 ? (r.revenue / max) * 100 : 0;

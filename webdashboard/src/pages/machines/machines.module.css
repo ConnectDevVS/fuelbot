@@ -1,0 +1,23 @@
+/* Machine rows (Home, Fleet, Machines list). Colours from tokens.css only. */
+.machine {
+  display: grid;
+  gap: 2px;
+}
+
+.today {
+  white-space: nowrap;
+}
+
+.seen {
+  white-space: nowrap;
+}
+
+.nd {
+  color: var(--fb-bad);
+}
+
+@media (max-width: 759px) {
+  .today {
+    white-space: normal;
+  }
+}

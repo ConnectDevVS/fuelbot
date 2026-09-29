@@ -180,8 +180,12 @@ export async function seed(now = Date.now()) {
     machine_id: 'DEV00001', fault: 'HOMING_TIMEOUT', ts: new Date(now - 3 * HOUR) });
 }
 
-/** Empties every collection (the test harness's reset), then seeds again (POST /__e2e/reset). */
-export async function reseed(ctx) {
+/**
+ * Empties every collection (the test harness's reset), then seeds again (POST /__e2e/reset).
+ * withoutSales: a tenant id whose sales are then deleted (an empty tenant for "no sales" states).
+ */
+export async function reseed(ctx, { withoutSales = null } = {}) {
   await ctx.reset();
   await seed();
+  if (withoutSales) await Sale.deleteMany({ tenant_id: withoutSales });
 }

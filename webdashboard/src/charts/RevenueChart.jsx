@@ -61,7 +61,7 @@ function Hatch({ id }) {
   );
 }
 
-export function RevenueChart({ items, group = 'day', from, to, tz = 'Asia/Kolkata', title }) {
+export function RevenueChart({ items, group = 'day', from, to, tz = 'Asia/Kolkata', title, emptyMessage }) {
   const size = useLayoutSize();
   const [ref, width] = useWidth();
   const hatchId = `hatch${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -102,7 +102,7 @@ export function RevenueChart({ items, group = 'day', from, to, tz = 'Asia/Kolkat
         <span className={styles.legendItem}><HatchSwatch className={styles.swatchSvg} />{t('chart.notDispensed')}</span>
       </div>
       <div ref={ref} className={styles.plot}>
-        {empty ? <EmptyState message={t('chart.noSales')} /> : (
+        {empty ? <EmptyState message={emptyMessage ?? t('chart.noSales')} /> : (
           <svg className={styles.svg} viewBox={`0 0 ${width} ${svgH}`} width="100%" height={svgH} role="group"
             aria-label={t('chart.revenueAria', { n: series.length })}>
             <Hatch id={hatchId} />

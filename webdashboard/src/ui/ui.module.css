@@ -31,6 +31,11 @@
   overflow-x: auto;
 }
 
+/* Column headers never wrap ("LAST SEEN" did in Home's half-width card). */
+.tableWrap :global(th .overline) {
+  white-space: nowrap;
+}
+
 .clickable {
   cursor: pointer;
 }

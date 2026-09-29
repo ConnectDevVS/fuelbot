@@ -1,0 +1,48 @@
+/* Home (dashboard plan §5.3, mock-ups design/home-*.png). Colours from tokens.css only. */
+.row {
+  margin-top: 16px;
+}
+
+.panel {
+  height: 100%;
+  min-width: 0;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.panelText {
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.panelSub {
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.more {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.of {
+  color: var(--fb-muted);
+  font-size: 0.6em;
+  font-weight: 700;
+}
+
+.seeList {
+  text-decoration: underline;
+}

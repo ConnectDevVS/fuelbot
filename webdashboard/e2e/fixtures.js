@@ -65,8 +65,12 @@ export async function signOutViaUi(page) {
   }
 }
 
-/** Reseeds the database (after a spec wrote something). Sessions end: sign in again after. */
-export async function resetData(request) {
-  const res = await request.post('http://127.0.0.1:8795/__e2e/reset');
+/**
+ * Reseeds the database (after a spec wrote something). Sessions end: sign in again after.
+ * withoutSales: a tenant id whose sales are deleted after seeding (reset again when done).
+ */
+export async function resetData(request, { withoutSales } = {}) {
+  const query = withoutSales ? `?without_sales=${encodeURIComponent(withoutSales)}` : '';
+  const res = await request.post(`http://127.0.0.1:8795/__e2e/reset${query}`);
   expect(res.status()).toBe(200);
 }

@@ -732,7 +732,7 @@ FLEET                                        Updated 12:42 IST [↻ Refresh]
   - `GET /tenants/:tid/products?archived=true`: flavor names.
 - **Content:**
   - KPIs: Revenue today, Orders, Not dispensed (count + ₹, links to the
-    Not-dispensed list), Machines (online/total, and how many are out of
+    Not-dispensed list for today: `?view=not-dispensed&period=today`), Machines (online/total, and how many are out of
     service).
   - Revenue chart: 14 days, with a Day/Week/Month switch that changes the
     range to 14 days / 12 weeks / 12 months.

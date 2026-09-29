@@ -56,7 +56,10 @@ machine, **so that** I can review the business at the grain I plan it.
   totals' revenue), not dispensed n / ₹. Sorted as the server returns
   them (by revenue).
 - **URL:** the filters live in the query string (shareable, back-button
-  safe). `display_tz` from `/auth/me` is used for every range.
+  safe). `display_tz` from `/auth/me` is used for every range. A preset
+  is `period=<id>` (`today`, `last_7_days`, …); Home's Not dispensed tile
+  already links to `?view=not-dispensed&period=today` (SRV-38), so
+  `period=today` must work.
 
 ## Acceptance criteria
 

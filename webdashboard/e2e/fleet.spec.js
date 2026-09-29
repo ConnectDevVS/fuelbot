@@ -67,11 +67,11 @@ test('refill panel loads only when opened', async ({ page, signInAs, shot }) => 
   expect(stock).toEqual([]);
   await page.getByRole('button', { name: /Refill soon/ }).click();
   await expect(page.getByText('Empty', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(/Prymor Guava · hopper 1/)).toBeVisible();
+  await expect(page.getByText(/Bay 02 · hopper 1/)).toBeVisible();
   await expect(page.getByText('Refill needed').first()).toBeVisible();
   expect(stock).toHaveLength(1);
   expect(stock[0]).toContain('state=empty,low,refill_needed');
-  await page.getByText(/Prymor Guava · hopper 1/).scrollIntoViewIfNeeded();
+  await page.getByText(/Bay 02 · hopper 1/).scrollIntoViewIfNeeded();
   // Wait for the panel to finish expanding (it fades in).
   const panel = page.locator('.ant-collapse-panel');
   await expect(panel).not.toHaveClass(/motion/);
