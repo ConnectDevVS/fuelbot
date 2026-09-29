@@ -161,5 +161,18 @@ covers the Godot kiosk, which S7 never touches.
 - `main [aria-busy]` counts 0 before a lazy page has rendered at all: wait
   for real content (a row, a tile) before waiting for "the next" request,
   or you catch the page's own first load.
+- antd `Form.useWatch(name, form)` and `onFinish` values carry **registered
+  fields only**: a value with no `Form.Item` (a Form.List row's
+  `product_id`, `low_portions`) is missing. Watch with
+  `{ form, preserve: true }` and save `form.getFieldsValue(true)` (SRV-43).
+- `form.setFieldValue` doesn't fire `onValuesChange`: after a change in
+  code, call the dirty tracker yourself.
+- dnd-kit swallows every click for 50 ms after a drop (so the drop isn't a
+  click): a test that clicks right after a drag waits that out. Sortable
+  rows use `animateLayoutChanges: () => false`, or a click right after ↑/↓
+  lands on the neighbour sliding into place.
+- antd 6 class names differ from 5: a Select's placeholder is
+  `.ant-select-placeholder`; an InputNumber with a prefix is wrapped, so
+  size it through its className (PriceField's `160px !important`).
 - The seed's stock states are exact because refills are stamped after
   every seeded dose; keep new seeded sales older than `now - 10 min`.

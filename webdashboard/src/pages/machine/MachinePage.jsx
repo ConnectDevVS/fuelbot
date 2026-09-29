@@ -20,6 +20,8 @@ import styles from './machine.module.css';
 
 // Built tabs, by id (lazy). SRV-42…47 add theirs here.
 const TABS = {
+  menu: lazy(() => import('./MenuTab.jsx')),
+  config: lazy(() => import('./ConfigTab.jsx')),
   stock: lazy(() => import('./StockTab.jsx')),
   keys: lazy(() => import('./KeysTab.jsx')),
 };

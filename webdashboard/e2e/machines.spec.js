@@ -73,7 +73,7 @@ test('list shows every visible machine with status and menu state', async ({ pag
   await shot('machines-list');
   // A row opens the machine.
   await rows.filter({ hasText: 'E2E00002' }).getByRole('link').click();
-  await expect(page).toHaveURL(/\/machines\/E2E00002\/stock$/);
+  await expect(page).toHaveURL(/\/machines\/E2E00002\/menu$/);
 
   await signInAs('desk');
   await page.goto('t/powerfuel/machines');
@@ -99,7 +99,7 @@ test('owner registers a machine, copies a menu, issues a key', async ({ page, re
     const res = await kiosk(request, values);
     expect(res.status(), await res.text()).toBe(200);
     await acknowledgeAndDone(page);
-    await expect(page).toHaveURL(new RegExp(`/machines/${values.machine}/stock$`));
+    await expect(page).toHaveURL(new RegExp(`/machines/${values.machine}/menu$`));
   } finally {
     await resetData(request);
   }
@@ -130,7 +130,7 @@ test('the key never leaves the card', async ({ page, request, signInAs }) => {
     await leave.getByRole('button', { name: 'Stay' }).click();
     await expect(card(page)).toBeVisible();
     await acknowledgeAndDone(page);
-    await expect(page).toHaveURL(/\/stock$/);
+    await expect(page).toHaveURL(/\/menu$/);
     expect(await page.content()).not.toContain(key);
     for (const group of key.split('-')) expect(await page.locator('body').innerText()).not.toContain(group);
   } finally {
@@ -200,7 +200,7 @@ test("operators and viewers can't register or see keys", async ({ page, signInAs
     await page.goto('t/powerfuel/machines/new');
     await expect(page.getByText('Not available'), who).toBeVisible();
     await page.goto('t/powerfuel/machines/DEV00001/keys');
-    await expect(page).toHaveURL(/\/DEV00001\/stock$/);   // no Keys tab: the first one instead
+    await expect(page).toHaveURL(/\/DEV00001\/menu$/);   // no Keys tab: the first one instead
     await expect(page.getByRole('tab', { name: 'Keys' })).toHaveCount(0);
   }
 });
