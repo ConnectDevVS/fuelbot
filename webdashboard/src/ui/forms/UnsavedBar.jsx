@@ -8,23 +8,27 @@ import { RestartNote } from './RestartNote.jsx';
 import { t } from '../../strings.js';
 import styles from './forms.module.css';
 
-export function useLeaveGuard(dirty) {
+/**
+ * While `dirty`, leaving asks first (in-app: a confirm; closing or reloading: the browser's own).
+ * texts: {title, body, ok, stay} to say something other than "unsaved changes".
+ */
+export function useLeaveGuard(dirty, texts = null) {
   const { modal } = App.useApp();
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname);
 
   useEffect(() => {
     if (blocker.state !== 'blocked') return;
     modal.confirm({
-      title: t('unsaved.leave.title'),
-      content: t('unsaved.leave.body'),
-      okText: t('unsaved.leave.ok'),
+      title: texts?.title ?? t('unsaved.leave.title'),
+      content: texts?.body ?? t('unsaved.leave.body'),
+      okText: texts?.ok ?? t('unsaved.leave.ok'),
       okButtonProps: { danger: true },
-      cancelText: t('unsaved.leave.stay'),
+      cancelText: texts?.stay ?? t('unsaved.leave.stay'),
       autoFocusButton: 'cancel',
       onOk: () => blocker.proceed(),
       onCancel: () => blocker.reset(),
     });
-  }, [blocker, modal]);
+  }, [blocker, modal, texts]);
 
   useEffect(() => {
     if (!dirty) return undefined;

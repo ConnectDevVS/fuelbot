@@ -17,7 +17,11 @@ export function Id({ value, copy = true }) {
   );
 }
 
-export function CopyField({ value, display, label }) {
+/**
+ * Copy `value` (the canonical text) to the clipboard: `copied` is true for 2 s after. If the
+ * clipboard is refused, the text in `ref` is selected so it can be copied by hand.
+ */
+export function useCopy(value) {
   const ref = useRef(null);
   const [copied, setCopied] = useState(false);
 
@@ -27,22 +31,23 @@ export function CopyField({ value, display, label }) {
     return () => clearTimeout(timer);
   }, [copied]);
 
-  function selectValue() {
-    const range = document.createRange();
-    range.selectNodeContents(ref.current);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-  }
-
   async function copy() {
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
     } catch {
-      selectValue();
+      const range = document.createRange();
+      range.selectNodeContents(ref.current);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
   }
+  return { ref, copied, copy };
+}
+
+export function CopyField({ value, display, label }) {
+  const { ref, copied, copy } = useCopy(value);
 
   return (
     <span className={styles.copyField}>

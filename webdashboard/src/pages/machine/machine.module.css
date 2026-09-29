@@ -45,3 +45,12 @@
 .history {
   margin-top: 24px;
 }
+
+/* Keys tab */
+.gap {
+  margin-bottom: 16px;
+}
+
+.label {
+  width: 260px;
+}

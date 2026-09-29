@@ -44,8 +44,9 @@ later, **so that** provisioning never fails because of a typo.
   - Step 2 copy: `POST …/machines/<new>/menu/copy-from/<src>` with
     `If-Match: 0` (the new `menu_version`). The source list is the tenant's
     configured machines.
-  - "Build the menu" opens the Menu tab (SRV-43) in a new step. "Later"
-    skips.
+  - "Build the menu" goes on to the key first; Done then opens the Menu
+    tab (SRV-43). Opening the tab mid-flow would leave the machine without
+    a key. "Later" skips (built in SRV-42).
 - **Key:**
   - `POST …/keys {label}` (default label = the machine name) → `key` shown
     in the card;

@@ -807,7 +807,9 @@ Bay 4 · K7Q2M9XA        ○Offline                      never         —      
   - "Copy the menu from…" (a list of configured machines):
     `POST …/machines/:mid/menu/copy-from/:src` with
     `If-Match: <menu_version>` (0).
-  - Or "Build the menu": opens the Menu tab.
+  - Or "Build the menu": the key step comes first, then Done opens the
+    Menu tab (SRV-42: leaving mid-flow would leave the machine without a
+    key).
   - Or "Later": the machine stays "Not configured", and its config call
     answers 409 until then (the kiosk keeps its cache).
 - **Step 3, Key:**

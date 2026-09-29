@@ -1,7 +1,7 @@
 // Rendering components in tests: a signed-in user in the query cache, a router, antd's context.
 import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router';
+import { createMemoryRouter, MemoryRouter, RouterProvider } from 'react-router';
 import { App as AntApp, ConfigProvider } from 'antd';
 import { antdTheme } from '../theme/antdTheme.js';
 
@@ -14,14 +14,16 @@ export const ME = {
   session_expires_at: '2099-01-01T00:00:00Z',
 };
 
-export function renderUi(ui, { me = ME, path = '/' } = {}) {
+/** dataRouter: a data router (createMemoryRouter), for components that use useBlocker. */
+export function renderUi(ui, { me = ME, path = '/', dataRouter = false } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['me'], me);
+  const router = dataRouter ? createMemoryRouter([{ path: '*', element: ui }], { initialEntries: [path] }) : null;
   return render(
     <ConfigProvider theme={antdTheme}>
       <AntApp>
         <QueryClientProvider client={client}>
-          <MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>
+          {router ? <RouterProvider router={router} /> : <MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter>}
         </QueryClientProvider>
       </AntApp>
     </ConfigProvider>,
