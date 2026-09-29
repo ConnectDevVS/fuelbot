@@ -16,10 +16,14 @@ const ChangePasswordPage = lazy(() => import('../auth/ChangePasswordPage.jsx'));
 const ComingSoon = lazy(() => import('../pages/ComingSoon.jsx'));
 const Gallery = lazy(() => import('../pages/Gallery.jsx'));
 
+const SalesPage = lazy(() => import('../pages/sales/SalesPage.jsx'));
+
 // Built pages, by page id (lazy). Anything not here is a ComingSoon placeholder.
 export const COMPONENTS = {
   fleet: lazy(() => import('../pages/fleet/FleetPage.jsx')),
   home: lazy(() => import('../pages/home/HomePage.jsx')),
+  sales: SalesPage,
+  'sales-all': SalesPage,
 };
 
 function pageElement(page) {

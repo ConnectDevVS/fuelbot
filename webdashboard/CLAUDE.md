@@ -151,5 +151,10 @@ covers the Godot kiosk, which S7 never touches.
   (`../../server/src/…`, `../../server/test/helpers.js`), which resolve
   their packages from `server/node_modules`: run `npm ci` in `server/` too.
   Don't import `mongoose` from `webdashboard/` (not installed here).
+- An antd icon adds its name to a button's accessible name ("filter
+  Filters (2)"): match button names with a regex that allows it.
+- `main [aria-busy]` counts 0 before a lazy page has rendered at all: wait
+  for real content (a row, a tile) before waiting for "the next" request,
+  or you catch the page's own first load.
 - The seed's stock states are exact because refills are stamped after
   every seeded dose; keep new seeded sales older than `now - 10 min`.

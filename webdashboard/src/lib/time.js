@@ -131,3 +131,36 @@ export function bucketAxisLabel(key, group) {
   if (group === 'week') return `W${Number(key.slice(6))}`;
   return shortDate(key);
 }
+
+// --- Local-date arithmetic for ranges (Home, Sales): on 'YYYY-MM-DD' keys, never by adding hours --
+
+/** 'YYYY-MM-DD' ± n calendar days. */
+export function addDaysKey(key, n) {
+  return dateKeyOf(dateMs(key) + n * MS_DAY);
+}
+
+/** The Monday on or before a date key. */
+export function mondayKey(key) {
+  return addDaysKey(key, -((new Date(dateMs(key)).getUTCDay() + 6) % 7));
+}
+
+/** The 1st of the month `n` months from the date key's month ('2026-09-28', -1 → '2026-08-01'). */
+export function monthStartKey(key, n = 0) {
+  const d = new Date(dateMs(key));
+  return dateKeyOf(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
+}
+
+/** Whole calendar days from one date key to another. */
+export function daysBetweenKeys(from, to) {
+  return Math.round((dateMs(to) - dateMs(from)) / MS_DAY);
+}
+
+/** A local date's midnight in tz as an offset ISO string ('2026-09-15T00:00:00+05:30'): API bounds. */
+export function localMidnightIso(key, tz) {
+  return dayjs.tz(`${key}T00:00:00`, tz).format();
+}
+
+/** A valid 'YYYY-MM-DD' (a real calendar date)? */
+export function isDateKey(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && dateKeyOf(dateMs(value)) === value;
+}

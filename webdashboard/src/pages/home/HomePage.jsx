@@ -6,12 +6,13 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Col, Row, Segmented } from 'antd';
+import { Button, Col, Row, Segmented } from 'antd';
 import { api } from '../../api/client.js';
 import { useCan, useDisplayTz } from '../../auth/session.js';
 import { PageHeader, RefreshButton } from '../../ui/PageHeader.jsx';
 import { KpiTile } from '../../ui/KpiTile.jsx';
 import { EmptyState, ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
+import { Loaded, Panel } from '../../ui/Panel.jsx';
 import { RevenueChart } from '../../charts/RevenueChart.jsx';
 import { FlavorMixChart } from '../../charts/FlavorMixChart.jsx';
 import { formatCount, formatMoney } from '../../lib/money.js';
@@ -29,28 +30,6 @@ const MACHINE_ROWS = 6;
 const REFILL_ROWS = 5;
 
 const summaryUrl = (group, tid, { from, to }) => `/sales/summary?${new URLSearchParams({ group, tenant: tid, from, to })}`;
-
-function Panel({ title, sub, extra, children }) {
-  return (
-    <Card className={styles.panel} role="region" aria-label={title}>
-      <div className={styles.panelHead}>
-        <div className={styles.panelText}>
-          <h2 className={styles.panelTitle}>{title}</h2>
-          {sub && <div className={styles.panelSub}>{sub}</div>}
-        </div>
-        {extra}
-      </div>
-      {children}
-    </Card>
-  );
-}
-
-/** A panel's body for one query: skeleton, error with Retry, or the content. */
-function Loaded({ query, rows = 4, children }) {
-  if (query.isPending) return <PageSkeleton kind="plain" rows={rows} />;
-  if (query.error) return <ErrorPanel error={query.error} onRetry={query.refetch} />;
-  return children();
-}
 
 function Kpis({ fleet, tid, tz }) {
   const can = useCan();

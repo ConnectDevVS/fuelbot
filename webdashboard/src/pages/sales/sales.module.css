@@ -1,0 +1,86 @@
+/* Sales (dashboard plan §5.7; mock-up design/sales-filters-phone.png). Colours from tokens.css only. */
+.tabs {
+  margin-bottom: 8px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.period {
+  min-width: 150px;
+}
+
+.select {
+  width: 180px;
+}
+
+.dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row {
+  margin-top: 16px;
+}
+
+/* Phone: a button and the summary; the sheet holds the fields. */
+.phoneBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.summary {
+  min-width: 0;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.sheetTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheetBody {
+  display: grid;
+  gap: 18px;
+}
+
+.sheetField {
+  display: grid;
+  justify-items: start;   /* a Segmented keeps its own width, as in the mock-up */
+  gap: 8px;
+}
+
+.sheetField .select {
+  width: 100%;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheetFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.note {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--fb-muted);
+  text-align: center;
+}
