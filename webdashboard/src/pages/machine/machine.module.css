@@ -1,0 +1,47 @@
+/* The machine page frame (dashboard plan §5.6). Colours from tokens.css only. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: -8px 0 12px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.metaItem {
+  min-width: 0;
+}
+
+.tabs {
+  margin-bottom: 8px;
+}
+
+/* Stock tab */
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.introActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.hoppers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+
+.history {
+  margin-top: 24px;
+}

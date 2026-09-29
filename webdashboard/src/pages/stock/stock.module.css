@@ -15,3 +15,30 @@
   color: var(--fb-muted);
   font-size: 13px;
 }
+
+/* Record refill / Adjust */
+.dialogFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.level {
+  width: 100%;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* Refill soon page: state chips (they scroll sideways inside their row on a phone). */
+.chips {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.chip {
+  flex: none;
+}
