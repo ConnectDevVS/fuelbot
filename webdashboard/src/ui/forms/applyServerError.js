@@ -25,15 +25,21 @@ export function applyServerError(error, form, { rename = {} } = {}) {
 
   if (error.code === 'invalid_body' && Array.isArray(error.details)) {
     for (const d of error.details) {
-      let name = fieldPath(rename[d.field] ?? d.field);
-      let text = String(d.error);
-      // The server's list check names the list and puts the item in the text: {field: 'bases',
-      // error: '[1] code: B<digit>'} is bases[1].code when the form has that field.
-      const item = /^\[(\d+)\] ([\w.]+): (.*)$/.exec(text);
-      if (item && known.has(key([...name, Number(item[1]), ...fieldPath(item[2])]))) {
-        name = [...name, Number(item[1]), ...fieldPath(item[2])];
-        text = item[3];
+      const base = fieldPath(rename[d.field] ?? d.field);
+      // The server's list and object checks name the container and put the rest in the text:
+      // {field: 'bases', error: '[1] code: B<digit>'} is bases[1].code, {field: 'branding',
+      // error: 'logo_text: a string (≤ 4)'} is branding.logo_text (several are joined by '; ').
+      const parts = String(d.error).split('; ').map((part) => {
+        const m = /^(?:\[(\d+)\] )?([\w.]+): (.*)$/.exec(part);
+        const inner = m ? [...base, ...(m[1] !== undefined ? [Number(m[1])] : []), ...fieldPath(m[2])] : null;
+        return inner && known.has(key(inner)) ? { name: inner, text: m[3] } : null;
+      });
+      if (parts.every(Boolean)) {
+        for (const p of parts) fields.push({ name: p.name, errors: [p.text] });
+        continue;
       }
+      const name = base;
+      const text = String(d.error);
       if (d.field && known.has(key(name))) fields.push({ name, errors: [text] });
       else unknown.push({ field: d.field || t('form.body'), error: text });
     }

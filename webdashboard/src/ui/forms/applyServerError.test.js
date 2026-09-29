@@ -50,6 +50,15 @@ describe('applyServerError', () => {
     expect(problem.unknown).toEqual([{ field: 'bases', error: 'at least one enabled base' }]);
   });
 
+  it("an object's errors ('logo_text: …; display_name: …') go to their fields", () => {
+    const form = formWith([['branding', 'logo_text'], ['branding', 'display_name']]);
+    applyServerError(new ApiError(400, 'invalid_body', [
+      { field: 'branding', error: 'logo_text: a string (≤ 4); display_name: a string (≤ 60)' },
+    ]), form);
+    expect(form.getFieldError(['branding', 'logo_text'])).toEqual(['a string (≤ 4)']);
+    expect(form.getFieldError(['branding', 'display_name'])).toEqual(['a string (≤ 60)']);
+  });
+
   it('forbidden_field marks its fields; users codes map; others are a summary', () => {
     const form = formWith(['actual_price', 'offer_price', 'email']);
     const price = applyServerError(new ApiError(403, 'forbidden_field', ['actual_price', 'offer_price']), form);

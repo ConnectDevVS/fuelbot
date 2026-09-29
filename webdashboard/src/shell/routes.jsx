@@ -17,6 +17,7 @@ const ComingSoon = lazy(() => import('../pages/ComingSoon.jsx'));
 const Gallery = lazy(() => import('../pages/Gallery.jsx'));
 
 const SalesPage = lazy(() => import('../pages/sales/SalesPage.jsx'));
+const UsersPage = lazy(() => import('../pages/users/UsersPage.jsx'));
 
 // Built pages, by page id (lazy). Anything not here is a ComingSoon placeholder.
 export const COMPONENTS = {
@@ -28,6 +29,9 @@ export const COMPONENTS = {
   machine: lazy(() => import('../pages/machine/MachinePage.jsx')),
   machines: lazy(() => import('../pages/machines/MachinesPage.jsx')),
   products: lazy(() => import('../pages/products/ProductsPage.jsx')),
+  users: UsersPage,
+  'users-all': UsersPage,
+  company: lazy(() => import('../pages/company/CompanyPage.jsx')),
   'machine-new': lazy(() => import('../pages/machines/RegisterMachinePage.jsx')),
   'sales-all': SalesPage,
 };

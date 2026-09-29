@@ -36,6 +36,12 @@ export const antdTheme = {
       colorPrimaryActive: palette.accentActive,
       primaryColor: palette.onAccent,
       primaryShadow: 'none',
+      // Default buttons would take the lime (Button's colorPrimary) as hover / focus / active text
+      // and border: lime text on white (seen on "Generate" in SRV-46). The readable green instead.
+      defaultHoverColor: palette.primary,
+      defaultHoverBorderColor: palette.primary,
+      defaultActiveColor: palette.link,
+      defaultActiveBorderColor: palette.link,
       fontWeight: 700,
     },
     Segmented: {
