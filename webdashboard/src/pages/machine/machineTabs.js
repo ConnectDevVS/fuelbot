@@ -9,7 +9,7 @@ export const MACHINE_TABS = [
   { id: 'settings', needs: null, story: 'SRV-44' },
   { id: 'bases', needs: null, story: 'SRV-44' },
   { id: 'keys', needs: 'keys:manage', story: 'SRV-42' },
-  { id: 'maintenance', needs: 'telemetry:read', story: 'SRV-47' },   // platform only
+  { id: 'maintenance', needs: 'maintenance:read', story: 'SRV-47' },   // platform only
   { id: 'telemetry', needs: 'telemetry:read', story: 'SRV-47' },
   { id: 'faults', needs: 'faults:read', story: 'SRV-47' },
 ];

@@ -32,6 +32,7 @@ export const COMPONENTS = {
   users: UsersPage,
   'users-all': UsersPage,
   company: lazy(() => import('../pages/company/CompanyPage.jsx')),
+  tenants: lazy(() => import('../pages/tenants/TenantsPage.jsx')),
   'machine-new': lazy(() => import('../pages/machines/RegisterMachinePage.jsx')),
   'sales-all': SalesPage,
 };

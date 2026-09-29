@@ -164,3 +164,13 @@ export function localMidnightIso(key, tz) {
 export function isDateKey(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && dateKeyOf(dateMs(value)) === value;
 }
+
+/** A duration in words: '42 s', '4 min 10 s', '3 h 5 min', '2 d 4 h'. */
+export function formatDuration(sec) {
+  if (sec === null || sec === undefined) return '—';
+  const s = Math.max(0, Math.round(sec));
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60} s`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+  return `${Math.floor(s / 86400)} d ${Math.floor((s % 86400) / 3600)} h`;
+}

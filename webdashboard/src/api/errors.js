@@ -18,6 +18,7 @@ const BUGS = new Set(['if_match_required', 'csrf_header_required']);
 // Top-level codes that belong to one field (DP §7): the users API's, and a taken product id.
 const USER_FIELDS = {
   product_exists: 'product_id',
+  tenant_exists: 'id',
   invalid_email: 'email',
   email_taken: 'email',
   invalid_role: 'role',

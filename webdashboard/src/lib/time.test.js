@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bucketAxisLabel, bucketKeys, bucketLabel, formatClock, formatDate, formatDateTime, relativeTime } from './time.js';
+import { bucketAxisLabel, bucketKeys, bucketLabel, formatClock, formatDate, formatDateTime, formatDuration, relativeTime } from './time.js';
 
 const TZ = 'Asia/Kolkata';
 
@@ -58,5 +58,9 @@ describe('time', () => {
     expect(bucketLabel('2026-09', 'month')).toBe('Sep 2026');
     expect([bucketAxisLabel('2026-09-28', 'day'), bucketAxisLabel('2026-W09', 'week'), bucketAxisLabel('2026-10', 'month')])
       .toEqual(['28 Sep', 'W9', 'Oct']);
+  });
+
+  it('formats durations', () => {
+    expect([null, 42, 250, 900, 11100, 180000].map(formatDuration)).toEqual(['—', '42 s', '4 min 10 s', '15 min 0 s', '3 h 5 min', '2 d 2 h']);
   });
 });

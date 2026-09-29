@@ -1,6 +1,7 @@
 // The machine page (dashboard plan §5.6; SRV-41): a header (name, id, status for the caller's view,
 // last seen, location) and a tab bar where each tab is a route. The bar lists the tabs this user may
-// see that exist so far (machineTabs.js); any other tab in the URL goes to the first one. Outside the
+// see (machineTabs.js); a tab they may not open is Not available (its data is never requested), an
+// unknown one goes to the first tab. Outside the
 // caller's scope the API says 404, and the page says Not found (never which).
 import { lazy, Suspense } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
@@ -11,7 +12,7 @@ import { PageHeader } from '../../ui/PageHeader.jsx';
 import { StatusBadge } from '../../ui/Chips.jsx';
 import { RelativeTime } from '../../ui/DateTime.jsx';
 import { Id } from '../../ui/Id.jsx';
-import { ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
+import { ErrorPanel, NotAvailableState, PageSkeleton } from '../../ui/States.jsx';
 import { machineName } from '../../lib/names.js';
 import { visibleTabs } from './machineTabs.js';
 import { useMachine } from './machineQuery.js';
@@ -27,6 +28,9 @@ const TABS = {
   settings: lazy(() => import('./SettingsTab.jsx')),
   bases: lazy(() => import('./BasesTab.jsx')),
   keys: lazy(() => import('./KeysTab.jsx')),
+  maintenance: lazy(() => import('./MaintenanceTab.jsx')),
+  telemetry: lazy(() => import('./TelemetryTab.jsx')),
+  faults: lazy(() => import('./FaultsTab.jsx')),
 };
 
 export default function MachinePage() {
@@ -37,6 +41,8 @@ export default function MachinePage() {
   const tabs = visibleTabs(can, new Set(Object.keys(TABS)));
   const base = `/t/${encodeURIComponent(tid)}/machines/${encodeURIComponent(mid)}`;
 
+  // A tab this role may not open: Not available (as for pages). Unknown or not built yet: the first tab.
+  if (TABS[tab] && !tabs.some((x) => x.id === tab)) return <NotAvailableState />;
   if (!tabs.some((x) => x.id === tab) && tabs.length) return <Navigate replace to={`${base}/${tabs[0].id}`} />;
   if (query.isPending) return <PageSkeleton rows={8} />;
   if (query.error?.status === 404) {

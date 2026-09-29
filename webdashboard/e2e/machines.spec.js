@@ -200,7 +200,8 @@ test("operators and viewers can't register or see keys", async ({ page, signInAs
     await page.goto('t/powerfuel/machines/new');
     await expect(page.getByText('Not available'), who).toBeVisible();
     await page.goto('t/powerfuel/machines/DEV00001/keys');
-    await expect(page).toHaveURL(/\/DEV00001\/menu$/);   // no Keys tab: the first one instead
+    await expect(page.getByText('Not available')).toBeVisible();   // no Keys tab, and not by URL either
+    await page.goto('t/powerfuel/machines/DEV00001/menu');
     await expect(page.getByRole('tab', { name: 'Keys' })).toHaveCount(0);
   }
 });

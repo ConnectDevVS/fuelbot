@@ -10,8 +10,10 @@ import styles from './ui.module.css';
 
 /**
  * columns: [{key, title, render?(row), align?, priority? (1 = always; phone shows ≤ 2), sorter?, width?}]
+ * expand: {render(row), can?(row)}: an expandable detail per row (a telemetry cycle's stages); on a
+ * phone card it's shown under the fields.
  */
-export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empty, footer }) {
+export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empty, footer, expand }) {
   const phone = useLayoutSize() === 'phone';
   const navigate = useNavigate();
   const keyOf = (row) => (typeof rowKey === 'function' ? rowKey(row) : row[rowKey]);
@@ -38,6 +40,7 @@ export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empt
                 ])}
               </dl>
             )}
+            {expand && (!expand.can || expand.can(row)) && <div className={styles.cardExpand}>{expand.render(row)}</div>}
           </Card>
         ))}
         {footer}
@@ -65,6 +68,7 @@ export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empt
         size="middle"
         locale={{ emptyText: empty ?? t('table.empty') }}
         rowClassName={rowHref ? styles.clickable : undefined}
+        expandable={expand ? { expandedRowRender: expand.render, rowExpandable: expand.can ?? (() => true) } : undefined}
         onRow={rowHref ? (row) => ({ onClick: () => navigate(rowHref(row)) }) : undefined}
       />
       {footer}

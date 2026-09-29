@@ -20,17 +20,9 @@ import { StageTimeline } from '../../ui/StageTimeline.jsx';
 import { ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
 import { nameOf, useMachines, useProducts, machineName } from '../../lib/names.js';
 import { Charged } from '../sales/SalesTable.jsx';
+import { eventDetails } from '../telemetry/eventDetails.js';
 import { t } from '../../strings.js';
 import styles from './order.module.css';
-
-// Fields every event has; the rest of an event is its details.
-const COMMON = new Set(['id', 'event_id', 'event_type', 'tenant_id', 'machine_id', 'order_id', 'ts', 'received_at', 'machine_known',
-  'source', 'v', 'timestamp', 'body_tenant_id', 'body_machine_id', 'stages']);
-
-export function eventDetails(e) {
-  return Object.entries(e).filter(([k, v]) => !COMMON.has(k) && v !== null && v !== undefined && v !== '')
-    .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ');
-}
 
 function NotFound() {
   return <Result icon={<QuestionCircleOutlined className="result-icon" />} title={t('notfound.title')} subTitle={t('order.notFound')} />;

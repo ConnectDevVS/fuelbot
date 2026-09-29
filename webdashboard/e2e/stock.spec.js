@@ -171,7 +171,7 @@ test('machine page frame', async ({ page, signInAs }) => {
   const common = ['Menu', 'Config', 'Stock', 'Sales', 'Settings', 'Bases'];
   for (const [who, tabs] of [['owner', [...common, 'Keys']], ['look', common]]) {
     await signInAs(who);
-    await page.goto('t/powerfuel/machines/DEV00001/telemetry');   // not theirs (and not built) → the first tab
+    await page.goto('t/powerfuel/machines/DEV00001/nosuch');   // an unknown tab → the first one
     await expect(page).toHaveURL(/\/machines\/DEV00001\/menu$/);
     await expect(page.getByRole('tab')).toHaveText(tabs);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/bay 02/i);

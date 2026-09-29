@@ -74,6 +74,10 @@
   overflow-wrap: anywhere;
 }
 
+.cardExpand {
+  margin-top: 12px;
+}
+
 .loadMore {
   display: flex;
   justify-content: center;
