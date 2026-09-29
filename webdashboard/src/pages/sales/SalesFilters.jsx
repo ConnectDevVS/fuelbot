@@ -45,7 +45,8 @@ const toOptions = (names, allLabel) => [{ value: '', label: allLabel },
 /**
  * The fields, for a row or the sheet. f: filters; group: the effective group; today: the local date
  * key (no future days); onChange(next filters).
- * lists: {tenantNames (staff on /sales) | null, machineNames | null (hidden), flavorNames | null, staff}
+ * lists: {tenantNames (staff on /sales) | null, machineNames | null (hidden), flavorNames | null, staff,
+ *   hideDispensed (the Not dispensed tab fixes it)}
  */
 function Fields({ f, group, today, onChange, lists, sheet }) {
   const { tenantNames, machineNames, flavorNames, staff } = lists;
@@ -106,10 +107,10 @@ function Fields({ f, group, today, onChange, lists, sheet }) {
             onChange={(v) => set({ flavor: v || null })} options={toOptions(flavorNames, t('sales.flavor.all'))} />
         </Field>
       )}
-      <Field sheet={sheet} label={t('sales.dispensed')}>
+      {!lists.hideDispensed && <Field sheet={sheet} label={t('sales.dispensed')}>
         <Segmented aria-label={t('sales.dispensed')} value={f.dispensed ?? 'all'} onChange={(v) => set({ dispensed: v === 'all' ? null : v })}
           options={['all', 'true', 'false'].map((v) => ({ value: v, label: t(`sales.dispensed.${v}`) }))} />
-      </Field>
+      </Field>}
       {staff && (
         <Field sheet={sheet} label={t('sales.result')}>
           <Select aria-label={t('sales.result')} className={styles.select} value={f.result ?? ''}

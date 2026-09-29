@@ -25,5 +25,5 @@ export function SessionExpiryBanner() {
 
   const shown = expires !== null && expires - WARN_BEFORE_MS <= now;
   if (!shown || !expires) return null;
-  return <Alert type="warning" showIcon banner role="status" title={t('session.ends', { time: formatClock(expires, tz) })} />;
+  return <Alert className="no-print" type="warning" showIcon banner role="status" title={t('session.ends', { time: formatClock(expires, tz) })} />;
 }

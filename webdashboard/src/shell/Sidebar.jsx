@@ -19,7 +19,7 @@ export function Sidebar({ nav, activeId, collapsed }) {
       : []),
   ];
   return (
-    <Layout.Sider className={styles.sider} width={232} collapsedWidth={72} collapsed={collapsed} trigger={null} theme="light">
+    <Layout.Sider className={`${styles.sider} no-print`} width={232} collapsedWidth={72} collapsed={collapsed} trigger={null} theme="light">
       <nav aria-label={t('nav.label')} className={styles.siderInner}>
         <div className={styles.siderBrand}>
           <span className={styles.brandMark} aria-hidden="true">{t('brand.mark')}</span>

@@ -72,7 +72,8 @@ share the numbers.
 - [ ] `src/pages/sales/ExportCsvLink.test.jsx` › "carries the filters, never
       limit or cursor".
 - [ ] `e2e/sales-list.spec.js` › "Load more pages through all sales without
-      duplicates" (the seed's 120 powerfuel sales = 50 + 50 + 20).
+      duplicates" (the owner sees the seed's 120 powerfuel sales plus its
+      one sale from an unregistered machine id: 50 + 50 + 21).
 - [ ] `e2e/sales-list.spec.js` › "tenant sees Not dispensed with no
       reason": `owner@` → the Not-dispensed rows show "Not dispensed", and
       the page text has none of the seeded reasons (e.g. "no DONE within

@@ -1,5 +1,6 @@
 // /dashboard/_gallery (SRV-34): every shared component in every state, with sample data shaped like
 // the captured API responses (dashboard plan §9). Dev builds, or ?gallery for signed-in staff.
+import { StageTimeline } from '../ui/StageTimeline.jsx';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { Button, Card, Col, Row, Select, Space } from 'antd';
@@ -125,6 +126,12 @@ function GalleryBody() {
           <Col xs={24} lg={12}><Card size="small"><NotFoundState /></Card></Col>
           <Col xs={24} lg={12}><Card size="small"><NotAvailableState /></Card></Col>
         </Row>
+      </Section>
+
+      <Section title="Stage timeline (staff, order page)">
+        <StageTimeline durationMs={71200} stages={[{ stage: 'HOMING_DONE', t_offset_ms: 1800 },
+          { stage: 'PROTEIN_DISPENSED', t_offset_ms: 7600 }, { stage: 'BASE_DISPENSED', t_offset_ms: 21400 },
+          { stage: 'MIXING_DONE', t_offset_ms: 62000 }, { stage: 'DONE', t_offset_ms: 70000 }]} />
       </Section>
 
       <Section title="Charts">

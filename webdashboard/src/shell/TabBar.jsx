@@ -7,7 +7,7 @@ import styles from './shell.module.css';
 export function TabBar({ tabs, activeId, onMore, moreActive }) {
   const More = ICONS.more;
   return (
-    <nav className={styles.tabbar} aria-label={t('nav.label')}>
+    <nav className={`${styles.tabbar} no-print`} aria-label={t('nav.label')}>
       {tabs.map(({ page, href }) => {
         const Icon = ICONS[page.nav.icon];
         return (

@@ -98,14 +98,24 @@ export function rangeOf(f, now, tz) {
  * The summary query for a group. `tenant` is the page's tenant (/t/:tid/sales) or the staff filter
  * (/sales); `result` only goes out for staff (the server refuses it for others).
  */
-export function summaryQuery(group, f, range, { tenant, staff }) {
-  const q = new URLSearchParams({ group, from: range.from, to: range.to });
+export function summaryQuery(group, f, range, opts) {
+  return new URLSearchParams({ group, ...Object.fromEntries(filterParams(f, range, opts)) }).toString();
+}
+
+/**
+ * The filter params every sales read shares (summary, list, CSV): the range, tenant, machine,
+ * flavor, dispensed, and result for staff. `patch` overrides (the Not dispensed tab:
+ * {dispensed: 'false'}).
+ */
+export function filterParams(f, range, { tenant, staff }, patch = {}) {
+  const q = new URLSearchParams({ from: range.from, to: range.to });
   if (tenant) q.set('tenant', tenant);
   if (f.machine) q.set('machine', f.machine);
   if (f.flavor) q.set('flavor', f.flavor);
   if (f.dispensed) q.set('dispensed', f.dispensed);
   if (staff && f.result) q.set('result', f.result);
-  return q.toString();
+  for (const [k, v] of Object.entries(patch)) q.set(k, v);
+  return q;
 }
 
 /** How many filters differ from the defaults (the phone's "Filters (n)"). */

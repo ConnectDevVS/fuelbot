@@ -22,7 +22,7 @@ export function TenantBadge({ tenant }) {
 export function TopBar({ tid, tenant, size }) {
   const staff = useIsStaff();
   return (
-    <header className={styles.topbar}>
+    <header className={`${styles.topbar} no-print`}>
       <div className={styles.topLeft}>
         {staff ? <TenantSwitcher tid={tid} /> : <TenantBadge tenant={tenant} />}
       </div>

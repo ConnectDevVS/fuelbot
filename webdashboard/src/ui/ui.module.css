@@ -189,3 +189,48 @@
   color: var(--fb-muted);
   font-size: 13px;
 }
+
+/* Stage timeline */
+.timeline {
+  margin: 0;
+  min-width: 0;
+}
+
+.track {
+  position: relative;
+  height: 6px;
+  margin: 10px 6px 14px;
+  border-radius: 3px;
+  background: var(--fb-border);
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--fb-surface);
+  border-radius: 50%;
+  background: var(--fb-chart-dispensed);
+  transform: translate(-50%, -50%);
+}
+
+.stages {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stages li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.total {
+  margin-top: 8px;
+}
