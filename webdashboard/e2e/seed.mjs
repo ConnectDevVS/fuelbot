@@ -104,7 +104,8 @@ export async function seed(now = Date.now()) {
   await Machine.updateOne({ _id: 'E2E00002' }, { name: 'Bay 3', location_label: 'FUELBOT · BAY 03', site: 'Ground floor', last_seen_at: seen });
   await Machine.updateOne({ _id: 'E2E00004' }, { name: 'Old bay', location_label: 'FUELBOT · OLD', disabled: true,
     last_seen_at: new Date(now - 40 * DAY) });
-  await Machine.updateOne({ _id: 'E2E00005' }, { name: 'Globex Main', location_label: 'GLOBEX · MAIN', last_seen_at: seen });
+  // Its own site (the imported default config says "PowerFuel Gym / Bay 02"): globex sees nothing of powerfuel.
+  await Machine.updateOne({ _id: 'E2E00005' }, { name: 'Globex Main', location_label: 'GLOBEX · MAIN', site: 'Globex HQ', last_seen_at: seen });
 
   // Users.
   const users = {};

@@ -5,7 +5,7 @@
 // caller's scope the API says 404, and the page says Not found (never which).
 import { lazy, Suspense } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
-import { Result, Skeleton, Tabs } from 'antd';
+import { Result, Tabs } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import { useCan } from '../../auth/session.js';
 import { PageHeader } from '../../ui/PageHeader.jsx';
@@ -65,7 +65,7 @@ export default function MachinePage() {
       <Tabs className={styles.tabs} activeKey={tab} aria-label={t('machine.tabs')}
         onChange={(next) => navigate(`${base}/${next}`)}
         items={tabs.map((x) => ({ key: x.id, label: t(`machine.tab.${x.id}`) }))} />
-      <Suspense fallback={<Skeleton active />}>
+      <Suspense fallback={<PageSkeleton kind="plain" rows={6} />}>
         <Tab tid={tid} mid={mid} machine={m} machineQuery={query} />
       </Suspense>
     </section>

@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { Input } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
+import { useDisplayTz } from '../../auth/session.js';
 import { PageHeader } from '../../ui/PageHeader.jsx';
+import { formatDayHeading } from '../../lib/time.js';
 import { useDebounced } from '../../lib/useDebounced.js';
 import { TelemetryList } from '../telemetry/TelemetryList.jsx';
 import { EMPTY_FILTERS, StaffFilters } from './StaffFilters.jsx';
@@ -14,9 +16,11 @@ export default function TelemetryPage() {
   const [f, setF] = useState(EMPTY_FILTERS);
   const [order, setOrder] = useState('');
   const orderId = useDebounced(order.trim(), 300);
+  const tz = useDisplayTz();
+  const [openedAt] = useState(() => Date.now());
   return (
     <section>
-      <PageHeader title={t('page.telemetry')} />
+      <PageHeader overline={formatDayHeading(openedAt, tz)} title={t('page.telemetry')} />
       <StaffFilters value={f} onChange={setF} dates={false}>
         <Input allowClear prefix={<SearchOutlined />} placeholder={t('tel.orderSearch')} aria-label={t('tel.orderSearch')}
           value={order} onChange={(e) => setOrder(e.target.value)} className={styles.search} />

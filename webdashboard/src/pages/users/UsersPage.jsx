@@ -78,7 +78,8 @@ export default function UsersPage() {
     ) },
     { key: 'role', title: t('users.col.role'), priority: 2, render: (u) => t(`role.${u.role}`) },
     ...(!tid ? [{ key: 'tenant', title: t('users.col.tenant'), priority: 2, render: (u) => (u.tenant_id ? tenantNames.get(u.tenant_id) ?? u.tenant_id : '—') }] : []),
-    { key: 'machines', title: t('users.col.machines'), priority: 2, render: (u) => (u.machines?.length
+    // FuelBot staff aren't limited to machines at all: "—", not "All machines".
+    { key: 'machines', title: t('users.col.machines'), priority: 2, render: (u) => (!u.tenant_id ? '—' : u.machines?.length
       ? u.machines.map((id) => machineNames.get(id) ?? id).join(', ') : t('users.allMachines')) },
     { key: 'status', title: t('users.col.status'), priority: 2, render: status },
     { key: 'last', title: t('users.col.lastSignIn'), priority: 3, render: (u) => (u.last_login_at ? <DateTime value={u.last_login_at} /> : t('users.never')) },

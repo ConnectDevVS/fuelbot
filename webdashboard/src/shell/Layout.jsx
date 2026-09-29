@@ -43,7 +43,7 @@ export default function Layout() {
         <TopBar tid={tid} tenant={tenant} size={size} />
         <SessionExpiryBanner />
         <AntLayout.Content id="main" className={styles.main} tabIndex={-1}>
-          <Suspense fallback={<Skeleton active />}>
+          <Suspense fallback={<div aria-busy="true"><Skeleton active /></div>}>
             <Outlet key={location.pathname} />
           </Suspense>
         </AntLayout.Content>
