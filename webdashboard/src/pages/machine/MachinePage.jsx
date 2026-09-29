@@ -23,6 +23,9 @@ const TABS = {
   menu: lazy(() => import('./MenuTab.jsx')),
   config: lazy(() => import('./ConfigTab.jsx')),
   stock: lazy(() => import('./StockTab.jsx')),
+  sales: lazy(() => import('./SalesTab.jsx')),
+  settings: lazy(() => import('./SettingsTab.jsx')),
+  bases: lazy(() => import('./BasesTab.jsx')),
   keys: lazy(() => import('./KeysTab.jsx')),
 };
 

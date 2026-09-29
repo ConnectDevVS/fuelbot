@@ -43,24 +43,25 @@ function useSummary(group, filters, range, opts, enabled = true) {
 
 /**
  * The URL's filters, minus the ones this page can't apply: Result for non-staff (the server refuses
- * it), Tenant on a tenant's own page (the path names it).
+ * it), Tenant on a tenant's own page (the path names it). On a machine's Sales tab the machine is fixed.
  */
-function readFilters(qs, { staff, tid }) {
+function readFilters(qs, { staff, tid, machineId }) {
   const x = parseFilters(new URLSearchParams(qs));
-  return { ...x, result: staff ? x.result : null, tenant: tid ? null : x.tenant };
+  return { ...x, result: staff ? x.result : null, tenant: tid ? null : x.tenant, machine: machineId ?? x.machine };
 }
 
 const toMap = (items, key, name) => (items ? new Map(items.map((x) => [x[key], name(x)])) : null);
 
-export default function SalesPage() {
+/** machineId: the machine page's Sales tab (DP §5.6.4): that machine fixed, its filter hidden. */
+export default function SalesPage({ machineId = null }) {
   const { tid } = useParams();   // undefined on /sales (staff, all tenants)
   const tz = useDisplayTz();
   const staff = useCan()('telemetry:read');
   const [params, setParams] = useSearchParams();
   const search = params.toString();
-  const f = useMemo(() => readFilters(search, { staff, tid }), [search, staff, tid]);
+  const f = useMemo(() => readFilters(search, { staff, tid, machineId }), [search, staff, tid, machineId]);
   const settled = useDebounced(search, 300);
-  const q = useMemo(() => readFilters(settled, { staff, tid }), [settled, staff, tid]);
+  const q = useMemo(() => readFilters(settled, { staff, tid, machineId }), [settled, staff, tid, machineId]);
   // "Today" for the presets; Refresh moves it on when the day has changed (no timers).
   const [now, setNow] = useState(() => Date.now());
   const today = localDateKey(now, tz);
@@ -73,7 +74,7 @@ export default function SalesPage() {
   const opts = { tenant: apiTenant, staff };
   const series = useSummary(range.group, q, range, opts);
   const mix = useSummary('flavor', q, range, opts, !allTenants);
-  const breakdown = useSummary(allTenants ? 'tenant' : 'machine', q, range, opts);
+  const breakdown = useSummary(allTenants ? 'tenant' : 'machine', q, range, opts, !machineId);   // one machine: no breakdown
   const listParams = filterParams(q, range, opts);
   const ndParams = filterParams(q, range, opts, { dispensed: 'false' });
   const overviewTab = f.view === 'overview';
@@ -113,8 +114,8 @@ export default function SalesPage() {
     if (printing.data) window.print();
   }, [printing.data]);
 
-  const setFilters = (next) => setParams(toSearch(next));
-  const queries = [series, breakdown, overviewTab ? list : ndList, ...(allTenants ? [] : [mix]), ...(listTenant ? [products, machines] : []), ...(tenantNames ? [tenants] : [])];
+  const setFilters = (next) => setParams(toSearch(machineId ? { ...next, machine: null } : next));   // the path names the machine
+  const queries = [series, ...(machineId ? [] : [breakdown]), overviewTab ? list : ndList, ...(allTenants ? [] : [mix]), ...(listTenant ? [products, machines] : []), ...(tenantNames ? [tenants] : [])];
   const refresh = () => {
     const at = Date.now();
     if (localDateKey(at, tz) !== today) {
@@ -129,7 +130,7 @@ export default function SalesPage() {
   const filters = (
     <div className="no-print">
       <SalesFilters f={f} rangeFor={rangeFor} today={today} onChange={setFilters} summary={summaryLine}
-        lists={{ ...names, machineNames: listTenant ? (machineNames ?? new Map()) : null,
+        lists={{ ...names, machineNames: listTenant && !machineId ? (machineNames ?? new Map()) : null,
           flavorNames: listTenant ? (flavorNames ?? new Map()) : null, staff, hideDispensed: !overviewTab }} />
     </div>
   );
@@ -162,7 +163,7 @@ export default function SalesPage() {
 
       <Row gutter={[16, 16]} className={styles.row}>
         {!allTenants && (
-          <Col xs={24} xl={12}>
+          <Col xs={24} xl={machineId ? 24 : 12}>
             <Panel title={t('sales.by.flavor')}>
               <Loaded query={mix}>
                 {() => <BreakdownTable items={mix.data.items} totals={mix.data.totals} names={flavorNames} keyTitle={t('sales.col.flavor')} />}
@@ -170,14 +171,16 @@ export default function SalesPage() {
             </Panel>
           </Col>
         )}
-        <Col xs={24} xl={allTenants ? 24 : 12}>
-          <Panel title={t(allTenants ? 'sales.by.tenant' : 'sales.by.machine')}>
-            <Loaded query={breakdown}>
-              {() => <BreakdownTable items={breakdown.data.items} totals={breakdown.data.totals}
-                names={allTenants ? tenantNames : machineNames} keyTitle={t(allTenants ? 'sales.col.tenant' : 'sales.col.machine')} />}
-            </Loaded>
-          </Panel>
-        </Col>
+        {!machineId && (
+          <Col xs={24} xl={allTenants ? 24 : 12}>
+            <Panel title={t(allTenants ? 'sales.by.tenant' : 'sales.by.machine')}>
+              <Loaded query={breakdown}>
+                {() => <BreakdownTable items={breakdown.data.items} totals={breakdown.data.totals}
+                  names={allTenants ? tenantNames : machineNames} keyTitle={t(allTenants ? 'sales.col.tenant' : 'sales.col.machine')} />}
+              </Loaded>
+            </Panel>
+          </Col>
+        )}
       </Row>
 
       <div className={`${styles.row} no-print`}>
@@ -186,6 +189,15 @@ export default function SalesPage() {
         </Panel>
       </div>
       <PrintNotDispensed data={printData} names={names} staff={staff} />
+    </>
+  );
+
+  const headerActions = (
+    <>
+      <RefreshButton queries={queries} onRefresh={refresh} />
+      {overviewTab && (
+        <Button icon={<PrinterOutlined />} loading={printing.busy} onClick={print}>{t('sales.print')}</Button>
+      )}
     </>
   );
 
@@ -198,15 +210,13 @@ export default function SalesPage() {
       <PrintHeader tenantName={tenantName} period={periodLabel(f)} by={t(`sales.byGroup.${range.group}`)}
         who={me?.user?.email ?? ''} at={printData?.at ?? now} tz={tz} />
       <div className="no-print">
-        <PageHeader overline={summaryLine} title={t(tid ? 'page.sales' : 'page.salesAll')}
-          actions={(
-            <>
-              <RefreshButton queries={queries} onRefresh={refresh} />
-              {overviewTab && (
-                <Button icon={<PrinterOutlined />} loading={printing.busy} onClick={print}>{t('sales.print')}</Button>
-              )}
-            </>
-          )} />
+        {machineId ? (
+          // Inside the machine page (its header is the page's h1): the summary and the actions only.
+          <div className={styles.embeddedHead}>
+            <span className="overline">{summaryLine}</span>
+            <span className={styles.embeddedActions}>{headerActions}</span>
+          </div>
+        ) : <PageHeader overline={summaryLine} title={t(tid ? 'page.sales' : 'page.salesAll')} actions={headerActions} />}
         <Tabs className={styles.tabs} activeKey={f.view} onChange={(view) => setFilters({ ...f, view })} aria-label={t('sales.tabs')}
           items={[
             { key: 'overview', label: t('sales.tab.overview') },

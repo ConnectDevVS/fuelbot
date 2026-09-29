@@ -1,0 +1,78 @@
+/* Settings and Bases tabs (dashboard plan §5.6.5, §5.6.6). Desktop first. Colours from tokens.css only. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 420px);
+  align-items: start;
+  gap: 24px;
+}
+
+.form {
+  min-width: 0;
+}
+
+.danger {
+  border-color: var(--fb-bad-border) !important;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.gap {
+  margin-bottom: 12px;
+}
+
+.dangerRow {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  color: var(--fb-muted);
+}
+
+.basesForm {
+  max-width: 900px;
+}
+
+.lead {
+  margin: 0 0 16px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.bases {
+  display: grid;
+  gap: 4px;
+}
+
+.baseRow {
+  display: grid;
+  grid-template-columns: 180px minmax(160px, 1fr) 120px 64px 44px;
+  align-items: start;
+  gap: 12px;
+}
+
+.baseRow :global(.ant-form-item) {
+  margin-bottom: 12px;
+}
+
+.baseHead {
+  padding-bottom: 4px;
+}
+
+.code {
+  font-family: var(--fb-font-mono);
+  text-transform: uppercase;
+}
+
+.addBase {
+  justify-self: start;
+  margin-top: 8px;
+}
+
+@media (max-width: 1099px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

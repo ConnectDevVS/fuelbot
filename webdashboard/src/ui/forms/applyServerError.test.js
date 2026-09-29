@@ -39,6 +39,17 @@ describe('applyServerError', () => {
     expect(problem.unknown).toEqual([]);
   });
 
+  it("a list item's error ('[1] code: …') goes to that row's field", () => {
+    const form = formWith([['bases', 1, 'code'], ['bases', 1, 'name']]);
+    // As captured: PUT …/bases with bases[1].code 'X9'.
+    const problem = applyServerError(new ApiError(400, 'invalid_body', [
+      { field: 'bases', error: '[1] code: B<digit>' },
+      { field: 'bases', error: 'at least one enabled base' },
+    ]), form);
+    expect(form.getFieldError(['bases', 1, 'code'])).toEqual(['B<digit>']);
+    expect(problem.unknown).toEqual([{ field: 'bases', error: 'at least one enabled base' }]);
+  });
+
   it('forbidden_field marks its fields; users codes map; others are a summary', () => {
     const form = formWith(['actual_price', 'offer_price', 'email']);
     const price = applyServerError(new ApiError(403, 'forbidden_field', ['actual_price', 'offer_price']), form);

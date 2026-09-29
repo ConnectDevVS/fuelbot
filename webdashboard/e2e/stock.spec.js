@@ -166,10 +166,12 @@ test('refill soon lists every non-ok hopper, most urgent first, and filters by c
 });
 
 test('machine page frame', async ({ page, signInAs }) => {
-  // The tabs built so far that each role may see (Keys: keys:manage, SRV-42; Menu, Config: SRV-43).
-  for (const [who, tabs] of [['owner', ['Menu', 'Config', 'Stock', 'Keys']], ['look', ['Menu', 'Config', 'Stock']]]) {
+  // The tabs built so far that each role may see (Keys: keys:manage, SRV-42; Menu, Config: SRV-43;
+  // Sales, Settings, Bases: SRV-44).
+  const common = ['Menu', 'Config', 'Stock', 'Sales', 'Settings', 'Bases'];
+  for (const [who, tabs] of [['owner', [...common, 'Keys']], ['look', common]]) {
     await signInAs(who);
-    await page.goto('t/powerfuel/machines/DEV00001/sales');   // not built yet → the first tab there is
+    await page.goto('t/powerfuel/machines/DEV00001/telemetry');   // not theirs (and not built) → the first tab
     await expect(page).toHaveURL(/\/machines\/DEV00001\/menu$/);
     await expect(page.getByRole('tab')).toHaveText(tabs);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/bay 02/i);

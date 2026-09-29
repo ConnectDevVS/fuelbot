@@ -25,9 +25,17 @@ export function applyServerError(error, form, { rename = {} } = {}) {
 
   if (error.code === 'invalid_body' && Array.isArray(error.details)) {
     for (const d of error.details) {
-      const name = fieldPath(rename[d.field] ?? d.field);
-      if (d.field && known.has(key(name))) fields.push({ name, errors: [String(d.error)] });
-      else unknown.push({ field: d.field || t('form.body'), error: String(d.error) });
+      let name = fieldPath(rename[d.field] ?? d.field);
+      let text = String(d.error);
+      // The server's list check names the list and puts the item in the text: {field: 'bases',
+      // error: '[1] code: B<digit>'} is bases[1].code when the form has that field.
+      const item = /^\[(\d+)\] ([\w.]+): (.*)$/.exec(text);
+      if (item && known.has(key([...name, Number(item[1]), ...fieldPath(item[2])]))) {
+        name = [...name, Number(item[1]), ...fieldPath(item[2])];
+        text = item[3];
+      }
+      if (d.field && known.has(key(name))) fields.push({ name, errors: [text] });
+      else unknown.push({ field: d.field || t('form.body'), error: text });
     }
   } else if (error.code === 'forbidden_field' && Array.isArray(error.details)) {
     const text = messageFor(error);
