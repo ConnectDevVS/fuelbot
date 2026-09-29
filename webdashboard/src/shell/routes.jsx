@@ -33,6 +33,10 @@ export const COMPONENTS = {
   'users-all': UsersPage,
   company: lazy(() => import('../pages/company/CompanyPage.jsx')),
   tenants: lazy(() => import('../pages/tenants/TenantsPage.jsx')),
+  faults: lazy(() => import('../pages/platform/FaultsPage.jsx')),
+  telemetry: lazy(() => import('../pages/platform/TelemetryPage.jsx')),
+  audit: lazy(() => import('../pages/platform/AuditPage.jsx')),
+  unregistered: lazy(() => import('../pages/platform/UnregisteredPage.jsx')),
   'machine-new': lazy(() => import('../pages/machines/RegisterMachinePage.jsx')),
   'sales-all': SalesPage,
 };

@@ -1,6 +1,7 @@
 // Fault intervals (dashboard plan §5.6.10, §5.15; platform only): GET /faults → {code, from, to|null,
 // duration_sec|null}. Ongoing ones first ("ongoing since …"), then the closed ones, newest first,
 // with their duration. Shared by a machine's Faults tab and the staff Faults page (SRV-48).
+import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Tag } from 'antd';
 import { api } from '../../api/client.js';
@@ -32,7 +33,9 @@ export function FaultIntervals({ query, showMachine = false }) {
   if (query.error) return <ErrorPanel error={query.error} onRetry={query.refetch} />;
   const columns = [
     { key: 'code', title: t('faults.col.code'), priority: 1, render: (f) => <span className="mono">{f.code}</span> },
-    ...(showMachine ? [{ key: 'machine', title: t('faults.col.machine'), priority: 2, render: (f) => <span className="mono">{f.machine_id}</span> }] : []),
+    ...(showMachine ? [{ key: 'machine', title: t('faults.col.machine'), priority: 2, render: (f) => (
+      <Link to={`/t/${encodeURIComponent(f.tenant_id)}/machines/${encodeURIComponent(f.machine_id)}/faults`} className="mono">{f.tenant_id} · {f.machine_id}</Link>
+    ) }] : []),
     { key: 'state', title: '', priority: 2, render: (f) => (f.to ? <Tag>{t('faults.cleared')}</Tag> : <Tag color="error">{t('faults.open')}</Tag>) },
     { key: 'when', title: t('faults.col.when'), priority: 2, render: (f) => (f.to
       ? t('faults.closed', { from: formatDateTime(f.from, tz), to: formatDateTime(f.to, tz), duration: formatDuration(f.duration_sec) })

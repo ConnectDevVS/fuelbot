@@ -50,7 +50,9 @@ export function TelemetryList({ base = {}, showMachine = false }) {
 
   const columns = [
     { key: 'time', title: t('tel.col.time'), priority: 1, render: (e) => <span className={styles.nowrap}><DateTime value={e.ts} /></span> },
-    ...(showMachine ? [{ key: 'machine', title: t('tel.col.machine'), priority: 2, render: (e) => <span className="mono">{e.machine_id ?? '—'}</span> }] : []),
+    ...(showMachine ? [{ key: 'machine', title: t('tel.col.machine'), priority: 2, render: (e) => (e.machine_id && e.tenant_id
+      ? <Link to={`/t/${encodeURIComponent(e.tenant_id)}/machines/${encodeURIComponent(e.machine_id)}/telemetry`} className="mono">{e.tenant_id} · {e.machine_id}</Link>
+      : <span className="mono">{e.machine_id ?? '—'}</span>) }] : []),
     { key: 'type', title: t('tel.col.type'), priority: 2, render: (e) => <span className="mono">{e.event_type}</span> },
     { key: 'order', title: t('tel.col.order'), priority: 2, render: (e) => (e.order_id
       ? <Link to={`/orders/${encodeURIComponent(e.order_id)}`} onClick={(ev) => ev.stopPropagation()} className="mono">{e.order_id}</Link> : '—') },
