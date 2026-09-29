@@ -93,9 +93,14 @@ covers the Godot kiosk, which S7 never touches.
   another tenant is Not found, with no request for tenant users) and `Gate`
   (Not available, and the page never mounts). "Staff" in the UI means
   `can('telemetry:read')`, never a role name.
-- **Look at every screenshot** a UI story produces (`.screenshots/`, at
-  390 / 820 / 1440): overflow, clipping, wrong role controls, unreadable
-  states. Say in the commit message that you looked.
+- **Look at every screenshot** a UI story produces (`.screenshots/`):
+  overflow, clipping, wrong role controls, unreadable states. Say in the
+  commit message that you looked.
+- **Desktop first from SRV-42** (product owner, 2026-09-29; DP §0.1 row 3):
+  new pages are designed and checked at 1440 only, and new e2e specs run on
+  the desktop project (`test.skip` elsewhere). Phone and tablet layouts
+  come after the functionality is final. Existing specs keep all three
+  widths and must stay green.
 
 ## Gotchas (spikes and stories)
 

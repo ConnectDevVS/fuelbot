@@ -23,7 +23,7 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 |---|---|---|---|
 | 1 | Framework | **React + Vite, with a build step.** This replaces the previous session's "no build, no framework" | §2.1 stack; the server serves Vite's `dist/` (§2.4); CI and deploy need `npm run build` |
 | 2 | Where the code lives | **`/webdashboard`** at the repo root; **all its docs in `/webdashboard/devdocs`** | Not `server/public/` (server plan §5 updated); this doc and the stories live here |
-| 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop | Three layouts (§2.9); every page gets e2e screenshots at 390, 820 and 1440 px |
+| 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop. Revised 2026-09-29: **from SRV-42, desktop first**; phone and tablet layouts are finished after the functionality is final | Three layouts (§2.9). SRV-27–41 were built and checked at 390, 820 and 1440 px; from SRV-42, new pages are designed and screenshot-checked at 1440 only, and new e2e specs run on the desktop project (existing specs keep all three widths) |
 | 4 | Charts | **Revenue over time** (day / week / month) and **flavor mix**. No machine-comparison chart | Two chart components (§4.9); per-machine numbers are a table |
 | 5 | Refresh | **No auto-refresh.** Data loads on page entry, with a Refresh button and an "Updated hh:mm" stamp | No polling, so `/fleet` and `/stock` costs stay bounded (§2.6) |
 | 6 | Look | **One FuelBot look, light theme only** (revised 2026-09-28: "no need of dark mode for now"; the first answer was dark + a light toggle). The kiosk brand carries over through the lime accent, Archivo/JetBrains Mono type and uppercase headings. The tenant's name and `logo_text` badge sit in the top bar | One validated theme (§2.8); no theme toggle; tokens kept in one block so a dark theme can be added later; no per-tenant colours or logo uploads |
@@ -33,6 +33,7 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 | 10 | UI components | **Ant Design** (antd 6), not hand-written CSS (revised 2026-09-28) | antd themed from our tokens (§2.8); its runtime styles run under the strict CSP with a per-request nonce (§2.4, spike G); a small hand-written stylesheet only for layout and our own pieces |
 | 11 | Language of the code | **JavaScript** (JSX), not TypeScript | §0.3.1 is now the product owner's decision; open question §10.1 closed |
 | 12 | A separate claude.design session | **Not needed for S7.** The wireframes (§5) plus the mock-ups in `design/` are the design | The claude.design prompt stays as an option for later |
+| 13 | Disabled machines in Refill soon (2026-09-29) | **Keep them.** A disabled machine with a menu still lists its hoppers | §5.10: no filter on `disabled`, in the UI or the server |
 
 ### 0.2 Binding decisions carried from the server plan (product owner, 2026-09-26/27)
 
@@ -1182,6 +1183,7 @@ TIME (IST)     ORDER   MACHINE   FLAVOR        CHARGED   TRANSACTION        (sta
     days, last refill.
   - A row opens the machine's Stock tab. Record refill is inline with
     `stock:write`.
+- **Disabled machines stay in the list** (product owner, 2026-09-29; §0.1 row 13).
 - **Empty:** "Nothing needs refilling. Every hopper is above its low mark."
 - **Phone:** cards with a large "Record refill" button.
 
