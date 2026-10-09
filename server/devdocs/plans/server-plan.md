@@ -69,6 +69,7 @@ the index.
 | 2026-09-28 | **Dashboard UI: Ant Design 6** instead of hand-written CSS, and **JavaScript** (product owner). antd's runtime styles run under the strict dashboard CSP through a **per-request style nonce**: the server renders `index.html` with a fresh nonce in a meta tag and in `style-src`, and the app stamps it on every `<style>`. Spike G: 63 violations without it, 0 with it; antd's `zeroRuntime` doesn't work with a custom theme in 6.6.5 | Ready-made accessible components (tables, forms, date-range picker, selects, drawers) for a small team; no `unsafe-inline` | §4.6, §4.10 |
 | 2026-09-28 | **Tenant in dashboard URLs is safe**, as the product owner asked. The URL only names what to ask for; every `/api/v1` call is checked against the session's own tenant (another tenant → 404). S7 adds a test sweeping every `/tenants/:tid` route with another tenant's id (SRV-28) | Staff deep links need the tenant in the URL; tenant users gain nothing by editing it | §4.7 |
 | 2026-09-28 | **Tenant users see who recorded a refill** (`last_refill.by`, an email), FuelBot staff emails included (product owner) | Refills are tenant operations; knowing who filled a hopper helps the owner, and it isn't platform-only data | §4.13; dashboard SRV-41 |
+| 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../devdocs/stories/ota/README.md) |
 
 ## 1. Context
 
@@ -158,6 +159,8 @@ overridable per machine). The server mounts the kiosk routes at
 | `Authorization` | `Bearer fbk_…` | The machine key (§4.3). Sent from S4 |
 | `Content-Type` | `application/json` | POSTs |
 | `Accept` | `application/json` | |
+| `X-App-Version` | the app's version (`1.4.0`) | From S9 (OTA-01). Stored on the machine; platform-only |
+| `X-Bridge-Version`, `X-Firmware-Version` | the bridge's and the firmware's versions | From S9, when the app knows them from a bridge heartbeat |
 
 A missing or empty `X-Tenant-Id` or `X-Machine-Id` → **401**
 `machine_unidentified`. The mock answers a missing tenant with 400. On
@@ -338,6 +341,41 @@ each gets a kiosk-plan decision-log entry):
 - **S4:** `user://machine_key.txt`; `Authorization: Bearer` on the same
   backend calls only; never logged (added to `run_tests.sh`'s leak grep);
   `dev_setup.gd --machine-key=`.
+
+### 3.8 `GET /fuelbot/update` (the updater, S9)
+
+The machine's updater (kiosk plan Milestone 9) asks every 5 minutes. Same
+headers and machine auth as config (§3.1, §4.3), plus `X-Updater-Version`.
+Query: `current=<version>&os=<os version>`.
+
+```json
+{"action": "stay"}
+{"action": "install", "version": "1.4.1", "attempt": 1, "force": false,
+ "window": {"start": "02:00", "end": "05:00", "tz": "Asia/Kolkata"}, "max_wait_days": 7,
+ "manifest_url": "/fuelbot/releases/1.4.1/manifest.json"}
+```
+
+Who gets what, the window and `force` are §4.14. 401 as for config; any
+other non-200 means "try later".
+
+### 3.9 `GET /fuelbot/releases/:version/:file`
+
+The files of a published release (`manifest.json`, `manifest.json.sig`,
+and those the manifest lists). Machine auth as above (the bundles hold no
+secrets and are signed, but the app's code isn't public). `Range` requests
+are supported, so a cut download resumes.
+
+### 3.10 `POST /fuelbot/update/report`
+
+```json
+{"event_id": "<ULID>", "version": "1.4.1", "attempt": 1, "from_version": "1.4.0",
+ "state": "downloaded | installed | healthy | rolled_back | failed",
+ "reason": "no_idle_state | bad_signature | no_space | step os-2026-11 | …",
+ "log_tail": "…(≤ 20 KB, keys masked)…", "timestamp": "2026-10-09T02:14:05Z"}
+```
+
+→ `202`. Idempotent on `event_id` (§3.6). The updater keeps unsent reports
+and retries, like the app's `ReportQueue`.
 
 ## 4. Specification
 
@@ -947,6 +985,37 @@ their machines). `stock:write` (refills, adjustments, `portion_g`,
 machines with sensors are measured and the rest stay estimated, in the
 same record and API.
 
+### 4.14 Releases and rollouts (S9)
+
+Built in [OTA-05](../../../devdocs/stories/ota/OTA-05-server.md), which has
+the full rules. In short:
+
+- **Models:** `Release` (version, manifest, files, notes, status `draft |
+  rolling | paused | done | withdrawn`, stages, current stage) and
+  `UpdateEvent` (one per report, §3.10); the machine gains `software`
+  (app, bridge, firmware, OS versions; pin; window; last update).
+- **Upload** verifies the bundle's Ed25519 signature
+  (`RELEASE_PUBLIC_KEY`) and every file's sha256, as the machine will;
+  files go to `RELEASES_DIR`.
+- **Target for a machine:** its pin, else the newest `rolling`/`done`,
+  not withdrawn release whose stages so far include it (stage 0 = named
+  test machines; a percent stage includes a machine when
+  `hash(machine_id + version) mod 100 < percent`); a paused release reaches
+  no new machines; a machine on a withdrawn version goes to the newest
+  release that includes it; `min_from_version` first when needed.
+- **Window and force:** the machine's own window, else `UPDATE_WINDOW`
+  (`02:00-05:00` in `DISPLAY_TZ`); `UPDATE_MAX_WAIT_DAYS` (7); staff's
+  "Update now" (one machine) or "Install now" (a release's current stage)
+  sets `force` until the machine reports `healthy` or `failed`.
+- **Auto-pause:** a `rolled_back`, or a `failed` other than `no_space`,
+  pauses the release (audited).
+- **Admin API** (platform only: `releases:manage` to act, `telemetry:read`
+  to see): releases (upload, publish, promote, pause, resume, withdraw,
+  install-now, retry) and a machine's software (view, pin, window, update
+  now). Every action audited. `/fleet` gains a `software` block for staff.
+- **Settings:** `RELEASES_DIR`, `RELEASE_PUBLIC_KEY`, `RELEASE_MAX_MB`
+  (200), `UPDATE_WINDOW`, `UPDATE_MAX_WAIT_DAYS`.
+
 ## 5. Target folder structure
 
 ```
@@ -1000,6 +1069,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S6b | Estimated stock | §4.13: `portion_g`, `low_portions`, `StockEvent`, refills / adjustments, the estimate, stock APIs | knowing when to refill, before the dashboard shows it |
 | S7 | Dashboard (**planned 2026-09-28; review pending**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
+| S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../devdocs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done
@@ -1059,7 +1129,8 @@ chained with `&&` after the checks.
 - **Alerting** (email, SMS, Slack on offline or fault). The status is
   computed; sending it somewhere is next.
 - **Pushing** changes to machines. The app pulls (catalog at boot,
-  maintenance every 120 s). Live catalog refresh is an app change.
+  maintenance every 120 s), and so does the updater (new versions every
+  5 minutes, S9). Live catalog refresh is an app change.
 - **Sites / locations** as their own level between tenant and machine
   (`site` is a text field on the machine for now).
 - Moving a machine to another tenant (register a new machine id instead).

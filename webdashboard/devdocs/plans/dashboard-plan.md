@@ -1367,6 +1367,24 @@ AT               USER                  ACTION         TARGET       TENANT · MAC
 └───────────────────────────┘
 ```
 
+### 5.19 Software and releases (platform; OTA set, planned 2026-10-09)
+
+Over-the-air updates (kiosk plan Milestone 9; server plan §3.8–3.10,
+§4.14). Built in [OTA-06](../../../devdocs/stories/ota/OTA-06-dashboard.md),
+which has the full spec. Platform-only, like Telemetry and Faults: tenant
+roles get no tab, no page, no request and no keys (the leak scan proves it).
+
+- **A machine's Software tab** (staff): app, bridge, firmware and OS
+  versions; the target version and why; the update state; history with
+  each failure's log tail. Actions (`releases:manage`): **Update now**
+  (installs at the next idle moment, outside the night window), pin to a
+  version, window override.
+- **Releases page** (platform nav): upload a signed bundle (the server
+  verifies it), then publish to test machines, promote (10 %, then all),
+  pause, resume, withdraw, install now, retry, each with a consequence
+  text. A release paused by a rollback says which machine and why.
+- **Fleet** (staff): a version column (desktop only) and a "Behind" chip.
+
 ## 6. Permission → UI map
 
 `can()` checks these permission names (from `/auth/me`). "Platform" means
