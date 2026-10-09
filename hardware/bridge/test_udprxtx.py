@@ -274,6 +274,34 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(beats[1]["serial"], True)
         self.assertEqual(beats[1]["uptime_s"], 10)
 
+    def test_versions_in_heartbeat(self):
+        # OTA-01: the bridge's own version always; the firmware's from STATUS:BOOT v<n>.
+        h = CoreHarness(heartbeat_sec=10)
+        h.core.tick()
+        h.core.on_serial_line("STATUS:BOOT v3")
+        h.clock.now += 10
+        h.core.tick()
+        h.core.on_serial_line("STATUS:BOOT")   # older firmware after a swap: unknown again
+        h.clock.now += 10
+        h.core.tick()
+        beats = h.of("bridge_status")
+        self.assertEqual([b["bridge_version"] for b in beats], [udprxtx.BRIDGE_VERSION] * 3)
+        self.assertEqual([b["firmware_version"] for b in beats], [None, 3, None])
+
+    def test_boot_version_parsing(self):
+        h = CoreHarness()
+        for line, expected in (("STATUS:BOOT v12", 12), ("STATUS:BOOT v0", None), ("STATUS:BOOT vx", None),
+                               ("STATUS:BOOT 3", None), ("STATUS:BOOT v1 extra", None)):
+            h.core.on_serial_line(line)
+            self.assertEqual(h.core.firmware_version, expected, line)
+
+    def test_boot_line_is_not_a_stage(self):
+        h = CoreHarness().ready()
+        h.core.on_app_message("ORDER %s P1 B2" % ID)
+        h.core.on_serial_line("STATUS:BOOT v3")   # a reset mid-cycle: still not a stage
+        h.core.on_serial_line("STATUS:DONE")
+        self.assertEqual(h.of("dispense_cycle")[-1]["stages"], [{"stage": "DONE", "t_offset_ms": 0}])
+
     def test_legacy_home_reached(self):
         h = CoreHarness()
         h.core.on_serial_line("Home reached")

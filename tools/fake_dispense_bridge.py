@@ -50,6 +50,8 @@ def synthetic_stages(hopper: int, seconds: float, upto: Optional[int] = None) ->
     return stages if upto is None else stages[:upto]
 
 
+FAKE_FIRMWARE_VERSION = 1   # the heartbeat reports it like a real board's STATUS:BOOT v<n> (OTA-01)
+
 class FakeBridge:
     """handle() an app message; due() returns 4245 replies, due_events() 4246 JSON events."""
 
@@ -73,7 +75,8 @@ class FakeBridge:
         if self._started is None:
             self._started = now
         return {"v": 1, "event_type": "bridge_status", "state": "READY", "serial": True,
-                "machine_fault": self.machine_fault(now), "uptime_s": int(now - self._started)}
+                "machine_fault": self.machine_fault(now), "uptime_s": int(now - self._started),
+                "bridge_version": udprxtx.BRIDGE_VERSION, "firmware_version": FAKE_FIRMWARE_VERSION}
 
     def handle(self, text: str, now: float) -> None:
         parsed = udprxtx.parse_app_message(text)

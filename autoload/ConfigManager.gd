@@ -38,6 +38,10 @@ var sandboxed := is_sandbox_run()
 var tenant_id: String = ""
 var machine_id: String = ""
 var machine_key: String = ""
+## The bridge's and the Arduino firmware's versions, from the last bridge heartbeat (OTA-01);
+## "" until one arrives (or from a bridge / firmware too old to say).
+var bridge_version: String = ""
+var firmware_version: String = ""
 var current_config: Dictionary = {}
 var local_settings: Dictionary = {}
 var config_source: String = ""
@@ -217,6 +221,24 @@ func get_api_endpoint(path_key: String) -> String:
 	var base := String(api.get("base_url", "")).rstrip("/")
 	var path := String(api.get(path_key, ""))
 	return "" if base == "" or path == "" else base + path
+
+
+## The app's version: the release version (OTA-01), shown on maintenance, sent as X-App-Version.
+static func app_version() -> String:
+	return String(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+
+
+## TelemetryReporter calls this on every bridge heartbeat (OTA-01). Unknown or malformed
+## values stay "": they go into HTTP headers, so only a plain version ("1.0.0") passes.
+func set_hardware_versions(bridge: Variant, firmware: Variant) -> void:
+	bridge_version = String(bridge) if bridge is String and _is_plain_version(bridge) else ""
+	firmware_version = str(int(firmware)) if (firmware is float or firmware is int) and int(firmware) > 0 else ""
+
+
+static func _is_plain_version(value: String) -> bool:
+	var re := RegEx.new()
+	re.compile("^[0-9A-Za-z.+-]{1,32}$")
+	return re.search(value) != null
 
 
 ## Headers for our own backend; empty until a tenant is provisioned.
@@ -464,6 +486,12 @@ func _headers() -> PackedStringArray:
 		headers.append("X-Machine-Id: " + machine_id)
 	if machine_key != "":
 		headers.append("Authorization: Bearer " + machine_key)
+	# Versions (OTA-01, server plan §3.1): what this machine runs, for rollouts.
+	headers.append("X-App-Version: " + app_version())
+	if bridge_version != "":
+		headers.append("X-Bridge-Version: " + bridge_version)
+	if firmware_version != "":
+		headers.append("X-Firmware-Version: " + firmware_version)
 	return headers
 
 

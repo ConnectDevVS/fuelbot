@@ -130,7 +130,7 @@ dropping 4xx), 8 (settings instead of consts), 5 (heartbeat events, the
 | `dispense_cycle` | an order ends (DONE, TIMEOUT or REJECTED) | `order_id`, `hopper`, `base`, `result`, `reason`, `stages: [{stage, t_offset_ms}]`, `fault` (null or code), `duration_ms` | yes |
 | `machine_fault` | `FAULT:HOMING_TIMEOUT` seen (first after OK) | `fault`, `order_id` (null outside a cycle) | yes |
 | `machine_ok` | `STATUS:HOMING_DONE` after a fault | `cleared` (the code) | yes |
-| `bridge_status` | every 10 s | `state`, `serial` (bool), `machine_fault` (null or code), `uptime_s` | no (state only) |
+| `bridge_status` | every 10 s | `state`, `serial` (bool), `machine_fault` (null or code), `uptime_s`; from OTA-01 also `bridge_version` and `firmware_version` (null until a `STATUS:BOOT v<n>`) | no (state only; the app sends the versions as headers) |
 
 The app adds `event_id`, `tenant_id`, `timestamp` (UTC, `Z`) and `source`
 (`bridge`/`app`), plus the order context for `dispense_cycle`. The example
@@ -140,7 +140,7 @@ payload is in TEL-05.
 
 | Line | Meaning |
 |------|---------|
-| `STATUS:BOOT` | `setup()` started (after power-on or a watchdog reset) |
+| `STATUS:BOOT v<n>` | `setup()` started (after power-on or a watchdog reset); `n` = `FIRMWARE_VERSION` (OTA-01; older firmware prints a bare `STATUS:BOOT`) |
 | `STATUS:HOMING_START` / `STATUS:HOMING_DONE` | homing began / the limit switch was reached |
 | `STATUS:WATER_FILL_1_DONE`, `STATUS:PROTEIN_DISPENSED <h>`, `STATUS:WATER_FILL_2_DONE`, `STATUS:MIX_DONE` | cycle stages, in order |
 | `STATUS:DONE` | the cycle is complete, right before the reset |

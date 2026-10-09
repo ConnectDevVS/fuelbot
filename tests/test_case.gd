@@ -176,6 +176,8 @@ func snapshot_app_state() -> Dictionary:
 		"local_faults": ConfigManager.local_faults.duplicate(),
 		"emitted_active": ConfigManager._last_emitted_active,
 		"emitted_message": ConfigManager._last_emitted_message,
+		"bridge_version": ConfigManager.bridge_version,
+		"firmware_version": ConfigManager.firmware_version,
 	}
 
 
@@ -186,6 +188,8 @@ func restore_app_state(snap: Dictionary) -> void:
 	ConfigManager.local_faults = snap.local_faults
 	ConfigManager._last_emitted_active = snap.emitted_active
 	ConfigManager._last_emitted_message = snap.emitted_message
+	ConfigManager.bridge_version = snap.bridge_version
+	ConfigManager.firmware_version = snap.firmware_version
 	Nav.dry_run = false
 	Nav.last_requested = ""
 	OrderState.reset()

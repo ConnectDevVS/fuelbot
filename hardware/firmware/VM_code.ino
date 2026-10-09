@@ -8,7 +8,7 @@
 // Serial protocol (9600 baud), used by hardware/bridge/udprxtx.py:
 //   in:  "<hopper><base>\n"   two digits, e.g. "12" = hopper 1, base 2 (water)
 //   out (M5: every line is machine-parseable; the old free-text lines are gone):
-//        "STATUS:BOOT"                      setup() started (power-on or watchdog reset)
+//        "STATUS:BOOT v<n>"                 setup() started (power-on or watchdog reset); n = FIRMWARE_VERSION (OTA-01)
 //        "STATUS:HOMING_START" / "STATUS:HOMING_DONE"   homing began / limit switch reached
 //        "STATUS:WATER_FILL_1_DONE", "STATUS:PROTEIN_DISPENSED <h>",
 //        "STATUS:WATER_FILL_2_DONE", "STATUS:MIX_DONE"  cycle stages, in order
@@ -18,6 +18,10 @@
 //        "FAULT:NOT_HOMED"                  command received while not homed; nothing moves
 //        "FAULT:HOPPER_UNASSIGNED <hopper>" hopper 5/6 without a wired motor; nothing moves
 //        "FAULT:BAD_COMMAND"                anything else that isn't a valid command; nothing moves
+
+// OTA: the firmware's version, printed on the boot line and reported to FuelBot by the bridge.
+// Bump it on every change to this sketch.
+#define FIRMWARE_VERSION 1
 
 void resetArduino()
 {
@@ -176,7 +180,8 @@ void setup()
   finished = false;
 
   Serial.begin(9600);
-  Serial.println("STATUS:BOOT");  // M5: was " " + "Reset!"
+  Serial.print("STATUS:BOOT v");  // M5: was " " + "Reset!"; OTA: with the version
+  Serial.println(FIRMWARE_VERSION);
 
   homeAxis();  // Home at startup (M5: on failure, loop() retries with back-off)
 //  for (int i = 0; i<=120; i++)

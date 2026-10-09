@@ -43,11 +43,20 @@ tests/unit/test_*.gd                 # headers, maintenance rows, heartbeat vers
   (`ConfigManager._headers()`):
   - `X-App-Version: 1.4.0`, always;
   - `X-Bridge-Version`, `X-Firmware-Version`, when known from a heartbeat.
-- **Maintenance diagnostics:** today's "FIRMWARE 0.1.0 (godot 4.7.2)" row
-  shows the *app* version under the wrong label. It becomes three rows:
-  `SOFTWARE 1.4.0 (godot 4.7.2)`, `BRIDGE 1.0.0`, `FIRMWARE v1` (`—` when
-  unknown). Labels come from `messages`. Compare the screenshot with PDF
-  page 6.
+- **Maintenance diagnostics:** the "FIRMWARE 0.1.0 (godot 4.7.2)" cell
+  showed the *app* version under the wrong label. As built: that cell is now
+  `SOFTWARE 0.1.0 (godot 4.7.2)`, and a sixth row adds `BRIDGE VERSION 1.0.0`
+  and `FIRMWARE v1` (`—` until a heartbeat brings them; refreshed live).
+  (`BRIDGE` already shows the bridge's status, so its version got its own
+  cell.) Labels come from `messages`.
+- **The sixth row must not push the footer off the screen.** With the
+  mock's two long faults and a two-line "flagged by", the footer ended at
+  2096 px. The screen now uses the design's spacing (PDF page 6) when no
+  faults are listed and a compact spacing when they are (`SPACING` in
+  `maintenance.gd`), with a layout test.
+- **Version strings go into HTTP headers,** so the app only accepts a plain
+  version from the heartbeat (`[0-9A-Za-z.+-]{1,32}`; a positive whole
+  number for the firmware) and drops anything else.
 
 ## Acceptance criteria
 
@@ -61,4 +70,8 @@ tests/unit/test_*.gd                 # headers, maintenance rows, heartbeat vers
 - [ ] The simulator prints `STATUS:BOOT v<FIRMWARE_VERSION>` at boot
       (`test_firmware.py`); `tools/check_firmware.sh` passes.
 - [ ] The fakes speak the new lines and fields (`tools/test_fakes.py`).
-- [ ] The maintenance screen shows the three rows; screenshot looked at.
+- [ ] The maintenance screen shows the version cells; with two faults it
+      fits 1080 × 1920 with the footer on screen (a test that fails at the
+      design spacing); screenshots with and without faults looked at.
+- [ ] A malformed bridge version (e.g. with a line break) never reaches a
+      header.

@@ -56,6 +56,7 @@ func test_machine_id_header() -> void:
 	assert_true(headers.has("X-Tenant-Id: t-test"), "tenant header")
 	assert_true(headers.has("X-Machine-Id: machine-042"), "machine header")
 	assert_true(headers.has("Authorization: Bearer 7KQM-2XPA-9TRD-4WZC-HN3B"), "key header, trimmed")
+	assert_true(headers.has("X-App-Version: " + cm.app_version()), "app version header (OTA-01)")
 	DirAccess.remove_absolute(DIR + "/machine_id.txt")
 	DirAccess.remove_absolute(DIR + "/machine_key.txt")
 	_make_cm()
@@ -64,6 +65,25 @@ func test_machine_id_header() -> void:
 	for h in cm.get_backend_headers():
 		assert_false(String(h).begins_with("X-Machine-Id"), "no empty machine header")
 		assert_false(String(h).begins_with("Authorization"), "no empty key header")
+
+
+## OTA-01: the bridge's and the firmware's versions join the headers once a heartbeat brought them;
+## anything that isn't a plain version is dropped (it would go into an HTTP header).
+func test_version_headers() -> void:
+	_make_cm()
+	assert_true(await _boot(cm), "booted")
+	var before := "\n".join(cm.get_backend_headers())
+	assert_false(before.contains("X-Bridge-Version"), "no bridge version yet")
+	assert_false(before.contains("X-Firmware-Version"), "no firmware version yet")
+	cm.set_hardware_versions("1.0.0", 3.0)   # JSON numbers arrive as floats
+	var headers: PackedStringArray = cm.get_backend_headers()
+	assert_true(headers.has("X-Bridge-Version: 1.0.0"), "bridge version")
+	assert_true(headers.has("X-Firmware-Version: 3"), "firmware version")
+	cm.set_hardware_versions("1.0\r\nX-Evil: 1", -1)
+	var cleaned := "\n".join(cm.get_backend_headers())
+	assert_false(cleaned.contains("X-Bridge-Version"), "a malformed bridge version is dropped")
+	assert_false(cleaned.contains("X-Evil"), "no injected header")
+	assert_false(cleaned.contains("X-Firmware-Version"), "a non-positive firmware version is dropped")
 
 
 func _write(path: String, text: String) -> void:

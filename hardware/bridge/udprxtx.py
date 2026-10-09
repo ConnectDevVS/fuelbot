@@ -6,10 +6,12 @@
   bridge -> app  UDP 4245  DONE <order_id>
                            TIMEOUT <order_id> <reason>       deadline | serial_lost | fault:<CODE>
                            REJECTED <order_id> <reason>      busy | bad_order | serial_unavailable | machine_fault
-  bridge -> app  UDP 4246  JSON events: dispense_cycle, machine_fault, machine_ok, bridge_status (heartbeat)
+  bridge -> app  UDP 4246  JSON events: dispense_cycle, machine_fault, machine_ok, bridge_status (heartbeat,
+                           with bridge_version and firmware_version)
   bridge -> Arduino        "<hopper><n>\\n"
   Arduino -> bridge        STATUS:<STAGE>[ detail], FAULT:<CODE>[ detail]
-                           (STATUS:HOMING_DONE = ready; the M4 "Home reached" is still accepted)
+                           (STATUS:HOMING_DONE = ready; the M4 "Home reached" is still accepted;
+                           STATUS:BOOT v<n> = the firmware's version, OTA-01; a bare BOOT = unknown)
 
 Single-cup machine: one order at a time. Never blocks without a deadline.
 Standard library only (termios serial; no pyserial). Python 3.9+.
@@ -33,6 +35,7 @@ import threading
 import time
 from typing import Callable, List, Optional, Tuple
 
+BRIDGE_VERSION = "1.0.0"   # bumped when this file changes; reported in bridge_status (OTA-01)
 ORDER_PORT = 4242
 RESULT_PORT = 4245
 TELEMETRY_PORT = 4246
@@ -50,6 +53,7 @@ CANCEL_RE = re.compile(r"^CANCEL (%s)$" % ULID)
 ORDER_ID_RE = re.compile(r"^ORDER (%s)(?: |$)" % ULID)
 FAULT_RE = re.compile(r"^FAULT:([A-Z_]+)")
 STATUS_RE = re.compile(r"^STATUS:([A-Z0-9_]+)(?: (.*))?$")
+BOOT_VERSION_RE = re.compile(r"^v([1-9][0-9]{0,5})$")   # STATUS:BOOT v3 -> firmware version 3
 DONE_LINE = "STATUS:DONE"
 READY_LINES = ("STATUS:HOMING_DONE", "Home reached")   # M5 line, and the M4 one during a swap
 HOMING_FAULT = "HOMING_TIMEOUT"   # the one fault that takes the machine out of service (auto-clears)
@@ -189,6 +193,7 @@ class BridgeCore:
         self.state = RECOVERING
         self.active = None           # order id being dispensed
         self.machine_fault = None    # e.g. "HOMING_TIMEOUT" until the board homes again
+        self.firmware_version = None  # from the last STATUS:BOOT v<n>; None = unknown (old firmware)
         self._deadline_at = 0.0
         self._recover_until = clock() + recover_sec
         self._finished = collections.deque(maxlen=32)
@@ -258,6 +263,9 @@ class BridgeCore:
             else:
                 self._log("fault outside an order: %s" % line)
             return
+        if status and status.group(1) == "BOOT":
+            version = BOOT_VERSION_RE.match(status.group(2) or "")
+            self.firmware_version = int(version.group(1)) if version else None
         if status and self.state == DISPENSING and status.group(1) != "BOOT":
             offset = int(round((self._clock() - self._cycle["t0"]) * 1000))
             self._cycle["stages"].append({"stage": status.group(1), "t_offset_ms": offset})
@@ -294,7 +302,8 @@ class BridgeCore:
             self._next_heartbeat = now + self.heartbeat_sec
             self._emit({"v": 1, "event_type": "bridge_status", "state": self.state,
                         "serial": bool(self._serial_ok()), "machine_fault": self.machine_fault,
-                        "uptime_s": int(now - self._started)})
+                        "uptime_s": int(now - self._started),
+                        "bridge_version": BRIDGE_VERSION, "firmware_version": self.firmware_version})
 
     # --- internals -----------------------------------------------------------
 

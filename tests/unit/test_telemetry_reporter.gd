@@ -108,6 +108,19 @@ func test_heartbeat_not_posted() -> void:
 	assert_eq(int((await mock_state()).request_counts.get(ROUTE, 0)), 0, "not posted")
 
 
+## OTA-01: a heartbeat carries the bridge's and the firmware's versions to ConfigManager.
+func test_heartbeat_versions() -> void:
+	var saved := [ConfigManager.bridge_version, ConfigManager.firmware_version]
+	var got := watch_signal(TelemetryReporter, &"event_received")
+	_send({"v": 1, "event_type": "bridge_status", "state": "READY", "serial": true,
+		"machine_fault": null, "uptime_s": 5, "bridge_version": "1.0.0", "firmware_version": 2})
+	assert_true(await wait_until(got, 3.0), "heartbeat seen")
+	assert_eq(ConfigManager.bridge_version, "1.0.0", "bridge version")
+	assert_eq(ConfigManager.firmware_version, "2", "firmware version")
+	ConfigManager.bridge_version = saved[0]
+	ConfigManager.firmware_version = saved[1]
+
+
 func test_bad_json_ignored() -> void:
 	_send("{not json")
 	_send("[1, 2]")

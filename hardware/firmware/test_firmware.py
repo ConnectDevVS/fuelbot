@@ -11,6 +11,19 @@ SIM_DIR = os.path.join(HERE, "host_sim")
 _build = {}
 
 MOTOR_PINS = {1: 2, 2: 3, 3: 4, 4: 5}
+
+
+def _firmware_version():
+    """FIRMWARE_VERSION from the sketch (OTA-01): the number the boot line must carry."""
+    sketch = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VM_code.ino")
+    with open(sketch) as f:
+        for line in f:
+            if line.startswith("#define FIRMWARE_VERSION "):
+                return int(line.split()[2])
+    raise AssertionError("no #define FIRMWARE_VERSION in VM_code.ino")
+
+
+BOOT = "STATUS:BOOT v%d" % _firmware_version()
 PUMP_PIN = 6
 
 
@@ -76,9 +89,15 @@ CYCLE_STAGES = ["STATUS:WATER_FILL_1_DONE", "STATUS:PROTEIN_DISPENSED 1", "STATU
 class FirmwareTests(unittest.TestCase):
     def test_boot_homes(self):
         r = Run(*_with(start_pos=30000, until=10))
-        self.assertEqual(r.texts()[:3], ["STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
+        self.assertEqual(r.texts()[:3], [BOOT, "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
         self.assertLess(r.first("STATUS:HOMING_DONE"), 5.0)
         self.assertEqual(r.end["carriage"], 0)
+
+    def test_boot_line_carries_the_version(self):
+        # OTA-01: the bridge reads the version from it; a positive whole number.
+        r = Run(*_with(start_pos=0, until=3))
+        self.assertEqual(r.texts()[0], BOOT)
+        self.assertGreater(_firmware_version(), 0)
 
     def test_cycle_stage_order(self):
         r = Run(*_with(start_pos=30000, at="5:12", until=200))
@@ -91,7 +110,7 @@ class FirmwareTests(unittest.TestCase):
         times = [tt for tt, _ in r.lines]
         self.assertEqual(times, sorted(times), "non-decreasing times")
         self.assertEqual(t[i + len(CYCLE_STAGES)], "<watchdog reset>")
-        self.assertEqual(t[-3:], ["STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"], "clean boot")
+        self.assertEqual(t[-3:], [BOOT, "STATUS:HOMING_START", "STATUS:HOMING_DONE"], "clean boot")
         self.assertEqual(t.count("STATUS:DONE"), 1, "no second cycle after the reset")
         for line in t:
             self.assertTrue(line.startswith(("STATUS:", "FAULT:", "<")), "free-text line %r" % line)
