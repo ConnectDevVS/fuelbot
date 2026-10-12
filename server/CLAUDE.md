@@ -15,7 +15,9 @@ the Godot kiosk app. Read it only when a change touches the app.
   in-memory MongoDB, so no database is needed).
 - `npm run db`: local persistent MongoDB on 27017 (data in `.data/`).
 - `npm start` / `npm run dev` (watch): the server on **:8790**. It reads
-  `.env` if present (see `.env.example`).
+  `.env` if present (see `.env.example`), or the file named by `ENV_FILE`
+  (`ENV_FILE=.env.production npm start`; it must exist). Every npm script
+  preloads `src/env.js` for this; values already in the environment win.
 - `npm run seed`: tenant `powerfuel`, machine `DEV00001` with the dev key
   `DEVK-EYDE-VKEY-DEVK-EY01` (the mock's catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
 - `npm run create-admin -- --email=… [--name=…]`: a platform_admin (hidden
@@ -48,6 +50,12 @@ the Godot kiosk app. Read it only when a change touches the app.
   / `assertCan(user, 'menu:edit', {tenantId, machine})` from `auth/rbac.js`.
   Outside the caller's scope is 404, inside without the permission 403. Add a
   row to the RBAC table test (`test/audit.test.js`) for every new route.
+  A new `/tenants/:tid/…` route also needs an entry (a valid body) in
+  `CALLS` in `test/tenant-isolation.test.js`: that test enumerates the router
+  stack and fails on a route it doesn't cover.
+- **`/auth/me` permissions come from `effectivePermissions()`** (`auth/rbac.js`);
+  the dashboard gates on them. A new permission or a `NEEDS_ALL_MACHINES`
+  rule changes what the UI shows, so check `webdashboard/` in the same change.
 - **Admin writes:** raw body through `checkBody()` (`catalog/input.js`) first;
   versioned resources check `If-Match` (`checkVersion()`); config-affecting
   machine writes go through `saveMachine()` (bumps `menu_version`, model hook
@@ -68,6 +76,10 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `createApp({settings})` takes its dependencies; tests build one per
   file (`test/helpers.js`).
 - `server/.gdignore` keeps Godot out of `node_modules/`. Don't remove it.
+- **The dashboard's CSP lives in `src/dashboard.js`** (dashboard plan §2.4):
+  `index.html` is rendered per request with a fresh style nonce (Ant Design
+  writes styles at runtime), never served by `express.static`, and sent
+  `no-store`. Never add `unsafe-inline`; the API keeps helmet's default CSP.
 - `mockserver/` stays the app's test backend. Server work never depends on it at
   runtime (tests read its JSON as contract fixtures); app stories may add scenarios.
 
@@ -81,6 +93,14 @@ the Godot kiosk app. Read it only when a change touches the app.
   (the agent adds the CSRF header on writes). The login rate limiter lives in
   the app, which a test file shares: a test that exhausts it uses its own
   email.
+- **The dashboard's browser tests import server internals:**
+  `webdashboard/e2e/server.mjs` uses `startServer()` (`test/helpers.js`), and
+  `e2e/seed.mjs` writes through the models (`Machine`, `Product`, `Sale`,
+  `StockEvent`, `Tenant`, `TelemetryEvent`, `User`), `importConfig()`,
+  `createMachine()`, `issueKey()`, `applyHealthEvent()`, `hashPassword()` and
+  `scripts/lib.js` (`readConfigFile()`, `stripImageUrls()`). `npm test` here
+  doesn't run them: after changing one of those signatures or a schema, run
+  `npm run e2e` in `webdashboard/`.
 - Inside a sub-router `req.path` is relative (`/me`, not `/auth/me`); use
   `req.baseUrl + req.path` when matching full paths.
 - Mongoose's default connection is per process. That works because

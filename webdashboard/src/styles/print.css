@@ -1,0 +1,59 @@
+/* Print (the sales report, the provisioning card): the same tokens on white, no navigation.
+   The shell (sidebar, top bar, tab bar, banners) and page controls carry .no-print; blocks made
+   for paper only (the report's header and not-dispensed list) carry .print-only; a .print-card
+   (the provisioning card) prints alone. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: var(--fb-surface);
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Charts keep their colours and hatching on paper. */
+  svg,
+  figure {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    break-inside: avoid;
+  }
+
+  /* Blocks don't split across pages; no shadows or grey page background on paper. */
+  .ant-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .ant-layout,
+  .ant-layout-content {
+    background: var(--fb-surface) !important;
+  }
+
+  .no-print,
+  .ant-message,
+  .ant-notification {
+    display: none !important;
+  }
+
+  /* The provisioning card prints alone (dashboard plan §5.5): while a page shows one, everything
+     else in the page is hidden, the card's ancestors kept. */
+  main:has(.print-card) *:not(.print-card, .print-card *, :has(.print-card)) {
+    display: none !important;
+  }
+
+  a {
+    color: var(--fb-text);
+    text-decoration: none;
+  }
+}

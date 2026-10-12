@@ -1,0 +1,304 @@
+/* The Menu tab (dashboard plan §5.6.1; mock-up design/menu-desktop.png). Desktop: a table with a
+   header row. Tablet: two lines per item. Phone: a card per item, the handle on the left and the
+   fields stacked. Below 1100 px each control shows its own label. Colours from tokens.css only. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 12px;
+}
+
+.picker {
+  min-width: 200px;
+}
+
+/* The pickers read as actions (mock-up: "Copy menu from… ▾", "+ Add product"), not as empty fields. */
+.picker :global(.ant-select-placeholder) {
+  color: var(--fb-text);
+  font-weight: 700;
+}
+
+.copyError {
+  flex-basis: 100%;
+}
+
+.muted {
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.gap {
+  margin-bottom: 12px;
+}
+
+.table {
+  overflow-x: auto;
+  border: 1px solid var(--fb-border);
+  border-radius: 16px;
+  background: var(--fb-surface);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 64px minmax(200px, 1.5fr) 96px minmax(250px, 1.6fr) 150px 80px 64px 44px;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--fb-border);
+  background: var(--fb-surface);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+@media (min-width: 1100px) {
+  .row {
+    min-width: 1000px;
+  }
+}
+
+.head {
+  padding-block: 10px;
+  background: var(--fb-raised);
+}
+
+.row :global(.ant-switch) {
+  justify-self: start;
+}
+
+.rowWarn {
+  background: var(--fb-warn-surface);
+}
+
+.dragging {
+  position: relative;
+  z-index: 2;
+  outline: 2px solid var(--fb-text);
+}
+
+.handleCell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fb-dim);
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--fb-text);
+}
+
+.arrows {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.thumb {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--fb-border);
+  color: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+.productText {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hopper {
+  width: 100%;
+}
+
+.price {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.productPrice {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.lock {
+  color: var(--fb-dim);
+}
+
+.priceInputs {
+  display: flex;
+  gap: 8px;
+}
+
+/* Two ₹ inputs fit the price column (at PriceField's 160 px they spilled into Badge). */
+.priceInputs > * {
+  width: 112px !important;
+}
+
+.linkBtn {
+  height: auto;
+  padding: 0;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.badge {
+  width: 100%;
+}
+
+.rowNote {
+  grid-column: 2 / -1;
+  color: var(--fb-warn);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cell {
+  min-width: 0;
+}
+
+.cellLabel {
+  display: none;
+}
+
+/* Tablet: line 1 product, hopper, price; line 2 badge, sold out, on. No header row. */
+@media (max-width: 1099px) {
+  .head {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 56px minmax(0, 1fr) 96px minmax(0, 1.3fr) 44px;
+    grid-template-areas:
+      "handle product hopper price remove"
+      "handle badge   sold   on    .";
+    align-items: start;
+  }
+
+  .cell {
+    display: grid;
+    gap: 4px;
+    justify-items: start;
+  }
+
+  .cellLabel {
+    display: block;
+  }
+
+  .hopperCell,
+  .badgeCell {
+    justify-items: stretch;
+  }
+
+  .handleCell {
+    grid-area: handle;
+  }
+
+  .product {
+    grid-area: product;
+  }
+
+  .hopperCell {
+    grid-area: hopper;
+  }
+
+  .price {
+    grid-area: price;
+  }
+
+  .badgeCell {
+    grid-area: badge;
+  }
+
+  .soldCell {
+    grid-area: sold;
+  }
+
+  .onCell {
+    grid-area: on;
+  }
+
+  .removeCell {
+    grid-area: remove;
+  }
+}
+
+/* Phone: a card per item; the handle and the ↑/↓ (44 px targets) in a column on the left. */
+@media (max-width: 759px) {
+  .table {
+    display: grid;
+    gap: 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .row,
+  .row:last-child {
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) 40px;
+    grid-template-areas:
+      "handle product product remove"
+      "handle hopper  badge   badge"
+      "handle price   price   price"
+      "handle sold    on      on";
+    padding: 12px;
+    border: 1px solid var(--fb-border);
+    border-radius: 16px;
+  }
+
+  .handleCell {
+    flex-direction: column;
+  }
+
+  .handle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .arrows :global(.ant-btn) {
+    width: 44px;
+    height: 44px;
+  }
+}

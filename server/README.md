@@ -23,6 +23,11 @@ curl http://127.0.0.1:8790/healthz
 
 `npm run dev` restarts on file changes.
 
+The npm scripts read `.env` if present. To use another file, set `ENV_FILE`
+(`ENV_FILE=.env.production npm start`); that file must exist. Values already in
+the environment win over the file. All `.env*` files except `.env.example` are
+gitignored.
+
 ## Data
 
 ```sh
@@ -44,6 +49,22 @@ npm run create-admin -- --email=you@fuelbot.example --name="You"   # asks for a 
 That's the first `platform_admin` (FuelBot staff). Everyone else is created
 in the admin API (`POST /api/v1/users`) with a temporary password they
 change at first sign-in. Sessions last 48 hours.
+
+## Dashboard
+
+The web dashboard is its own project in [`../webdashboard`](../webdashboard).
+Build it once, then this server serves it:
+
+```sh
+cd ../webdashboard && npm ci && npm run build   # writes webdashboard/dist
+# then open http://127.0.0.1:8790/dashboard/ (or just http://127.0.0.1:8790/)
+```
+
+Without a build, `/dashboard/` answers 503 "Dashboard not built", and the
+server logs `[dashboard] not built: <dir>` at boot. `DASHBOARD_DIR` points
+elsewhere; `IMAGE_ORIGINS` adds image hosts to the dashboard's CSP. For
+development with hot reload, use `npm run dev` in `webdashboard/` (Vite on
+:5173, proxying `/api` here).
 
 ## Setting up a machine
 
@@ -76,9 +97,12 @@ It's an estimate (dosing is timed): weigh ten portions to calibrate
 
 All under `/api/v1`, scoped to the signed-in user: `GET /fleet` (machines,
 status, today's sales), `GET /sales` (filters: `machine`, `flavor`,
-`dispensed`, `from`, `to`), `GET /sales/summary?group=day|flavor|machine`,
-`GET /sales/export.csv`, `GET /orders/<order id>`. FuelBot staff also get
-`GET /telemetry`, `GET /faults` and `group=tenant`. Days are in
+`dispensed`, `from`, `to`), `GET /sales/summary?group=day|week|month|flavor|machine`
+(weeks are ISO weeks, `2026-W39`; months `2026-09`), `GET /sales/export.csv`
+(its first column, `local_time`, is in `DISPLAY_TZ`; `ts` is UTC),
+`GET /orders/<order id>`. `GET /fleet` and `GET /stock` take `tenant=<id>`
+(tenant users: only their own). FuelBot staff also get `GET /telemetry`,
+`GET /faults` and `group=tenant`. Days, weeks and months are in
 `DISPLAY_TZ` (default `Asia/Kolkata`).
 
 To replace a key: issue a new one, update `machine_key.txt`, then revoke the

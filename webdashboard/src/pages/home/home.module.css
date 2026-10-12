@@ -1,0 +1,19 @@
+/* Home (dashboard plan §5.3, mock-ups design/home-*.png). Colours from tokens.css only. */
+.row {
+  margin-top: 16px;
+}
+
+.more {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.of {
+  color: var(--fb-muted);
+  font-size: 0.6em;
+  font-weight: 700;
+}
+
+.seeList {
+  text-decoration: underline;
+}

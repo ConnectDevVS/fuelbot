@@ -110,6 +110,9 @@ class FakeBridgeTelemetryTests(unittest.TestCase):
             kinds = [e["event_type"] for e in events]
             self.assertEqual(kinds.count("dispense_cycle"), 1)
             self.assertGreaterEqual(kinds.count("bridge_status"), 3, "heartbeats at the interval")
+            beat = next(e for e in events if e["event_type"] == "bridge_status")
+            self.assertEqual(beat["bridge_version"], udprxtx.BRIDGE_VERSION, "OTA-01: versions in the heartbeat")
+            self.assertEqual(beat["firmware_version"], fb.FAKE_FIRMWARE_VERSION)
         finally:
             stop.set()
             t.join(2)
@@ -128,7 +131,7 @@ class FakeArduinoTests(unittest.TestCase):
         self.assertEqual(lines, ["STATUS:WATER_FILL_1_DONE", "STATUS:PROTEIN_DISPENSED 1",
                                  "STATUS:WATER_FILL_2_DONE", "STATUS:MIX_DONE", "STATUS:HOMING_START",
                                  "STATUS:HOMING_DONE", "STATUS:DONE",
-                                 "STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
+                                 fa.BOOT_LINE, "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
         # Firmware estimate for hopper 1 (README decision 8): ~72.8 s.
         self.assertAlmostEqual(fa.cycle_seconds(1), 72.8, delta=0.73)
         for hopper, estimate in ((2, 74.9), (3, 68.3), (4, 77.8)):
@@ -166,7 +169,7 @@ class FakeArduinoTests(unittest.TestCase):
         fake = fa.FakeArduino(fault="homing_timeout", logger=QUIET)
         fake.boot(0.0)
         boot = fake.due(20.5)
-        self.assertEqual(boot, ["STATUS:BOOT", "STATUS:HOMING_START", "FAULT:HOMING_TIMEOUT"])
+        self.assertEqual(boot, [fa.BOOT_LINE, "STATUS:HOMING_START", "FAULT:HOMING_TIMEOUT"])
         fake.feed(b"12\n", 30.0)
         self.assertEqual(fake.due(30.0), ["FAULT:NOT_HOMED"])
         later = fake.due(1000.0)
@@ -179,7 +182,7 @@ class FakeArduinoTests(unittest.TestCase):
         lines = self._run(fake, b"12\n", until=1e9)
         i = lines.index("STATUS:MIX_DONE")
         self.assertEqual(lines[i:], ["STATUS:MIX_DONE", "STATUS:HOMING_START", "FAULT:HOMING_TIMEOUT",
-                                     "STATUS:DONE", "STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
+                                     "STATUS:DONE", fa.BOOT_LINE, "STATUS:HOMING_START", "STATUS:HOMING_DONE"])
         fake.feed(b"12\n", 1e9 + 1)
         self.assertNotIn("FAULT:HOMING_TIMEOUT", fake.due(2e9), "flaky only once")
 

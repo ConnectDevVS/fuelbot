@@ -3,8 +3,13 @@ extends Control
 ## Returns to idle when ConfigManager reports maintenance has cleared.
 
 const CELLS := ["diag_machine_id", "diag_site", "diag_flagged_by", "diag_flagged_at",
-	"diag_firmware", "diag_network", "diag_last_heartbeat", "diag_payments",
-	"diag_bridge", "diag_bridge_heartbeat"]
+	"diag_software", "diag_network", "diag_last_heartbeat", "diag_payments",
+	"diag_bridge", "diag_bridge_heartbeat", "diag_bridge_version", "diag_firmware"]
+## Spacing in px at 1080 x 1920: [design (PDF page 6), compact (faults listed)].
+const SPACING := {
+	"top": [68, 40], "status": [90, 48], "message": [36, 24], "diagnostics": [64, 32],
+	"faults": [36, 24], "footer": [36, 24], "pad": [28, 16],
+}
 
 var _clock: Label
 var _message: Label
@@ -14,6 +19,13 @@ var _faults_title: Label
 var _faults_list: VBoxContainer
 var _service: Label
 var _exit_hint: Label
+# Spacing that tightens when faults are listed (OTA-01 added a diagnostics row): the design's
+# spacing (PDF page 6) when it fits, a compact one so the faults and the footer stay on screen.
+var _content_margin: MarginContainer
+var _footer_margin: MarginContainer
+var _gaps := {}          # name -> spacer Control
+var _pads: Array[MarginContainer] = []   # the diagnostics title and cells
+var _compact := false
 
 
 func _ready() -> void:
@@ -71,12 +83,12 @@ func _render() -> void:
 	_values.diag_site.text = tenant.get("site", "") if tenant.get("site", "") != "" else unknown
 	_values.diag_flagged_by.text = info.flagged_by if info.flagged_by != "" else unknown
 	var v := Engine.get_version_info()
-	_values.diag_firmware.text = "%s (godot %d.%d.%d)" % [
-		ProjectSettings.get_setting("application/config/version", "0.0.0"), v.major, v.minor, v.patch]
+	_values.diag_software.text = "%s (godot %d.%d.%d)" % [ConfigManager.app_version(), v.major, v.minor, v.patch]
 	_values.diag_payments.text = ConfigManager.get_message("maintenance_payments_disabled")
 
 	var faults: Array = info.faults
 	_faults_panel.visible = not faults.is_empty()
+	_apply_spacing(not faults.is_empty())
 	_faults_title.text = ConfigManager.get_message("maintenance_faults_title", {"count": faults.size()})
 	for child in _faults_list.get_children():
 		child.queue_free()
@@ -119,6 +131,9 @@ func _render_live() -> void:
 	bridge.text = ConfigManager.get_message(bridge_key)
 	bridge.add_theme_color_override("font_color", Palette.SUCCESS if bridge_key == "maintenance_bridge_ok" else Palette.WARNING)
 	_values.diag_bridge_heartbeat.text = ConfigManager.get_message("diag_never") if age < 0.0 else Fmt.ago(age)
+	# Versions arrive with the bridge heartbeat (OTA-01).
+	_values.diag_bridge_version.text = ConfigManager.bridge_version if ConfigManager.bridge_version != "" else unknown
+	_values.diag_firmware.text = "v" + ConfigManager.firmware_version if ConfigManager.firmware_version != "" else unknown
 
 
 # --- Layout ------------------------------------------------------------------
@@ -145,6 +160,7 @@ func _build() -> void:
 	margin.add_theme_constant_override("margin_right", Palette.PAD)
 	margin.add_theme_constant_override("margin_top", 68)
 	root.add_child(margin)
+	_content_margin = margin
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	margin.add_child(col)
@@ -156,7 +172,7 @@ func _build() -> void:
 	_clock = _label("Mono", "")
 	header.add_child(_clock)
 
-	col.add_child(_gap(90))
+	col.add_child(_named_gap("status"))
 	var status := HBoxContainer.new()
 	status.add_theme_constant_override("separation", 18)
 	col.add_child(status)
@@ -170,17 +186,17 @@ func _build() -> void:
 	col.add_child(_gap(24))
 	col.add_child(_label("DisplayXL", ConfigManager.get_message("maintenance_title")))
 
-	col.add_child(_gap(36))
+	col.add_child(_named_gap("message"))
 	_message = _label("Body", "")
 	_message.name = "Message"
 	_message.add_theme_font_size_override("font_size", 40)
 	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_message)
 
-	col.add_child(_gap(64))
+	col.add_child(_named_gap("diagnostics"))
 	col.add_child(_build_diagnostics())
 
-	col.add_child(_gap(36))
+	col.add_child(_named_gap("faults"))
 	_faults_panel = PanelContainer.new()
 	_faults_panel.name = "Faults"
 	_faults_panel.theme_type_variation = &"FaultPanel"
@@ -201,6 +217,7 @@ func _build() -> void:
 	footer.add_theme_constant_override("margin_top", 36)
 	footer.add_theme_constant_override("margin_bottom", 36)
 	root.add_child(footer)
+	_footer_margin = footer
 	var footer_row := HBoxContainer.new()
 	footer.add_child(footer_row)
 	_service = _label("MonoMuted", "")
@@ -221,7 +238,9 @@ func _build_diagnostics() -> PanelContainer:
 	var rows := VBoxContainer.new()
 	rows.add_theme_constant_override("separation", 0)
 	panel.add_child(rows)
-	rows.add_child(_padded(_label("MonoMuted", ConfigManager.get_message("maintenance_diagnostics_title"))))
+	var title := _padded(_label("MonoMuted", ConfigManager.get_message("maintenance_diagnostics_title")))
+	_pads.append(title)
+	rows.add_child(title)
 	for r in range(0, CELLS.size(), 2):
 		rows.add_child(_hline())
 		var row := HBoxContainer.new()
@@ -245,6 +264,7 @@ func _cell(key: String) -> Control:
 	box.add_child(value)
 	_values[key] = value
 	var padded := _padded(box)
+	_pads.append(padded)
 	padded.name = "Cell_" + key
 	padded.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	padded.size_flags_stretch_ratio = 1.0
@@ -271,6 +291,32 @@ func _hline() -> ColorRect:
 	line.color = Palette.BORDER
 	line.custom_minimum_size.y = 2
 	return line
+
+
+func _named_gap(key: String) -> Control:
+	var gap := _gap(SPACING[key][0])
+	_gaps[key] = gap
+	return gap
+
+
+## Compact when faults are listed: with six diagnostics rows, two long faults and a two-line
+## "flagged by" pushed the footer off the bottom at the design's spacing.
+func _apply_spacing(compact: bool) -> void:
+	if compact == _compact:
+		return
+	_compact = compact
+	var i := 1 if compact else 0
+	for key in _gaps:
+		_gaps[key].custom_minimum_size.y = SPACING[key][i]
+	_content_margin.add_theme_constant_override("margin_top", SPACING.top[i])
+	for side in ["margin_top", "margin_bottom"]:
+		_footer_margin.add_theme_constant_override(side, SPACING.footer[i])
+		for pad in _pads:
+			pad.add_theme_constant_override(side, SPACING.pad[i])
+
+
+func is_compact() -> bool:
+	return _compact
 
 
 func _gap(height: int) -> Control:

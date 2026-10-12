@@ -1,0 +1,258 @@
+/* Machine rows (Home, Fleet, Machines list), the register flow and the provisioning card. Colours from tokens.css only. */
+.machine {
+  display: grid;
+  gap: 2px;
+}
+
+.today {
+  white-space: nowrap;
+}
+
+.seen,
+.nowrap {
+  white-space: nowrap;
+}
+
+.nd {
+  color: var(--fb-bad);
+}
+
+@media (max-width: 759px) {
+  .today {
+    white-space: normal;
+  }
+}
+
+/* Machines list, register flow, provisioning card (dashboard plan §5.4, §5.5). */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.search {
+  width: 300px;
+  max-width: 100%;
+}
+
+.location {
+  color: var(--fb-muted);
+}
+
+/* Register */
+.steps {
+  margin-bottom: 20px;
+}
+
+.step {
+  max-width: 760px;
+}
+
+.form {
+  max-width: 560px;
+}
+
+.lead {
+  margin: 0 0 16px;
+}
+
+.choices {
+  display: grid;
+  gap: 12px;
+}
+
+.note {
+  margin-top: 8px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* The card: JetBrains Mono, ids 28 px, the key's groups 25 px (one line). */
+.card {
+  max-width: 980px;
+  padding: 24px;
+  border: 2px solid var(--fb-text);
+  border-radius: 16px;
+  background: var(--fb-surface);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cardTitle {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.once {
+  margin-bottom: 8px;
+}
+
+.cardRow {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--fb-border);
+}
+
+.cardFile {
+  color: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 14px;
+}
+
+.cardValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.big {
+  font-family: var(--fb-font-mono);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.spaced {
+  letter-spacing: 0.12em;
+}
+
+.keyGroups {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyGroupWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.keyGroup {
+  flex: none;   /* a group never breaks ("MMV" / "F" on a phone) */
+  white-space: nowrap;
+  padding: 2px 8px;
+  border: 1px solid var(--fb-border);
+  border-radius: 6px;
+  background: var(--fb-raised);
+  font-family: var(--fb-font-mono);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.keyDash {
+  color: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 20px;
+}
+
+.cardCopy {
+  min-width: 96px;
+}
+
+.copied {
+  border-color: var(--fb-ok-border) !important;
+  background: var(--fb-ok-surface) !important;
+  color: var(--fb-ok) !important;
+}
+
+.tips {
+  margin: 16px 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.glyph {
+  font-family: var(--fb-font-mono);
+  font-size: 15px;
+}
+
+.cardFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--fb-border);
+  font-weight: 700;
+}
+
+@media print {
+  .card {
+    max-width: none;
+    border-width: 1px;
+  }
+}
+
+/* Tablet: the file name above its value, Copy beside it (the key's groups need the width). */
+@media (max-width: 1099px) {
+  .cardRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cardFile {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Phone (design/provisioning-phone.png): one column, Copy under each value; ids 22 px, the key's
+   groups 19 px without dashes so the five stay on one line; Done full width. */
+@media (max-width: 759px) {
+  .search {
+    width: 100%;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .cardRow {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 10px;
+  }
+
+  .big {
+    font-size: 22px;
+  }
+
+  .keyGroups,
+  .keyGroupWrap {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .keyGroup {
+    padding: 2px 5px;
+    font-size: 19px;
+  }
+
+  .keyDash {
+    display: none;
+  }
+
+  .cardFoot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

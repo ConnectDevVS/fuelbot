@@ -10,7 +10,14 @@ decision-log entry.
 
 ## 0. Status & decision log
 
-**Status (2026-09-27).** **S0–S4, S6 and S6b done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
+**Status (2026-09-30).** **S7, the web dashboard, is done** ([dashboard SIGNOFF](../../../webdashboard/devdocs/stories/dashboard/SIGNOFF.md)):
+SRV-27 to SRV-49, every page for every role at phone, tablet and desktop
+widths, a leak scan proving no platform-only data reaches a tenant screen,
+and a run with the real kiosk app (price, override, maintenance, an order,
+a timed-out order, and a machine registered and provisioned from the
+dashboard). It is served by this server at `/dashboard/`.
+
+**S0–S4, S6 and S6b done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
 [users-rbac](../stories/users-rbac/SIGNOFF.md), [catalog-admin](../stories/catalog-admin/SIGNOFF.md),
 [machine-keys](../stories/machine-keys/SIGNOFF.md), [read-apis](../stories/read-apis/SIGNOFF.md), [stock](../stories/stock/SIGNOFF.md) SIGNOFFs).
 S6b: estimated stock per hopper (refills minus portions per real dose).
@@ -26,13 +33,12 @@ the three kiosk endpoints serve real data, and the app sends its machine id
 and keeps 401/403 records. The real app has run end to end against the
 server (`tools/dev_run.sh --backend=server`).
 
-**Next: S7, the dashboard.** It's planned in detail (2026-09-28) and
-awaits product-owner review before any code. The plan is
+The dashboard's plan is
 [dashboard-plan.md](../../../webdashboard/devdocs/plans/dashboard-plan.md),
-and the stories are SRV-27 to SRV-49 in
+and its stories are SRV-27 to SRV-49 in
 [webdashboard/devdocs/stories/dashboard/](../../../webdashboard/devdocs/stories/dashboard/README.md).
 
-S5 (product images) is deferred. Deploy comes after the hosting decision.
+S5 (product images, the S3 bucket and upload) is deferred. Deploy comes after the hosting decision.
 Nothing is deployed. The mock (`mockserver/`) stays as the app's test
 backend.
 
@@ -68,6 +74,10 @@ the index.
 | 2026-09-28 | **Dashboard: light theme only for now** (product owner, revising the same day's "dark + light"): no dark mode and no theme toggle. Tokens stay in one block so a dark theme can be added later. **No separate claude.design session for S7** (product owner): the plan's wireframes plus styled mock-ups of Home, the provisioning card, the Menu editor, the Stock tab and the Sales filters are the design; the claude.design prompt stays as an option | Less to build and test (half the screenshots); the mock-ups cover the riskiest screens | §4.10 |
 | 2026-09-28 | **Dashboard UI: Ant Design 6** instead of hand-written CSS, and **JavaScript** (product owner). antd's runtime styles run under the strict dashboard CSP through a **per-request style nonce**: the server renders `index.html` with a fresh nonce in a meta tag and in `style-src`, and the app stamps it on every `<style>`. Spike G: 63 violations without it, 0 with it; antd's `zeroRuntime` doesn't work with a custom theme in 6.6.5 | Ready-made accessible components (tables, forms, date-range picker, selects, drawers) for a small team; no `unsafe-inline` | §4.6, §4.10 |
 | 2026-09-28 | **Tenant in dashboard URLs is safe**, as the product owner asked. The URL only names what to ask for; every `/api/v1` call is checked against the session's own tenant (another tenant → 404). S7 adds a test sweeping every `/tenants/:tid` route with another tenant's id (SRV-28) | Staff deep links need the tenant in the URL; tenant users gain nothing by editing it | §4.7 |
+| 2026-09-28 | **Tenant users see who recorded a refill** (`last_refill.by`, an email), FuelBot staff emails included (product owner) | Refills are tenant operations; knowing who filled a hopper helps the owner, and it isn't platform-only data | §4.13; dashboard SRV-41 |
+| 2026-09-29 | **Dashboard: desktop first from SRV-42** (product owner): SRV-42–48 were built and checked at 1440 px first; their phone and tablet layouts came in one pass before sign-off (SRV-49, 2026-09-30) | Settle the functionality before the small-screen layouts | dashboard plan §0.1 row 3 |
+| 2026-09-29 | **Disabled machines stay in Refill soon** (product owner): no `disabled` filter on `/stock` or in the dashboard | A disabled machine with a menu still has hoppers to look after | §4.13; dashboard plan §0.1 row 13, §5.10 |
+| 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../devdocs/stories/ota/README.md) |
 
 ## 1. Context
 
@@ -157,6 +167,8 @@ overridable per machine). The server mounts the kiosk routes at
 | `Authorization` | `Bearer fbk_…` | The machine key (§4.3). Sent from S4 |
 | `Content-Type` | `application/json` | POSTs |
 | `Accept` | `application/json` | |
+| `X-App-Version` | the app's version (`1.4.0`) | From S9 (OTA-01). Stored on the machine; platform-only |
+| `X-Bridge-Version`, `X-Firmware-Version` | the bridge's and the firmware's versions | From S9, when the app knows them from a bridge heartbeat |
 
 A missing or empty `X-Tenant-Id` or `X-Machine-Id` → **401**
 `machine_unidentified`. The mock answers a missing tenant with 400. On
@@ -337,6 +349,41 @@ each gets a kiosk-plan decision-log entry):
 - **S4:** `user://machine_key.txt`; `Authorization: Bearer` on the same
   backend calls only; never logged (added to `run_tests.sh`'s leak grep);
   `dev_setup.gd --machine-key=`.
+
+### 3.8 `GET /fuelbot/update` (the updater, S9)
+
+The machine's updater (kiosk plan Milestone 9) asks every 5 minutes. Same
+headers and machine auth as config (§3.1, §4.3), plus `X-Updater-Version`.
+Query: `current=<version>&os=<os version>`.
+
+```json
+{"action": "stay"}
+{"action": "install", "version": "1.4.1", "attempt": 1, "force": false,
+ "window": {"start": "02:00", "end": "05:00", "tz": "Asia/Kolkata"}, "max_wait_days": 7,
+ "manifest_url": "/fuelbot/releases/1.4.1/manifest.json"}
+```
+
+Who gets what, the window and `force` are §4.14. 401 as for config; any
+other non-200 means "try later".
+
+### 3.9 `GET /fuelbot/releases/:version/:file`
+
+The files of a published release (`manifest.json`, `manifest.json.sig`,
+and those the manifest lists). Machine auth as above (the bundles hold no
+secrets and are signed, but the app's code isn't public). `Range` requests
+are supported, so a cut download resumes.
+
+### 3.10 `POST /fuelbot/update/report`
+
+```json
+{"event_id": "<ULID>", "version": "1.4.1", "attempt": 1, "from_version": "1.4.0",
+ "state": "downloaded | installed | healthy | rolled_back | failed",
+ "reason": "no_idle_state | bad_signature | no_space | step os-2026-11 | …",
+ "log_tail": "…(≤ 20 KB, keys masked)…", "timestamp": "2026-10-09T02:14:05Z"}
+```
+
+→ `202`. Idempotent on `event_id` (§3.6). The updater keeps unsent reports
+and retries, like the app's `ReportQueue`.
 
 ## 4. Specification
 
@@ -533,10 +580,10 @@ tenant check happens once per request.
 
 | Method & path | Who | What |
 |---|---|---|
-| `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns the user. Rate-limited |
+| `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns `{user}` (the dashboard calls `/auth/me` next). Rate-limited |
 | `POST /auth/logout` | signed in | clears the cookie |
-| `GET /auth/me` | signed in | the user, role, tenant, machines. **S7 adds** `permissions` (the effective set from `auth/rbac.js`), `all_machines`, `tenant {id, name, logo_text}` (null for platform), `display_tz`, `session_expires_at` |
-| `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end) |
+| `GET /auth/me` | signed in (also while a password change is required) | `{user, permissions, all_machines, tenant, display_tz, session_expires_at}` (SRV-28): `permissions` is the effective set from `auth/rbac.js` `effectivePermissions()` (the role's set, minus `products:edit` for a user limited to some machines), sorted; `tenant` is `{id, name, logo_text}`, null for platform; `session_expires_at` is ISO UTC without milliseconds |
+| `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end); answers like `/auth/me`, with the new session's expiry |
 | `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant |
 | `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions). **No deletion**: a disabled user can be re-enabled |
 | `POST /users/:id/password` | same | set a new temporary password (ends sessions) |
@@ -680,6 +727,10 @@ There are no alerts in v1 (§8), but lists sort by status.
   - `img-src 'self' data:` + the storage origins + `IMAGE_ORIGINS`;
   - `frame-ancestors 'none'`;
   - `upgrade-insecure-requests` in production only.
+  - `index.html` is `Cache-Control: no-store` (the nonce); hashed
+    `assets/*` are `max-age=31536000, immutable`; other GETs under
+    `/dashboard` fall back to `index.html` (deep links); no build → 503.
+    `GET /` → `/dashboard/`. Built in SRV-29 (`src/dashboard.js`).
   - The details are in the
     [dashboard plan §2.4](../../../webdashboard/devdocs/plans/dashboard-plan.md).
 
@@ -771,10 +822,10 @@ All are scoped to what the user can see (§4.7). Filters: `tenant`
 
 | Method & path | Who | Returns |
 |---|---|---|
-| `GET /fleet` | all | visible machines with status (§4.5, per view), grouped by tenant for platform. `tenant=` filter (**S7**: platform any; tenant users only their own, else 404) |
+| `GET /fleet` | all | visible machines with status (§4.5, per view), grouped by tenant for platform. `tenant=` filter (SRV-27): platform any tenant (an unknown one gives empty `items` and `tenants`); tenant users only their own, else 404 |
 | `GET /sales` | all | filters: `tenant`, `machine`, `from`, `to`, `flavor`, `dispensed`; platform also `result`. Newest first |
-| `GET /sales/summary` | all | `group=day\|week\|month\|flavor\|machine\|tenant`: count, revenue (`sum charged_price`), not-dispensed count and amount. `week` = ISO week (Monday–Sunday) keyed `2026-W39`, `month` keyed `2026-09`, both in `DISPLAY_TZ` (**week and month: S7**) |
-| `GET /sales/export.csv` | all | the `/sales` filters as CSV (streamed), same columns as the caller's view; **S7:** a first column `local_time` (`YYYY-MM-DD HH:MM:SS` in `DISPLAY_TZ`) |
+| `GET /sales/summary` | all | `group=day\|week\|month\|flavor\|machine\|tenant`: count, revenue (`sum charged_price`), not-dispensed count and amount. `week` = ISO week (Monday–Sunday) keyed `2026-W39`, `month` keyed `2026-09`, both in `DISPLAY_TZ`, sorted ascending like `day` (SRV-27) |
+| `GET /sales/export.csv` | all | the `/sales` filters as CSV (streamed), same columns as the caller's view, with a first column `local_time` (`YYYY-MM-DD HH:MM:SS` in `DISPLAY_TZ`, SRV-27) before `ts` (UTC) |
 | `GET /telemetry` | **platform_admin** | filters: `tenant`, `machine`, `type`, `from`, `to`, `order_id` |
 | `GET /faults` | **platform_admin** | fault log: `machine_fault` / `machine_ok` / `bridge_down` / `bridge_up` as open/closed intervals per machine |
 | `GET /orders/:order_id` | all | the sale; for platform also every telemetry event for that order (joined on `order_id`) |
@@ -850,9 +901,11 @@ are
 `S3_REGION` (`ap-south-1`), `S3_PREFIX`, `S3_PUBLIC_BASE_URL`,
 `LOG_REQUESTS` (true).
 
-S7 adds:
+S7 adds (SRV-29):
 - `DASHBOARD_DIR` (default `<repo>/webdashboard/dist`);
-- `IMAGE_ORIGINS` (extra `https://` image origins for the dashboard CSP).
+- `IMAGE_ORIGINS` (a comma list of extra `https://` image origins for the
+  dashboard CSP; anything that isn't a bare https origin stops the server
+  at boot).
 
 Ports in use locally:
 - 8787: the mock;
@@ -926,8 +979,8 @@ days_left = portions_left / rate   (null when there were no doses)
 | `GET …/stock/history` | members | refills and adjustments, newest first (cursor pages) |
 
 Plus `GET /api/v1/stock?state=low,empty` (scoped): every visible hopper
-that needs attention across the fleet, for the "refill soon" list. **S7**
-adds a `tenant=` filter, with the same rule as `/fleet`.
+that needs attention across the fleet, for the "refill soon" list, with a
+`tenant=` filter (SRV-27) under the same rule as `/fleet`.
 `portion_g` is set through the product (`PATCH …/products/:pid`) and
 `low_portions` through the menu item.
 
@@ -939,6 +992,37 @@ their machines). `stock:write` (refills, adjustments, `portion_g`,
 `hopper_levels` telemetry event becomes an automatic `adjust` entry, so
 machines with sensors are measured and the rest stay estimated, in the
 same record and API.
+
+### 4.14 Releases and rollouts (S9)
+
+Built in [OTA-05](../../../devdocs/stories/ota/OTA-05-server.md), which has
+the full rules. In short:
+
+- **Models:** `Release` (version, manifest, files, notes, status `draft |
+  rolling | paused | done | withdrawn`, stages, current stage) and
+  `UpdateEvent` (one per report, §3.10); the machine gains `software`
+  (app, bridge, firmware, OS versions; pin; window; last update).
+- **Upload** verifies the bundle's Ed25519 signature
+  (`RELEASE_PUBLIC_KEY`) and every file's sha256, as the machine will;
+  files go to `RELEASES_DIR`.
+- **Target for a machine:** its pin, else the newest `rolling`/`done`,
+  not withdrawn release whose stages so far include it (stage 0 = named
+  test machines; a percent stage includes a machine when
+  `hash(machine_id + version) mod 100 < percent`); a paused release reaches
+  no new machines; a machine on a withdrawn version goes to the newest
+  release that includes it; `min_from_version` first when needed.
+- **Window and force:** the machine's own window, else `UPDATE_WINDOW`
+  (`02:00-05:00` in `DISPLAY_TZ`); `UPDATE_MAX_WAIT_DAYS` (7); staff's
+  "Update now" (one machine) or "Install now" (a release's current stage)
+  sets `force` until the machine reports `healthy` or `failed`.
+- **Auto-pause:** a `rolled_back`, or a `failed` other than `no_space`,
+  pauses the release (audited).
+- **Admin API** (platform only: `releases:manage` to act, `telemetry:read`
+  to see): releases (upload, publish, promote, pause, resume, withdraw,
+  install-now, retry) and a machine's software (view, pin, window, update
+  now). Every action audited. `/fleet` gains a `software` block for staff.
+- **Settings:** `RELEASES_DIR`, `RELEASE_PUBLIC_KEY`, `RELEASE_MAX_MB`
+  (200), `UPDATE_WINDOW`, `UPDATE_MAX_WAIT_DAYS`.
 
 ## 5. Target folder structure
 
@@ -953,6 +1037,7 @@ server/
 ├── src/
 │   ├── index.js              entry: settings → db → app → listen
 │   ├── app.js                createApp({settings, storage}): middleware, routes, errors
+│   ├── dashboard.js          /dashboard: webdashboard/dist, its CSP + style nonce, SPA fallback
 │   ├── settings.js           env → settings
 │   ├── db.js                 mongoose connect / disconnect, syncIndexes
 │   ├── models/               Tenant, Product, Machine, Sale, TelemetryEvent, MachineKey,
@@ -990,8 +1075,9 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S5 | Product images (**deferred**, after S6) | §4.8, local and S3 drivers (S3 tested against a stubbed client) | the images SIGNOFF's pending "real S3" item, once a bucket exists |
 | S6 | Read APIs | §4.9, fleet status | reporting without the dashboard |
 | S6b | Estimated stock | §4.13: `portion_g`, `low_portions`, `StockEvent`, refills / adjustments, the estimate, stock APIs | knowing when to refill, before the dashboard shows it |
-| S7 | Dashboard (**planned 2026-09-28; review pending**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
+| S7 | Dashboard (**done 2026-09-30**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
+| S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../devdocs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done
@@ -1051,7 +1137,8 @@ chained with `&&` after the checks.
 - **Alerting** (email, SMS, Slack on offline or fault). The status is
   computed; sending it somewhere is next.
 - **Pushing** changes to machines. The app pulls (catalog at boot,
-  maintenance every 120 s). Live catalog refresh is an app change.
+  maintenance every 120 s), and so does the updater (new versions every
+  5 minutes, S9). Live catalog refresh is an app change.
 - **Sites / locations** as their own level between tenant and machine
   (`site` is a text field on the machine for now).
 - Moving a machine to another tenant (register a new machine id instead).
@@ -1081,9 +1168,8 @@ chained with `&&` after the checks.
    automatically (e.g. as an opt-in per machine)? Should low stock notify
    someone (with alerting, §8)?
 8. **Dashboard (S7), before SRV-30:**
-   - JavaScript or TypeScript for `/webdashboard`? The recommendation is
-     JavaScript, matching the server.
-   - Is it acceptable that tenant users see who recorded a refill,
-     including a FuelBot staff email (`last_refill.by`)?
+   - ~~JavaScript or TypeScript?~~ Answered: JavaScript.
+   - ~~May tenant users see who recorded a refill, including a FuelBot
+     staff email (`last_refill.by`)?~~ Answered 2026-09-28: yes (§0).
    - The rest is in
      [dashboard plan §10](../../../webdashboard/devdocs/plans/dashboard-plan.md).

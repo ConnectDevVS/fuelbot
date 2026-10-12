@@ -1,0 +1,223 @@
+/* Charts (dashboard plan §2.8): marks from --fb-chart-* only; text from the text tokens. */
+.figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.plot {
+  width: 100%;
+  min-width: 0;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: 8px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.swatchSvg {
+  display: block;
+  flex: none;
+}
+
+/* Marks */
+.fillA {
+  fill: var(--fb-chart-dispensed);
+  background: var(--fb-chart-dispensed);
+}
+
+.hatchBg {
+  fill: var(--fb-surface);
+}
+
+.hatchLine {
+  stroke: var(--fb-chart-not-dispensed);
+  stroke-width: 2.4;
+}
+
+.grid {
+  stroke: var(--fb-border);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.baseline {
+  stroke: var(--fb-dim);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.axisText {
+  fill: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* The hit target is the whole column band: bigger than the mark. */
+.hit {
+  fill: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+.hit:focus-visible {
+  stroke: var(--fb-primary);
+  stroke-width: 2;
+}
+
+.bar:hover .fillA,
+.bar:focus-within .fillA {
+  opacity: 0.82;
+}
+
+/* Flavor mix */
+.mix {
+  display: grid;
+  gap: 8px;
+}
+
+.mixRow {
+  display: grid;
+  grid-template-columns: minmax(96px, 36%) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 28px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.mixRow:focus-visible {
+  box-shadow: 0 0 0 2px var(--fb-primary);
+}
+
+.mixRow:hover .mixFill {
+  opacity: 0.82;
+}
+
+.mixName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mixTrack {
+  display: block;
+  height: 12px;
+}
+
+.mixFill {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+}
+
+.mixValue {
+  min-width: 56px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Tooltip */
+.tip {
+  display: grid;
+  gap: 4px;
+  min-width: 140px;
+  color: var(--fb-text);
+}
+
+.tipTitle {
+  color: var(--fb-muted);
+  font-size: 12px;
+}
+
+.tipRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tipKey,
+.tipKeySpace {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.keyA {
+  background: var(--fb-chart-dispensed);
+}
+
+.keyB {
+  background: var(--fb-chart-not-dispensed);
+}
+
+.tipLabel {
+  color: var(--fb-muted);
+}
+
+/* Table view */
+.tableToggle {
+  margin-top: 6px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.table caption {
+  padding: 4px 0;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--fb-border);
+  text-align: left;
+}
+
+.table tfoot td {
+  font-weight: 700;
+}
+
+.right {
+  text-align: right !important;
+}
+
+@media (max-width: 759px) {
+  .mixRow {
+    grid-template-columns: minmax(80px, 38%) minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+}

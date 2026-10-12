@@ -1,0 +1,23 @@
+/* Order detail (dashboard plan §5.9). Colours from tokens.css only. */
+.block {
+  margin-top: 16px;
+}
+
+.block:first-child {
+  margin-top: 0;
+}
+
+.facts {
+  min-width: 0;
+}
+
+.none {
+  margin: 0;
+  color: var(--fb-muted);
+}
+
+.machine {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}

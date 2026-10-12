@@ -126,4 +126,24 @@ describe('estimated stock', () => {
     assert.equal((await as.viewer.get(`${M}/DEV00001/stock`)).status, 200);
     assert.equal((await as.opOne.get(`${M}/${other}/stock`)).status, 404);
   });
+  it('fleet stock tenant filter', async () => {
+    const globex = (await importConfig({ tenantId: 'globex', tenantName: 'Globex', config: mockConfig() })).machine._id;
+    const machinesOf = async (who, q) => {
+      const res = await as[who].get(`/api/v1/stock${q}`);
+      assert.equal(res.status, 200, `${who} ${q}`);
+      return new Set(res.body.items.map((r) => r.machine_id));
+    };
+    assert.ok((await machinesOf('ops', '')).has(globex));
+    const pf = await machinesOf('ops', '?tenant=powerfuel');
+    assert.deepEqual([...pf].sort(), ['DEV00001', other].sort());
+    assert.deepEqual([...(await machinesOf('ops', '?tenant=globex'))], [globex]);
+    assert.deepEqual((await as.ops.get('/api/v1/stock?tenant=nosuch')).body, { items: [] });
+    assert.equal((await machinesOf('owner', '?tenant=powerfuel')).size, 2);
+    for (const who of ['owner', 'opOne', 'viewer']) {
+      const res = await as[who].get('/api/v1/stock?tenant=globex');
+      assert.equal(res.status, 404, who);
+      assert.equal(res.body.error, 'not_found');
+    }
+    assert.deepEqual([...(await machinesOf('opOne', '?tenant=powerfuel'))], ['DEV00001']);
+  });
 });

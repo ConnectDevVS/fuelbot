@@ -23,7 +23,7 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 |---|---|---|---|
 | 1 | Framework | **React + Vite, with a build step.** This replaces the previous session's "no build, no framework" | §2.1 stack; the server serves Vite's `dist/` (§2.4); CI and deploy need `npm run build` |
 | 2 | Where the code lives | **`/webdashboard`** at the repo root; **all its docs in `/webdashboard/devdocs`** | Not `server/public/` (server plan §5 updated); this doc and the stories live here |
-| 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop | Three layouts (§2.9); every page gets e2e screenshots at 390, 820 and 1440 px |
+| 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop. Revised 2026-09-29: **from SRV-42, desktop first**; phone and tablet layouts are finished after the functionality is final | Three layouts (§2.9). SRV-27–41 were built and checked at 390, 820 and 1440 px; SRV-42–48 were built at 1440 first, then given their phone and tablet layouts in one pass (SRV-49 part 2, 2026-09-30). Every page and every e2e spec now runs at all three widths |
 | 4 | Charts | **Revenue over time** (day / week / month) and **flavor mix**. No machine-comparison chart | Two chart components (§4.9); per-machine numbers are a table |
 | 5 | Refresh | **No auto-refresh.** Data loads on page entry, with a Refresh button and an "Updated hh:mm" stamp | No polling, so `/fleet` and `/stock` costs stay bounded (§2.6) |
 | 6 | Look | **One FuelBot look, light theme only** (revised 2026-09-28: "no need of dark mode for now"; the first answer was dark + a light toggle). The kiosk brand carries over through the lime accent, Archivo/JetBrains Mono type and uppercase headings. The tenant's name and `logo_text` badge sit in the top bar | One validated theme (§2.8); no theme toggle; tokens kept in one block so a dark theme can be added later; no per-tenant colours or logo uploads |
@@ -33,6 +33,7 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 | 10 | UI components | **Ant Design** (antd 6), not hand-written CSS (revised 2026-09-28) | antd themed from our tokens (§2.8); its runtime styles run under the strict CSP with a per-request nonce (§2.4, spike G); a small hand-written stylesheet only for layout and our own pieces |
 | 11 | Language of the code | **JavaScript** (JSX), not TypeScript | §0.3.1 is now the product owner's decision; open question §10.1 closed |
 | 12 | A separate claude.design session | **Not needed for S7.** The wireframes (§5) plus the mock-ups in `design/` are the design | The claude.design prompt stays as an option for later |
+| 13 | Disabled machines in Refill soon (2026-09-29) | **Keep them.** A disabled machine with a menu still lists its hoppers | §5.10: no filter on `disabled`, in the UI or the server |
 
 ### 0.2 Binding decisions carried from the server plan (product owner, 2026-09-26/27)
 
@@ -193,6 +194,9 @@ from the plan.
   `sessionStorage`, the React Query cache, or a `console.*` call. The key
   response is read by a plain `fetch` in the issuing component and kept in
   component state only. An ESLint rule forbids `console` in `src/`.
+  Sign-in and password changes are plain async calls, not React Query
+  mutations, for the same reason: a mutation keeps its variables (the
+  password) in the mutation cache (SRV-32).
 - **Sales CSV:** a plain `<a href="/api/v1/sales/export.csv?…" download>`
   with the current filters. It's a same-origin GET, so the cookie goes along
   and no JS is involved.
@@ -370,9 +374,9 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
 | dim | `#6B717A` |
 | accent | `#C8FF3E`, as a fill with `on-accent` text only, never as text on white |
 | on-accent | `#111215` |
-| ok | `#15803D` |
+| ok / ok surface / ok border | `#15803D` / `#EAF6EE` / `#A9D9B8` (surfaces added in SRV-34: antd's derived success fill was a muddy grey-green) |
 | warn / warn surface / warn border | `#A16207` / `#FEF7E6` / `#F2D58A` |
-| bad / bad surface | `#B91C1C` / `#FDECEC` |
+| bad / bad surface / bad border | `#B91C1C` / `#FDECEC` / `#F3B4B4` |
 
 - **antd theme** (`ConfigProvider theme`; checked in spike G):
 
@@ -382,7 +386,7 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
 | `colorLink` | `#3F6A0B` | |
 | `colorText` / `colorTextSecondary` | `#111215` / `#4B5159` | |
 | `colorBorder`, `colorBgLayout`, `colorBgContainer` | `#E1E3E6`, `#F4F5F2`, `#FFFFFF` | |
-| `colorSuccess` / `colorWarning` / `colorError` | `#15803D` / `#A16207` / `#B91C1C` | |
+| `colorSuccess` / `colorWarning` / `colorError` | `#15803D` / `#A16207` / `#B91C1C` | their `…Bg` / `…Border` tokens are set from the surfaces above, not derived (SRV-32, SRV-34) |
 | `borderRadius` / `borderRadiusLG` | 10 / 16 | |
 | `fontFamily` | `Archivo, system-ui, sans-serif` | (`fontSize` 15) |
 | `Button` (component tokens) | `colorPrimary #C8FF3E`, hover `#B6F02B`, active `#A6DC24`, `primaryColor #111215`, `primaryShadow none`, `fontWeight 700` | **primary buttons are lime with dark text**, as on the kiosk (verified in spike G) |
@@ -434,7 +438,13 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
   - `Table` on tablet and desktop, and our card list (antd `Card`s) on
     phone. Not antd `List`, which 6.6 deprecates;
   - `Drawer` becomes `placement="bottom"`, full height on phone;
-  - filters in a bottom `Drawer` on phone;
+  - filters in a bottom `Drawer` on phone: Sales edits a draft applied
+    with "Show results" (its filters live in the URL); every other filter
+    row goes through `FilterBar` (`src/ui/`), whose sheet holds the same
+    controls, applied as they change ("Show results" closes it, Reset
+    clears them). A page shows one "Filters (n)" button: the staff
+    Telemetry page puts its tenant, machine and order id into the list's
+    own filter bar;
   - `Modal` for dialogs.
 - The mock-ups in `design/` show Home at desktop, tablet and phone, and
   the provisioning card, Menu editor, Stock tab and Sales filters (§5).
@@ -560,7 +570,12 @@ Use `App.useApp()` for `message` and `modal`, never the static
 5. **Tables:**
    - header row in mono caps; numbers right-aligned in tabular figures;
    - rows link to the detail page;
-   - on phone, a card per row with the 2–3 key fields.
+   - on phone, a card per row with the 2–3 key fields (columns of
+     `priority` ≤ 2; an empty value leaves its pair out); columns of
+     priority 4 show on desktop only (a squeezed column on a tablet: the
+     Machines list's Location, Users' Last sign-in);
+   - every row and card carries `data-row="<key>"`, so tests find rows
+     the same way at every width.
 6. **Status components** (never colour alone):
    - `StatusBadge`: platform `ok/maintenance/fault/offline`; tenant
      "Online/Offline" + "In service/Out of service";
@@ -729,7 +744,7 @@ FLEET                                        Updated 12:42 IST [↻ Refresh]
   - `GET /tenants/:tid/products?archived=true`: flavor names.
 - **Content:**
   - KPIs: Revenue today, Orders, Not dispensed (count + ₹, links to the
-    Not-dispensed list), Machines (online/total, and how many are out of
+    Not-dispensed list for today: `?view=not-dispensed&period=today`), Machines (online/total, and how many are out of
     service).
   - Revenue chart: 14 days, with a Day/Week/Month switch that changes the
     range to 14 days / 12 weeks / 12 months.
@@ -803,7 +818,9 @@ Bay 4 · K7Q2M9XA        ○Offline                      never         —      
   - "Copy the menu from…" (a list of configured machines):
     `POST …/machines/:mid/menu/copy-from/:src` with
     `If-Match: <menu_version>` (0).
-  - Or "Build the menu": opens the Menu tab.
+  - Or "Build the menu": the key step comes first, then Done opens the
+    Menu tab (SRV-42: leaving mid-flow would leave the machine without a
+    key).
   - Or "Later": the machine stays "Not configured", and its config call
     answers 409 until then (the kiosk keeps its cache).
 - **Step 3, Key:**
@@ -911,8 +928,10 @@ MENU · Bay 02                                      [Copy menu from… ▾]
  Unsaved changes · Changes reach the machine at its next restart   [Discard] [Save]
 ```
 
-- **Phone:** each item is a card. The reorder handle is on the left, and
-  the fields stack.
+- **Tablet:** two lines per item (product, hopper, price; then badge,
+  sold out, on). **Phone:** each item is a card. The reorder handle and
+  ↑/↓ (44 px) are on the left, and the fields stack. Below 1100 px the
+  header row is hidden and each control shows its own label.
 
 #### 5.6.2 Config preview tab
 
@@ -1004,6 +1023,8 @@ hidden.
   number"), enabled. Add/remove, max 6.
 - **Client checks:** at least one enabled; ids unique.
 - Save carries the `RestartNote`. Read-only without `machines:manage`.
+- **Phone:** a base on two lines (id and name; code and on), each field
+  labelled (no header row).
 
 #### 5.6.7 Keys tab (`keys:manage`)
 
@@ -1179,6 +1200,7 @@ TIME (IST)     ORDER   MACHINE   FLAVOR        CHARGED   TRANSACTION        (sta
     days, last refill.
   - A row opens the machine's Stock tab. Record refill is inline with
     `stock:write`.
+- **Disabled machines stay in the list** (product owner, 2026-09-29; §0.1 row 13).
 - **Empty:** "Nothing needs refilling. Every hopper is above its low mark."
 - **Phone:** cards with a large "Record refill" button.
 
@@ -1360,6 +1382,24 @@ AT               USER                  ACTION         TARGET       TENANT · MAC
 └───────────────────────────┘
 ```
 
+### 5.19 Software and releases (platform; OTA set, planned 2026-10-09)
+
+Over-the-air updates (kiosk plan Milestone 9; server plan §3.8–3.10,
+§4.14). Built in [OTA-06](../../../devdocs/stories/ota/OTA-06-dashboard.md),
+which has the full spec. Platform-only, like Telemetry and Faults: tenant
+roles get no tab, no page, no request and no keys (the leak scan proves it).
+
+- **A machine's Software tab** (staff): app, bridge, firmware and OS
+  versions; the target version and why; the update state; history with
+  each failure's log tail. Actions (`releases:manage`): **Update now**
+  (installs at the next idle moment, outside the night window), pin to a
+  version, window override.
+- **Releases page** (platform nav): upload a signed bundle (the server
+  verifies it), then publish to test machines, promote (10 %, then all),
+  pause, resume, withdraw, install now, retry, each with a consequence
+  text. A release paused by a rollback says which machine and why.
+- **Fleet** (staff): a version column (desktop only) and a "Behind" chip.
+
 ## 6. Permission → UI map
 
 `can()` checks these permission names (from `/auth/me`). "Platform" means
@@ -1478,9 +1518,9 @@ sales over 41 days, all four roles). Findings that shaped this plan:
 3. **Images under CSP:** product images from hosts other than the S3 bucket
    or `PUBLIC_URL` are blocked unless listed in `IMAGE_ORIGINS`. They show a
    placeholder.
-4. **Staff emails shown to tenants:** `last_refill.by` shows the email of
-   whoever recorded a refill, including FuelBot staff. Acceptable? (It isn't
-   on the platform-only list.)
+4. ~~Staff emails shown to tenants?~~ **Answered (product owner,
+   2026-09-28): yes.** Tenant users see `last_refill.by`, the email of
+   whoever recorded a refill, FuelBot staff included (SRV-41).
 5. **`/stock` cost** grows with machines × hoppers (1–3 queries each). With
    no auto-refresh it's bounded by clicks. Revisit (one aggregate) past
    about 200 machines.

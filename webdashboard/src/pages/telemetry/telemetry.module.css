@@ -1,0 +1,23 @@
+/* Telemetry and faults lists (dashboard plan §5.6.9–5.6.10, §5.15–5.16). */
+.type {
+  min-width: 200px;
+}
+
+.other {
+  width: 200px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.details {
+  color: var(--fb-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.ongoing {
+  color: var(--fb-bad);
+  font-weight: 700;
+}

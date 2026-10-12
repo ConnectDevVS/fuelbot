@@ -10,6 +10,7 @@ export const COOKIE = 'fb_session';
 export const CSRF_HEADER = 'X-Requested-With';
 export const CSRF_VALUE = 'fuelbot-dashboard';
 
+/** Issues the session cookie; returns the session's expiry (JWT exp, seconds). */
 export function setSessionCookie(res, user, settings) {
   const token = jwt.sign({ sub: String(user._id), tv: user.token_version }, settings.jwtSecret, {
     algorithm: 'HS256',
@@ -23,6 +24,7 @@ export function setSessionCookie(res, user, settings) {
     path: '/',
     maxAge: settings.sessionHours * 3600 * 1000,
   });
+  return jwt.decode(token).exp;
 }
 
 /** Ends this session on the server (idempotent) and clears its cookie. */

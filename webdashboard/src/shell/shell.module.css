@@ -1,0 +1,262 @@
+/* The shell (dashboard plan §2.9): sidebar / icon rail / phone top bar + tab bar. */
+.root {
+  min-height: 100vh;
+  background: var(--fb-bg);
+}
+
+.column {
+  min-width: 0;
+  background: var(--fb-bg);
+}
+
+/* Sidebar and rail */
+.sider {
+  position: sticky !important;
+  top: 0;
+  height: 100vh;
+  border-right: 1px solid var(--fb-border);
+}
+
+.siderInner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.siderBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 20px 16px;
+}
+
+[data-layout='tablet'] .siderBrand {
+  justify-content: center;
+  padding: 20px 0 16px;
+}
+
+.brandMark,
+.mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--fb-radius);
+  background: var(--fb-accent);
+  color: var(--fb-on-accent);
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.brandName {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.menu {
+  flex: 1;
+  overflow: auto;
+  border-inline-end: none !important;
+  padding: 0 8px;
+}
+
+/* The active item: a lime inset bar (and antd's selected fill). */
+.menu :global(.ant-menu-item-selected) {
+  box-shadow: inset 4px 0 0 var(--fb-accent);
+  font-weight: 700;
+}
+
+.menu :global(.ant-menu-item) a {
+  color: inherit;
+}
+
+.siderFooter {
+  padding: 16px 20px;
+}
+
+/* Top bar */
+.topbar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--fb-border);
+  background: var(--fb-bg);
+}
+
+.topLeft {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.badgeText {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.tenantName {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher {
+  width: 240px;
+  max-width: 100%;
+}
+
+.account {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 10px;
+  height: auto !important;
+  padding: 4px 8px !important;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--fb-border);
+  border-radius: 50%;
+  background: var(--fb-surface);
+  font-weight: 700;
+}
+
+.accountText {
+  display: grid;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.who {
+  display: grid;
+  color: var(--fb-text);
+}
+
+/* Content */
+.main {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 24px;
+}
+
+.main:focus {
+  outline: none;
+}
+
+[data-layout='phone'] .topbar {
+  min-height: 56px;
+  padding: 8px 16px;
+}
+
+[data-layout='phone'] .main {
+  padding: 16px 16px calc(80px + env(safe-area-inset-bottom));
+}
+
+/* Phone tab bar */
+.tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--fb-border);
+  background: var(--fb-surface);
+}
+
+.tab {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 60px;
+  padding: 6px 2px;
+  border: 0;
+  background: none;
+  color: var(--fb-muted);
+  font: inherit;
+  font-size: 11px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tabIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 28px;
+  border-radius: 14px;
+  font-size: 18px;
+}
+
+.tab[data-active] {
+  color: var(--fb-text);
+  font-weight: 700;
+}
+
+.tab[data-active] .tabIcon {
+  background: var(--fb-accent);
+  color: var(--fb-on-accent);
+}
+
+.tabLabel {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Phone More sheet */
+.sheetList {
+  display: grid;
+}
+
+.sheetItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 1px solid var(--fb-border);
+  background: none;
+  color: var(--fb-text);
+  font: inherit;
+  font-size: 16px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sheetGroup {
+  padding: 18px 4px 6px;
+}
+
+.sheetWho {
+  padding: 2px 4px 6px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}

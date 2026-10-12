@@ -46,6 +46,7 @@ tools/         run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup
                fake_arduino_serial.py (Level 1), check_firmware.sh, test_fakes.py,
                trim_flavor_images.gd (bundled fallbacks → trimmed, ≤ 600×800)
 devdocs/       plans/, stories/<set>/, image-spec.md (flavor images, for the content team)
+webdashboard/  the web dashboard (S7: React + Vite + Ant Design, .gdignore'd); rules in webdashboard/CLAUDE.md
 ```
 
 ## Commands (run from repo root)
@@ -278,6 +279,14 @@ overflow were both found this way. Story work is one commit per story
   `Authorization: Bearer` on the same calls and is **never logged** (`run_tests.sh`
   greps for it). `dev_setup.gd --tenant= --machine= --machine-key=` (dev defaults:
   `powerfuel`, `DEV00001` and the server seed's dev key).
+- **At runtime the app writes only under `user://`** (through
+  `ConfigManager.user_path()` for machine state), never next to its binary
+  or under `res://`. On a Pi the release folder the app runs from is replaced
+  by every over-the-air update (Milestone 9), so anything written there is
+  lost or breaks a rollback. Write atomically (`path.tmp`, then
+  `DirAccess.rename_absolute`). The one exception is dev-only:
+  `DevCapture` saves to the `--capture=` path it's given. OTA-02 adds a
+  `run_tests.sh` check that enforces this.
 - Credentials and provisioning files (`tenant_id.txt`, `machine_id.txt`, `machine_key.txt`,
   `razorpay_credentials.cfg`, `razorpay_credentials.mock.cfg`, `*.local.cfg`,
   overrides) live in `user://` and are gitignored. Never commit a key.
@@ -564,12 +573,18 @@ any change to `RazorpayManager` or the create payload.
   product owner. Steps are in "Razorpay test-mode run" above; results go in
   the payment SIGNOFF. Confirm Razorpay's minimum `close_by` lead time and
   whether test mode can simulate a UPI QR payment.
-- Next: Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule).
+- Next: Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule),
+  built together with Milestone 9, over-the-air updates (planned 2026-10-09:
+  [devdocs/stories/ota/](devdocs/stories/ota/README.md); our own updater,
+  signed releases, idle-only installs, no remote access, no read-only disk).
   Also check WebP/PNG decoding and HTTPS to S3 on the Pi's export template.
 - **Real backend:** built in `server/` (config, sales, telemetry, machine keys,
   admin API; see server/CLAUDE.md) and run end to end with this app
   (`tools/dev_run.sh --backend=server`). **Not deployed yet** (hosting
-  undecided); the app's tests still use the mock.
+  undecided); the app's tests still use the mock. The web dashboard
+  (`webdashboard/`, S7) is done too (its SIGNOFF, 2026-09-30); its
+  real-app run changed prices, maintenance and a new machine's menu on
+  this app from the dashboard.
 - ~~Flavor images from S3~~: built in Milestone 7 (images SIGNOFF, §7 step
   4b against the mock). The config API serves `image_url` (server S1);
   **pending:** the real S3 bucket and the server's upload endpoint (server

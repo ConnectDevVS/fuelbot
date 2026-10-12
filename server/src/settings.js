@@ -1,8 +1,25 @@
 // All settings come from environment variables (server/.env in dev; see .env.example).
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 const MACHINE_AUTH_MODES = ['off', 'optional', 'required'];
 const STORAGE_KINDS = ['local', 's3'];
+
+/** IMAGE_ORIGINS: a comma list of https:// origins (no path); anything else throws at boot. */
+function imageOrigins(value) {
+  return (value || '').split(',').map((v) => v.trim()).filter(Boolean).map((v) => {
+    let url;
+    try {
+      url = new URL(v);
+    } catch {
+      url = null;
+    }
+    if (!url || url.protocol !== 'https:' || url.origin !== v.replace(/\/+$/, '')) {
+      throw new Error(`IMAGE_ORIGINS: not an https:// origin: ${v}`);
+    }
+    return url.origin;
+  });
+}
 
 function int(value, fallback) {
   const n = Number.parseInt(value ?? '', 10);
@@ -45,6 +62,8 @@ export function loadSettings(env = process.env) {
     publicUrl,
     storage,
     localStorageDir: env.LOCAL_STORAGE_DIR || new URL('../uploads/', import.meta.url).pathname,
+    dashboardDir: env.DASHBOARD_DIR || fileURLToPath(new URL('../../webdashboard/dist/', import.meta.url)),
+    imageOrigins: imageOrigins(env.IMAGE_ORIGINS),
     s3: {
       bucket: env.S3_BUCKET || '',
       region: env.S3_REGION || 'ap-south-1',

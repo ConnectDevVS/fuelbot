@@ -10,6 +10,10 @@ and the maintenance screen. The design is in
 [devdocs/plans/greenfield-rewrite.md](devdocs/plans/greenfield-rewrite.md), and
 the stories that built it are in [devdocs/stories/idle/](devdocs/stories/idle/).
 
+The backend is in [server/](server/README.md) and the web dashboard for staff
+and tenants in [webdashboard/](webdashboard/README.md) (React + Vite + Ant
+Design, served by the backend at `/dashboard/`).
+
 ## Requirements
 
 - Godot **4.7.x** on `PATH`, or `GODOT=/path/to/godot`

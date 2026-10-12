@@ -20,9 +20,12 @@ machine, **so that** I can review the business at the grain I plan it.
    to}` in `display_tz` as offset ISO strings; the default group per range.
 3. `src/pages/sales/SalesFilters.jsx`: one row on desktop, a "Filters (n)"
    sheet on phone (`Sheet`, the bottom antd `Drawer`; mock-up
-   `sales-filters-phone.png`). antd `DatePicker.RangePicker` with
-   `presets` for the period list (dayjs values in `display_tz`, converted
-   to `from`/`to` by `filters.js`), `Segmented` for Day/Week/Month, and
+   `sales-filters-phone.png`). The period is a `Select` of the presets
+   (its name shows, as in the §5.7 wireframe; the sheet shows them as
+   chips), and "Custom…" adds two single-month `DatePicker`s (From, To
+   included): built in SRV-39 instead of a `RangePicker` with `presets`,
+   which shows two dates rather than "Last 30 days" and whose two-month
+   popup is wider than a 390 px phone. `Segmented` for Day/Week/Month, and
    `Select showSearch` for machine and flavor.
 4. `src/pages/sales/SalesKpis.jsx`, `BreakdownTable.jsx`.
 5. Routes:
@@ -56,7 +59,10 @@ machine, **so that** I can review the business at the grain I plan it.
   totals' revenue), not dispensed n / ₹. Sorted as the server returns
   them (by revenue).
 - **URL:** the filters live in the query string (shareable, back-button
-  safe). `display_tz` from `/auth/me` is used for every range.
+  safe). `display_tz` from `/auth/me` is used for every range. A preset
+  is `period=<id>` (`today`, `last_7_days`, …); Home's Not dispensed tile
+  already links to `?view=not-dispensed&period=today` (SRV-38), so
+  `period=today` must work.
 
 ## Acceptance criteria
 

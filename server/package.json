@@ -8,12 +8,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "start": "node --env-file-if-exists=.env src/index.js",
-    "dev": "node --env-file-if-exists=.env --watch src/index.js",
+    "start": "node --import ./src/env.js src/index.js",
+    "dev": "node --import ./src/env.js --watch src/index.js",
     "db": "node scripts/db.js",
-    "seed": "node --env-file-if-exists=.env scripts/seed.js",
-    "import-config": "node --env-file-if-exists=.env scripts/import-config.js",
-    "create-admin": "node --env-file-if-exists=.env scripts/create-admin.js",
+    "seed": "node --import ./src/env.js scripts/seed.js",
+    "import-config": "node --import ./src/env.js scripts/import-config.js",
+    "create-admin": "node --import ./src/env.js scripts/create-admin.js",
     "test": "node --test --test-concurrency=4 \"test/*.test.js\""
   },
   "dependencies": {

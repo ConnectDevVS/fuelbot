@@ -140,6 +140,8 @@ describe('RBAC table', () => {
     ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001/keys', 200, 200, 403, 403],
     ['get', '/api/v1/fleet', 200, 200, 200, 200],
     ['get', '/api/v1/stock', 200, 200, 200, 200],
+    ['get', '/api/v1/fleet?tenant=globex', 200, 404, 404, 404],   // platform: empty list
+    ['get', '/api/v1/stock?tenant=globex', 200, 404, 404, 404],
     ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001/stock', 200, 200, 200, 200],
     ['get', '/api/v1/tenants/powerfuel/machines/RBAC0001/stock/history', 200, 200, 200, 200],
     ['post', '/api/v1/tenants/powerfuel/machines/RBAC0001/stock/refills', 400, 400, 403, 403],

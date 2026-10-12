@@ -139,6 +139,7 @@ func _process(_delta: float) -> void:
 		var kind := String(event.get("event_type", ""))
 		if kind == "bridge_status":
 			_on_heartbeat()
+			ConfigManager.set_hardware_versions(event.get("bridge_version"), event.get("firmware_version"))
 			event_received.emit(event)
 			_apply_health(event.get("machine_fault"))
 			continue

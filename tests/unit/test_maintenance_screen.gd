@@ -82,7 +82,21 @@ func test_static_cells() -> void:
 	ConfigManager.set_local_hardware_fault(true)
 	_open()
 	assert_eq(_scene.get_cell_value("diag_payments"), "DISABLED", "payments")
-	assert_true(_scene.get_cell_value("diag_firmware").begins_with("0.1.0 (godot 4."), "firmware")
+	assert_true(_scene.get_cell_value("diag_software").begins_with(ConfigManager.app_version() + " (godot 4."), "software")
+
+
+## OTA-01: the bridge's and the firmware's versions, from the heartbeat; "—" until one arrives.
+func test_version_cells() -> void:
+	ConfigManager.set_hardware_versions(null, null)
+	ConfigManager.set_local_hardware_fault(true)
+	_open()
+	var unknown := ConfigManager.get_message("diag_unknown")
+	assert_eq(_scene.get_cell_value("diag_bridge_version"), unknown, "bridge unknown")
+	assert_eq(_scene.get_cell_value("diag_firmware"), unknown, "firmware unknown")
+	ConfigManager.set_hardware_versions("1.0.0", 3)
+	_scene._render_live()
+	assert_eq(_scene.get_cell_value("diag_bridge_version"), "1.0.0", "bridge")
+	assert_eq(_scene.get_cell_value("diag_firmware"), "v3", "firmware")
 
 
 func test_already_cleared_on_entry_returns_to_idle() -> void:
@@ -108,3 +122,25 @@ func test_long_footer_does_not_widen_page() -> void:
 	var hint: Control = _scene._exit_hint
 	assert_true(hint.get_global_rect().end.x <= 1080.5, "hint inside the frame (%s)" % hint.get_global_rect())
 	assert_true(_scene.size.x <= 1080.5, "page not widened (%s)" % _scene.size)
+
+
+## Layout: six diagnostics rows (OTA-01) plus the mock's two long faults and a two-line "flagged by"
+## still fit 1080 x 1920 with the footer on screen (compact spacing); no faults keeps the design's.
+func test_fits_with_faults_and_versions() -> void:
+	ConfigManager.set_hardware_versions("1.0.0", 1)
+	_remote("maintenance_on")
+	_open()
+	await wait_frames(3)
+	assert_true(_scene.is_compact(), "compact spacing with faults listed")
+	assert_eq(_scene.get_fault_lines().size(), 2, "both faults listed")
+	var footer_bottom: float = _scene._exit_hint.get_global_rect().end.y
+	assert_true(footer_bottom <= 1920.5, "footer on screen (bottom %.0f)" % footer_bottom)
+	assert_true(_scene.size.y <= 1920.5, "page not taller than the screen (%s)" % _scene.size)
+
+
+func test_design_spacing_without_faults() -> void:
+	ConfigManager.set_local_hardware_fault(true)
+	_open()
+	await wait_frames(3)
+	assert_false(_scene.is_compact(), "the design's spacing")
+	assert_true(_scene.size.y <= 1920.5, "fits (%s)" % _scene.size)

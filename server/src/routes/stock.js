@@ -2,12 +2,13 @@
 // history, and the estimate (services/stock.js).
 import express from 'express';
 import { Machine, StockEvent } from '../models/index.js';
-import { canSeeMachine, guard, isPlatform } from '../auth/rbac.js';
+import { canSeeMachine, guard } from '../auth/rbac.js';
 import { byUrgency, machineStock, STOCK_STATES } from '../services/stock.js';
 import { checkBody, required, T } from '../catalog/input.js';
 import { audit } from '../services/audit.js';
 import { findPage } from '../services/pages.js';
 import { loadMachine } from './machines.js';
+import { machineTenantFilter } from '../services/records.js';
 import { HttpError } from '../errors.js';
 
 const LEVEL_BODY = { hopper: required(T.whole(1, 6)), level_g: required(T.whole(0, 50000)), note: T.string(200) };
@@ -66,7 +67,7 @@ export function stockRouter() {
   return router;
 }
 
-/** /api/v1/stock?state=low,empty: every hopper needing attention across the caller's machines. */
+/** /api/v1/stock?state=low,empty[&tenant=]: every hopper needing attention across the caller's machines. */
 export function fleetStockRouter() {
   const router = express.Router();
   router.use(guard('machines:read'));
@@ -75,8 +76,7 @@ export function fleetStockRouter() {
     const wanted = typeof req.query.state === 'string' && req.query.state
       ? req.query.state.split(',') : STOCK_STATES.filter((s) => s !== 'ok');
     if (wanted.some((s) => !STOCK_STATES.includes(s))) throw new HttpError(400, 'invalid_state');
-    const filter = isPlatform(req.user) ? {} : { tenant_id: req.user.tenant_id };
-    const machines = (await Machine.find(filter).lean())
+    const machines = (await Machine.find(machineTenantFilter(req.user, req.query)).lean())
       .filter((m) => m.menu.length > 0 && canSeeMachine(req.user, m));
     const items = [];
     for (const m of machines) {

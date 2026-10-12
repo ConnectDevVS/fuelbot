@@ -1,0 +1,270 @@
+/* Our own pieces around antd (dashboard plan §4). Colours from tokens.css only. */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+
+.headerText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.updated {
+  white-space: nowrap;
+}
+
+/* Tables → cards on phone */
+.tableWrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* Column headers never wrap ("LAST SEEN" did in Home's half-width card). */
+.tableWrap :global(th .overline) {
+  white-space: nowrap;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.cards {
+  display: grid;
+  gap: 12px;
+}
+
+.cardLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.cardTitle {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.pairs {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.pairs dt {
+  align-self: center;
+}
+
+.pairs dd {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.cardExpand {
+  margin-top: 12px;
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+/* Chips */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.faults {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.chip {
+  margin-inline-end: 0 !important;
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--fb-font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* KPI tiles */
+.kpi {
+  height: 100%;
+}
+
+.kpiWarn {
+  border-color: var(--fb-warn-border) !important;
+  background: var(--fb-warn-surface) !important;
+}
+
+.kpiValue {
+  margin: 6px 0 4px;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.kpiWarn .kpiValue {
+  color: var(--fb-warn);
+}
+
+.kpiSub {
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+/* Money */
+.was {
+  margin-inline-start: 6px;
+  color: var(--fb-dim);
+  font-weight: 400;
+}
+
+/* Copy field */
+.copyField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+.copyValue {
+  min-width: 0;
+  font-family: var(--fb-font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+/* States */
+.empty {
+  padding: 24px 0;
+}
+
+/* Panels (Home, Sales) */
+.panel {
+  height: 100%;
+  min-width: 0;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.panelText {
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.panelSub {
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+/* Stage timeline */
+.timeline {
+  margin: 0;
+  min-width: 0;
+}
+
+.track {
+  position: relative;
+  height: 6px;
+  margin: 10px 6px 14px;
+  border-radius: 3px;
+  background: var(--fb-border);
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--fb-surface);
+  border-radius: 50%;
+  background: var(--fb-chart-dispensed);
+  transform: translate(-50%, -50%);
+}
+
+.stages {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stages li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.total {
+  margin-top: 8px;
+}
+
+/* Filters (FilterBar): a wrapping row; on a phone, a button and a sheet with one control per line. */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.filterBar {
+  margin-bottom: 16px;
+}
+
+.filterSheetTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filterStack {
+  display: grid;
+  gap: 12px;
+}
+
+.filterStack > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}

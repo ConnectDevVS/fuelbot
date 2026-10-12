@@ -33,8 +33,9 @@ without digging.
   - Revenue today: Σ `today.revenue`, subline "n orders · ₹avg";
   - Orders: Σ `today.count`, "last at hh:mm" from the max `last_sale_at`;
   - **Not dispensed:** Σ `today.not_dispensed` + ₹, with a warn surface
-    when > 0; "see list →" goes to `/t/:tid/sales?view=not-dispensed` for
-    today;
+    when > 0; "see list →" goes to
+    `/t/:tid/sales?view=not-dispensed&period=today` (SRV-39 reads
+    `period`);
   - Machines: online/total, plus "n out of service" from `!in_service`.
     The tenant view has no reasons, and none are shown.
 - **Machines card:** up to 6 rows (name, id, Online/Offline, In/Out of

@@ -5,10 +5,28 @@ import { Tenant, User } from '../models/index.js';
 import { hashPassword, verifyPassword } from '../auth/passwords.js';
 import { endSession, requirePasswordChanged, requireSession, setSessionCookie } from '../auth/session.js';
 import { userView } from '../services/views.js';
+import { effectivePermissions, hasAllMachines, isPlatform } from '../auth/rbac.js';
 import { audit } from '../services/audit.js';
 import { HttpError } from '../errors.js';
 
 const emailOf = (body) => (typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '');
+
+/** /auth/me (DP §2.5): the user, what they may do, their tenant, the display zone, the session end. */
+async function meBody(user, exp, settings) {
+  let tenant = null;
+  if (!isPlatform(user) && user.tenant_id) {
+    const t = await Tenant.findById(user.tenant_id, { name: 1, branding: 1 }).lean();
+    if (t) tenant = { id: t._id, name: t.name, logo_text: t.branding?.logo_text ?? null };
+  }
+  return {
+    user: userView(user),
+    permissions: effectivePermissions(user),
+    all_machines: hasAllMachines(user),
+    tenant,
+    display_tz: settings.displayTz,
+    session_expires_at: new Date(exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  };
+}
 
 export function authRouter(settings) {
   const router = express.Router();
@@ -51,7 +69,7 @@ export function authRouter(settings) {
     res.json({ ok: true });
   });
 
-  router.get('/me', (req, res) => res.json({ user: userView(req.user) }));
+  router.get('/me', async (req, res) => res.json(await meBody(req.user, req.session.exp, settings)));
 
   // Keeps this session (a fresh cookie), ends all others (decision 5).
   router.post('/password', async (req, res) => {
@@ -63,9 +81,9 @@ export function authRouter(settings) {
     user.must_change_password = false;
     user.token_version += 1;
     await user.save();
-    setSessionCookie(res, user, settings);
+    const exp = setSessionCookie(res, user, settings);
     await audit(req, { action: 'auth.password_change', tenant_id: user.tenant_id, target: `user:${user._id}` });
-    res.json({ user: userView(user) });
+    res.json(await meBody(user.toObject(), exp, settings));
   });
 
   return router;

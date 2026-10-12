@@ -1,0 +1,94 @@
+.formError {
+  margin-bottom: 16px;
+}
+
+.problems {
+  margin: 4px 0 0;
+  padding-inline-start: 18px;
+}
+
+.fieldLink {
+  height: auto !important;
+  padding: 0 !important;
+}
+
+.machines {
+  display: grid;
+  gap: 8px;
+}
+
+.price {
+  width: 160px !important;
+}
+
+.lockedPrice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--fb-muted);
+}
+
+.note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+/* Sticky unsaved bar: above the phone tab bar. */
+.unsaved {
+  position: sticky;
+  bottom: 16px;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--fb-warn-border);
+  border-radius: var(--fb-radius-lg);
+  background: var(--fb-warn-surface);
+}
+
+:global([data-layout='phone']) .unsaved {
+  bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+.unsavedText {
+  display: grid;
+  gap: 2px;
+}
+
+.unsavedActions {
+  display: flex;
+  gap: 8px;
+}
+
+.diff {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.diff td:first-child {
+  white-space: nowrap;
+}
+
+.diff th,
+.diff td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--fb-border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.conflictActions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 12px;
+}

@@ -1,0 +1,162 @@
+/* The Config preview tab (dashboard plan §5.6.2). The kiosk preview is dark like the kiosk, from
+   the palette's tokens only. */
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.gap {
+  margin-bottom: 16px;
+}
+
+.errors {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.maintenance {
+  margin: 0 0 12px;
+  color: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 13px;
+}
+
+.kiosk {
+  margin: 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--fb-text);
+  color: var(--fb-surface);
+}
+
+.kioskHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--fb-accent);
+  color: var(--fb-on-accent);
+  font-weight: 900;
+}
+
+.kioskName {
+  display: block;
+  font-size: 16px;
+}
+
+.kioskLocation {
+  display: block;
+  color: var(--fb-dim);
+  font-family: var(--fb-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.flavors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flavor {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--fb-muted);
+  border-radius: 14px;
+}
+
+.soldOut {
+  opacity: 0.45;
+}
+
+.flavorTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hopper {
+  color: var(--fb-dim);
+  font-family: var(--fb-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--fb-accent);
+  color: var(--fb-on-accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.flavorName {
+  font-size: 16px;
+}
+
+.flavorPrice {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.soldOutLabel {
+  font-family: var(--fb-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.bases {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 16px;
+}
+
+.baseOff {
+  color: var(--fb-dim);
+}
+
+.raw {
+  position: relative;
+  margin-top: 16px;
+}
+
+.rawCopy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.pre {
+  max-height: 480px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--fb-border);
+  border-radius: 10px;
+  background: var(--fb-raised);
+  font-family: var(--fb-font-mono);
+  font-size: 12px;
+}

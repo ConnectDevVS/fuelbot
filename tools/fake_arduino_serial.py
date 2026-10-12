@@ -26,7 +26,9 @@ STEP_Z = 147e-6   # Z axis: 2 x delayMicroseconds(70) + overhead
 POSITIONS = {1: 0, 2: 18000, 3: 36000, 4: 54000, 5: 72000, 6: 72000}   # 5-6: placeholders
 DISPENSE_SEC = {1: 1.5, 2: 7.5, 3: 0.5, 4: 6.0, 5: 1.0, 6: 1.0}
 BOOT_SEC = 1.0    # bootloader + setup() before the banner after a watchdog reset
-BOOT_BANNER = ["STATUS:BOOT", "STATUS:HOMING_START", "STATUS:HOMING_DONE"]
+FIRMWARE_VERSION = 1   # mirrors the sketch's #define FIRMWARE_VERSION (OTA-01)
+BOOT_LINE = "STATUS:BOOT v%d" % FIRMWARE_VERSION
+BOOT_BANNER = [BOOT_LINE, "STATUS:HOMING_START", "STATUS:HOMING_DONE"]
 # Homing limits, mirroring the firmware #defines (TEL-02).
 HOMING_TIMEOUT_SEC = 20.0      # HOMING_TIMEOUT_MS
 HOMING_RETRY_SEC = 60.0        # HOMING_RETRY_MS (doubles per failure)
@@ -99,7 +101,7 @@ class FakeArduino:
 
     def boot(self, now: float) -> None:
         if self.fault == "homing_timeout":
-            self._schedule(now, [(0.0, "STATUS:BOOT")] + failed_homing_script(0.0))
+            self._schedule(now, [(0.0, BOOT_LINE)] + failed_homing_script(0.0))
         else:
             self._schedule(now, [(0.0, line) for line in BOOT_BANNER])
 
