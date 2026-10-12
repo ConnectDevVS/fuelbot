@@ -1,0 +1,4 @@
+# Folders graphify must not scan (gitignore syntax; .gitignore files are read too).
+node_modules/
+webdashboard/dist/
+fuelbotsource_og/
