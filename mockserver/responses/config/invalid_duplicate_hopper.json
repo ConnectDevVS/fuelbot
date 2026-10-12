@@ -1,0 +1,7 @@
+{
+  "description": "Invalid: chocolate moved onto guava's hopper 1 (must be rejected)",
+  "extends": "default",
+  "body_patch": {
+    "flavors": [{"id": "chocolate", "hopper": 1}]
+  }
+}

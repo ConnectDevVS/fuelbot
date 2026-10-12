@@ -1,0 +1,57 @@
+// A failed save → the form (dashboard plan §4 pattern 10, §7). invalid_body details go to their
+// fields by path ('menu[2].hopper' → ['menu', 2, 'hopper']); a path the form doesn't have goes to
+// the summary. Users codes and forbidden_field mark their fields. Anything else is a summary message.
+import { ApiError } from '../../api/client.js';
+import { fieldErrors, fieldPath, messageFor } from '../../api/errors.js';
+import { t } from '../../strings.js';
+
+const key = (name) => JSON.stringify([].concat(name));
+
+/** The form's registered field names (antd reports every mounted Form.Item). */
+function knownFields(form) {
+  return new Set(form.getFieldsError().map((f) => key(f.name)));
+}
+
+/**
+ * Sets field errors on the antd form and returns what the FormError summary shows:
+ * {message, fields: [{name, error}], unknown: [{field, error}]}, or null for a non-ApiError.
+ * rename maps a server field to the form's name ({password: 'new'}).
+ */
+export function applyServerError(error, form, { rename = {} } = {}) {
+  if (!(error instanceof ApiError)) return { message: t('error.generic'), fields: [], unknown: [] };
+  const known = knownFields(form);
+  let fields = [];
+  const unknown = [];
+
+  if (error.code === 'invalid_body' && Array.isArray(error.details)) {
+    for (const d of error.details) {
+      const base = fieldPath(rename[d.field] ?? d.field);
+      // The server's list and object checks name the container and put the rest in the text:
+      // {field: 'bases', error: '[1] code: B<digit>'} is bases[1].code, {field: 'branding',
+      // error: 'logo_text: a string (≤ 4)'} is branding.logo_text (several are joined by '; ').
+      const parts = String(d.error).split('; ').map((part) => {
+        const m = /^(?:\[(\d+)\] )?([\w.]+): (.*)$/.exec(part);
+        const inner = m ? [...base, ...(m[1] !== undefined ? [Number(m[1])] : []), ...fieldPath(m[2])] : null;
+        return inner && known.has(key(inner)) ? { name: inner, text: m[3] } : null;
+      });
+      if (parts.every(Boolean)) {
+        for (const p of parts) fields.push({ name: p.name, errors: [p.text] });
+        continue;
+      }
+      const name = base;
+      const text = String(d.error);
+      if (d.field && known.has(key(name))) fields.push({ name, errors: [text] });
+      else unknown.push({ field: d.field || t('form.body'), error: text });
+    }
+  } else if (error.code === 'forbidden_field' && Array.isArray(error.details)) {
+    const text = messageFor(error);
+    fields = error.details.map((f) => fieldPath(rename[f] ?? f)).filter((n) => known.has(key(n)))
+      .map((name) => ({ name, errors: [text] }));
+  } else {
+    fields = fieldErrors(error, rename).filter((f) => known.has(key(f.name)));
+  }
+
+  if (fields.length) form.setFields(fields);
+  const message = error.code === 'invalid_body' ? t('error.invalid_body') : messageFor(error);
+  return { message, fields: fields.map((f) => ({ name: f.name, error: f.errors[0] })), unknown };
+}

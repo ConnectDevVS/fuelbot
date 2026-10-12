@@ -1,0 +1,9 @@
+{
+  "description": "Coffee has only an image_url (no bundled fallback) and it 404s: the placeholder shows",
+  "extends": "default",
+  "body_patch": {
+    "flavors": [
+      {"id": "coffee", "image": null, "image_url": "{{origin}}/__mock/assets/flavors/beast_coffee-20260926z.png"}
+    ]
+  }
+}

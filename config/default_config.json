@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "tenant": {
+    "display_name": "FuelBot",
+    "logo_text": "FB",
+    "location_label": "FUELBOT",
+    "site": "",
+    "support_phone": ""
+  },
+  "flavors": [
+    {"id": "guava", "name": "Prymor Guava", "hopper": 1, "actual_price": 90, "offer_price": 75,
+     "image": "res://assets/images/flavors/prymor_guava.png",
+     "ingredients": ["Whey Isolate", "Guava Flavor", "Electrolytes"], "allergens": ["Milk", "Soy"], "enabled": true},
+    {"id": "chocolate", "name": "MMN Chocolate", "hopper": 2, "actual_price": 180, "offer_price": null,
+     "image": "res://assets/images/flavors/mmn_chocolate.png",
+     "ingredients": ["Whey Protein", "Cocoa"], "allergens": ["Milk"], "enabled": true},
+    {"id": "electro", "name": "Prymor Electro", "hopper": 3, "actual_price": 35, "offer_price": null,
+     "image": "res://assets/images/flavors/prymor_electro.png",
+     "ingredients": ["Electrolytes"], "allergens": [], "enabled": true},
+    {"id": "vanilla", "name": "ON Vanilla", "hopper": 4, "actual_price": 140, "offer_price": null,
+     "image": "res://assets/images/flavors/on_vanilla.png",
+     "ingredients": ["Whey Protein", "Vanilla Flavor"], "allergens": ["Milk", "Soy"], "enabled": true}
+  ],
+  "bases": [
+    {"id": "water", "name": "Water", "code": "B2", "enabled": true},
+    {"id": "milk", "name": "Milk", "code": "B1", "enabled": false}
+  ],
+  "maintenance": {"enabled": false, "message": "", "flagged_by": null, "flagged_at": null, "faults": []},
+  "idle_video_url": null
+}

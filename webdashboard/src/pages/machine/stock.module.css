@@ -1,0 +1,110 @@
+/* Hopper cards (dashboard plan §5.6.3; mock-up design/stock-phone.png). Colours from tokens.css only. */
+.hopperCard {
+  min-width: 0;
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardName {
+  min-width: 0;
+}
+
+.product {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 10px 0 8px;
+}
+
+.big {
+  font-size: 44px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.amountText {
+  color: var(--fb-muted);
+  font-weight: 600;
+}
+
+.bar {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--fb-border);
+  border-radius: 4px;
+  background: var(--fb-raised);
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  background: var(--fb-ok);
+}
+
+.bar_low,
+.bar_refill_needed {
+  background: var(--fb-warn);
+}
+
+.bar_empty {
+  background: var(--fb-bad);
+}
+
+.line {
+  margin-top: 6px;
+  color: var(--fb-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin: 8px 0 0;
+  color: var(--fb-warn);
+  font-size: 13px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.threshold {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.lowInput {
+  width: 76px;
+}
+
+.full {
+  flex-basis: 100%;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}

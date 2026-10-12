@@ -1,0 +1,5 @@
+{
+  "description": "Responds after 15 s (client times out at 10 s)",
+  "extends": "default",
+  "delay_ms": 15000
+}

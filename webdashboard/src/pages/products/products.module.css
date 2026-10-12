@@ -1,0 +1,132 @@
+/* Products (dashboard plan §5.11). Colours from tokens.css only. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
+.search {
+  width: 300px;
+  max-width: 100%;
+}
+
+.muted {
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.nameText {
+  display: grid;
+  min-width: 0;
+}
+
+.thumb {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--fb-border);
+  color: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+/* The drawer */
+.gap {
+  margin-bottom: 16px;
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.full {
+  width: 100%;
+}
+
+.prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 12px;
+  margin: 0 0 8px;
+  padding: 12px 12px 0;
+  border: 1px solid var(--fb-border);
+  border-radius: 10px;
+}
+
+.pricesTitle {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+}
+
+.portion {
+  width: 160px;
+}
+
+.image {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.preview,
+.previewPlaceholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  background: var(--fb-border);
+  color: var(--fb-muted);
+  font-family: var(--fb-font-mono);
+  font-size: 12px;
+  object-fit: cover;
+}
+
+.imageText p {
+  margin: 0 0 8px;
+}
+
+.onMachines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 8px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.footerActions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 759px) {
+  .search {
+    width: 100%;
+  }
+}

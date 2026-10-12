@@ -1,0 +1,5 @@
+{
+  "description": "Pending forever (no payments yet)",
+  "status": 200,
+  "body": {"entity": "collection", "count": 0, "items": []}
+}

@@ -1,0 +1,10 @@
+{
+  "description": "Hopper ≠ list position (plan §7 step 5): guava (first card) is hopper 3, electro is hopper 1",
+  "extends": "default",
+  "body_patch": {
+    "flavors": [
+      {"id": "guava", "hopper": 3},
+      {"id": "electro", "hopper": 1}
+    ]
+  }
+}

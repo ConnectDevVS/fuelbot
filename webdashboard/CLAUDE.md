@@ -1,0 +1,196 @@
+# webdashboard/CLAUDE.md
+
+Rules for working on the web dashboard. The backend's rules are in
+[server/CLAUDE.md](../server/CLAUDE.md); the root [CLAUDE.md](../CLAUDE.md)
+covers the Godot kiosk, which S7 never touches.
+
+- **Spec:** [devdocs/plans/dashboard-plan.md](devdocs/plans/dashboard-plan.md)
+  ("DP"). Stories: [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md),
+  one commit per story, `SRV-NN: <title>`. If the code shows the plan is
+  wrong, fix the plan in the same commit.
+- The API is the server's (`/api/v1`, [server plan §4](../server/devdocs/plans/server-plan.md)).
+  Check shapes against the real server, not prose.
+
+## Commands (run from `webdashboard/`)
+
+- `npm run dev`: Vite on **:5173** (strict port), proxying `/api` and
+  `/files` to `DASHBOARD_API_URL` (default `http://127.0.0.1:8790`: start the
+  server first, see server/README.md).
+- `npm run build`: `dist/` (never committed). The server serves it at
+  `http://127.0.0.1:8790/dashboard/` with the real CSP.
+- `npm test`: vitest (jsdom; files that only read files use
+  `// @vitest-environment node`). `test/build.test.js` builds into a temp dir.
+- `npm run lint`: eslint (the security bans below are lint errors).
+- `npm run e2e`: build, then Playwright (`e2e/`): the seeded server on
+  **:8795** (`e2e/server.mjs`, in-memory Mongo), installed Chrome, headless,
+  phone 390 / tablet 820 / desktop 1440. Import `test`/`expect` from
+  `e2e/fixtures.js`: its auto `guard` fails on CSP violations, page errors
+  and horizontal overflow; `signInAs(key)` (keys of `USERS` in
+  `e2e/seed.mjs`), `shot(name)`, `resetData()` after writes
+  (`resetData(request, { withoutSales: 'globex' })` for an empty tenant;
+  reset again after, in a `finally`). API-only
+  specs run on the desktop project only. `E2E_CHANNEL=chromium` after
+  `npx playwright install chromium` (ask before downloading).
+- **Gate for a story:** `cd server && npm test && cd ../webdashboard && npm run lint && npm test && npm run build && npm run e2e`,
+  chained with `&&`, then stage the story's files explicitly (never
+  `git add -A`) and commit.
+
+## Rules
+
+- **No inline code.** No inline `<script>`/`<style>`/`style=` in
+  `index.html`, no `dangerouslySetInnerHTML`, `innerHTML` or `eval` (lint).
+  Styles come from our CSS files or antd's runtime styles carrying the nonce.
+- **`src/nonce.js` must stay the first import in `src/main.jsx`.** It
+  stamps the per-request CSP nonce (`<meta name="csp-nonce">`, filled by the
+  server, `server/src/dashboard.js`) on every `<style>` the page creates;
+  antd's helper library creates some that `ConfigProvider csp` misses
+  (spike G). Never add `unsafe-inline` to the CSP to "fix" a violation.
+- **`App.useApp()` for `message` and `modal`.** The static
+  `message.*`/`notification.*`/`Modal.confirm()` miss the theme and the
+  nonce (lint bans them).
+- **antd through our `src/ui/` wrappers** (DP §4), so pages use our names
+  and antd details live in one place: `PageHeader`/`RefreshButton`,
+  `DataTable` (+ `LoadMore`; cards below 760 px), `States` (skeletons,
+  empty, error, not found/available), `Chips` (`StatusBadge`, `StockChip`,
+  `DispensedChip`: they render only what the object carries), `KpiTile`,
+  `Money`, `DateTime`/`RelativeTime`, `Id`/`CopyField`, `dialogs`
+  (`useConfirm`, `useToast`), `Sheet`. All of them are on `/_gallery`
+  (`?gallery` for staff in a build). Layout primitives (`Row`, `Col`,
+  `Space`, `Button`, `Card`) are fine directly. Hand-written SVG charts only.
+- **No secrets anywhere but component state.** No password or machine key
+  in a URL, `localStorage`/`sessionStorage` (lint bans both: the dashboard
+  stores nothing in the browser), the React Query cache, or a `console.*`
+  call (`no-console` in `src/`). The machine key is fetched outside React
+  Query and cleared on leave.
+- Every non-GET sends `X-Requested-With: fuelbot-dashboard` (the API
+  client does it).
+- **Permission-based hiding only:** `can('<permission>')` from `/auth/me`,
+  never a role name (DP §6). The UI only hides; the server enforces.
+- **Platform-only data never reaches a tenant screen** (telemetry,
+  maintenance, faults, failure reasons, audit, unregistered machines). A
+  failed sale is "Not dispensed".
+- **Strings** only in `src/strings.js` (`t(key, params)`; `tn(key, n)` picks
+  `key.one` for 1: "1 machine", "3 machines").
+- **Colours** only in `src/theme/palette.js` and `src/styles/tokens.css`
+  (kept identical by a test; another test fails on a hex/rgb literal
+  anywhere else in `src/`). Light theme only. The lime is a fill with dark
+  text, never text on white and never a chart mark.
+- CSS Modules (`*.module.css`) for layout and our own pieces; no CSS
+  framework besides antd.
+- **Writes use `src/ui/forms/`** (DP §4 patterns 10–13):
+  `useVersionedSave` (If-Match, the Conflict dialog on 409, generic error
+  on 428, field errors + `FormError` summary, `configError` for
+  `InvalidConfigPanel` on 422), `PriceField` (read-only without
+  `price:write`, still submitted), `RestartNote`, `UnsavedBar` with
+  `useFormDirty` (router blocker + `beforeunload`). Numbers go over the wire
+  as JSON numbers (`InputNumber`, `precision={0}` for rupees and grams).
+  The gallery's form section runs them against a stub server.
+- **Pages are data:** `src/shell/pages.js` lists every URL with the
+  permission(s) it needs, its title and nav placement (DP §3). A story that
+  builds a page adds its lazy component to `COMPONENTS` in
+  `src/shell/routes.jsx`; until then the page is a "Coming in SRV-NN"
+  placeholder. The router wraps each page in `TenantScope` (for `/t/:tid/…`:
+  another tenant is Not found, with no request for tenant users) and `Gate`
+  (Not available, and the page never mounts). "Staff" in the UI means
+  `can('telemetry:read')`, never a role name.
+- **Look at every screenshot** a UI story produces (`.screenshots/`):
+  overflow, clipping, wrong role controls, unreadable states. Say in the
+  commit message that you looked.
+- **Every page at all three widths** (390 / 820 / 1440; DP §2.9). SRV-42–48
+  were built desktop first (product owner, 2026-09-29) and got their phone
+  and tablet layouts in SRV-49 part 2. New pages and specs cover all three
+  from the start; only API-only specs run on desktop alone. Tests find rows
+  with `main [data-row]` (table rows and phone cards alike), read a field
+  with `fieldOf(row, 'Column')`, and reach filters with `openFilters(page)`
+  (the phone's sheet) and `isPhone(page)` (all in `e2e/fixtures.js`).
+
+## Gotchas (spikes and stories)
+
+- **antd `zeroRuntime` / pre-built CSS doesn't work with a custom theme in
+  6.6.5** (spike G): component class hashes don't match. Don't retry it
+  without upgrading.
+- antd `List` is deprecated in 6.6: phone card lists use `Card`s.
+- Charts: an SVG with a fixed `width` overflows at 390 px. Use `viewBox` +
+  `width: 100%`. `src/charts/` measures its box (`useWidth`) and draws at
+  that size, so SVG text stays 11 px on a phone. Bucket keys come from
+  `lib/time.js` `bucketKeys()` (the server's `%Y-%m-%d` / `%G-W%V` / `%Y-%m`,
+  walked by calendar date so DST can't skip a day). Marks use
+  `--fb-chart-*` only (validated with the dataviz checker); x labels go
+  through `placeLabels()` (centred, clamped, never touching). A
+  not-dispensed part under 1 px isn't drawn; the tooltip and table keep it.
+- In a CSS grid layout, `main` needs `min-width: 0`, or a wide child makes
+  the page scroll sideways.
+- Expected 401/403s show as console "Failed to load resource" lines. The
+  e2e guard fails on CSP violations and page errors, not on those.
+- jsdom: antd needs `matchMedia` and `ResizeObserver`, and calls
+  `getComputedStyle(el, pseudo)`; `src/test/setup.js` provides/quiets them.
+- The dev seed's `DEV00001` (`npm run seed`) has an empty `name` (the e2e
+  seed calls it Bay 02): show `name || location_label || id`. Summaries and sales carry ids, not
+  names (resolve via products `?archived=true` and machines).
+- JetBrains Mono has no `₹`; Archivo is its fallback in `--fb-font-mono`.
+- The shell is zsh (`${var^^}` fails; unquoted `$var` isn't word-split).
+- Headless browser only: headed windows pop up in front of the user.
+- Screenshots right after a click catch antd's 0.2 s colour transitions
+  and the hover state (a pressed lime chip looked pale): move the pointer
+  away and wait for the final colour (`toHaveCSS`) before `shot()`. antd 6
+  panels (Collapse) animate too: wait until `.ant-collapse-panel` has no
+  `motion` class.
+- Screenshots of dialogs and sheets: `shot(name, { fullPage: false })`
+  (fixed overlays don't render in a full-page capture), and wait for antd's
+  open animation first (poll the modal's opacity/transform or the drawer's
+  edge; `getAnimations()` missed it).
+- antd's focus lock works on `focusin`: Tab past a modal's last button
+  leaves the page for the browser UI, and the next Tab is pulled back. Test
+  that page content behind never gets focus, not that `activeElement` is
+  always inside.
+- **`Input.TextArea autoSize` breaks the CSP**: `@rc-component/input`
+  measures with `setAttribute('style', …)`, which `style-src` blocks
+  (`style-src-attr` violation). Use `rows`; lint bans `autoSize`. The e2e
+  guard found it: expect other antd props that write style strings.
+- `npx playwright test` serves whatever is in `dist/`: after changing `src/`,
+  use `npm run e2e` (it builds first), or the screenshots show old code.
+- Never keep a password in a React Query mutation (`useMutation` keeps its
+  variables in the cache): sign-in and password changes are plain async
+  calls (`src/auth/session.js`).
+- antd derives `colorWarningBg`/`colorErrorBg` from our dark status
+  colours (a muddy fill), so `antdTheme.js` sets them from the palette.
+- The e2e seed runs through the server's own modules
+  (`../../server/src/…`, `../../server/test/helpers.js`), which resolve
+  their packages from `server/node_modules`: run `npm ci` in `server/` too.
+  Don't import `mongoose` from `webdashboard/` (not installed here).
+- An antd icon adds its name to a button's accessible name ("filter
+  Filters (2)"): match button names with a regex that allows it.
+- `main [aria-busy]` counts 0 before a lazy page has rendered at all: wait
+  for real content (a row, a tile) before waiting for "the next" request,
+  or you catch the page's own first load.
+- antd `Form.useWatch(name, form)` and `onFinish` values carry **registered
+  fields only**: a value with no `Form.Item` (a Form.List row's
+  `product_id`, `low_portions`) is missing. Watch with
+  `{ form, preserve: true }` and save `form.getFieldsValue(true)` (SRV-43).
+- `form.setFieldValue` doesn't fire `onValuesChange`: after a change in
+  code, call the dirty tracker yourself.
+- dnd-kit swallows every click for 50 ms after a drop (so the drop isn't a
+  click): a test that clicks right after a drag waits that out. Sortable
+  rows use `animateLayoutChanges: () => false`, or a click right after ↑/↓
+  lands on the neighbour sliding into place.
+- antd 6 class names differ from 5: a Select's placeholder is
+  `.ant-select-placeholder`; an InputNumber with a prefix is wrapped, so
+  size it through its className (PriceField's `160px !important`).
+- The seed's stock states are exact because refills are stamped after
+  every seeded dose; keep new seeded sales older than `now - 10 min`.
+- **The phone project widens its layout viewport** (`isMobile`): a page
+  wider than 390 px makes `window.innerWidth` grow with it, so an overflow
+  check against `innerWidth` always passes. Compare `scrollWidth` with
+  `page.viewportSize().width` (the guard and every `shot()` do). The
+  guard alone only sees the page a test ends on; `shot()` checks each
+  captured screen (the Maintenance tab overflowed only while on).
+- A grid with fixed columns squeezes its flexible one to nothing at 390 px
+  (the provisioning card printed one character per line): below 760 px
+  give such grids one column. A value with `overflow-wrap: anywhere` in a
+  flex row shrinks to one character wide; key groups are `flex: none`.
+- A sticky bar (Unsaved changes) covers the rows under it until the page
+  is scrolled: a test that drags or clicks a lower row scrolls it into
+  view first (`scrollIntoView({ block: 'center' })`).
+- A click that reorders a list re-renders it after `click()` returns: wait
+  for the new order (`expect.poll`) before the next click, or it lands on
+  the row that slid into place.

@@ -1,0 +1,10 @@
+[gd_resource type="FontVariation" format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/Archivo-Variable.ttf" id="1_2v2nl"]
+
+[resource]
+base_font = ExtResource("1_2v2nl")
+variation_opentype = {
+2003072104: 100,
+2003265652: 900
+}

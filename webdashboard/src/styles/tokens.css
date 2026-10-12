@@ -1,0 +1,36 @@
+/* The palette (src/theme/palette.js) as CSS custom properties, for our own CSS: layout, charts,
+   the provisioning card. Light theme only (dashboard plan §2.8). A unit test keeps the two equal. */
+:root {
+  color-scheme: light;
+
+  --fb-bg: #F4F5F2;
+  --fb-surface: #FFFFFF;
+  --fb-raised: #FAFAF8;
+  --fb-border: #E1E3E6;
+  --fb-text: #111215;
+  --fb-muted: #4B5159;
+  --fb-dim: #6B717A;
+  --fb-accent: #C8FF3E;
+  --fb-accent-hover: #B6F02B;
+  --fb-accent-active: #A6DC24;
+  --fb-on-accent: #111215;
+  --fb-primary: #4D7C0F;
+  --fb-link: #3F6A0B;
+  --fb-selected: #EEF0EA;
+  --fb-ok: #15803D;
+  --fb-ok-surface: #EAF6EE;
+  --fb-ok-border: #A9D9B8;
+  --fb-warn: #A16207;
+  --fb-warn-surface: #FEF7E6;
+  --fb-warn-border: #F2D58A;
+  --fb-bad: #B91C1C;
+  --fb-bad-surface: #FDECEC;
+  --fb-bad-border: #F3B4B4;
+  --fb-chart-dispensed: #4D7C0F;
+  --fb-chart-not-dispensed: #9D3FD6;
+
+  --fb-font-sans: Archivo, system-ui, sans-serif;
+  --fb-font-mono: "JetBrains Mono", Archivo, ui-monospace, monospace;
+  --fb-radius: 10px;
+  --fb-radius-lg: 16px;
+}

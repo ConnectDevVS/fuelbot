@@ -1,0 +1,5 @@
+{
+  "description": "HTTP 500 (the app keeps the sale and retries)",
+  "status": 500,
+  "body": {"error": "internal"}
+}

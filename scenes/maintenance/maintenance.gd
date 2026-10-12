@@ -1,0 +1,332 @@
+extends Control
+## Out-of-service screen with technician diagnostics (PDF page 6). No interaction.
+## Returns to idle when ConfigManager reports maintenance has cleared.
+
+const CELLS := ["diag_machine_id", "diag_site", "diag_flagged_by", "diag_flagged_at",
+	"diag_software", "diag_network", "diag_last_heartbeat", "diag_payments",
+	"diag_bridge", "diag_bridge_heartbeat", "diag_bridge_version", "diag_firmware"]
+## Spacing in px at 1080 x 1920: [design (PDF page 6), compact (faults listed)].
+const SPACING := {
+	"top": [68, 40], "status": [90, 48], "message": [36, 24], "diagnostics": [64, 32],
+	"faults": [36, 24], "footer": [36, 24], "pad": [28, 16],
+}
+
+var _clock: Label
+var _message: Label
+var _values := {}
+var _faults_panel: PanelContainer
+var _faults_title: Label
+var _faults_list: VBoxContainer
+var _service: Label
+var _exit_hint: Label
+# Spacing that tightens when faults are listed (OTA-01 added a diagnostics row): the design's
+# spacing (PDF page 6) when it fits, a compact one so the faults and the footer stay on screen.
+var _content_margin: MarginContainer
+var _footer_margin: MarginContainer
+var _gaps := {}          # name -> spacer Control
+var _pads: Array[MarginContainer] = []   # the diagnostics title and cells
+var _compact := false
+
+
+func _ready() -> void:
+	_build()
+	ConfigManager.maintenance_changed.connect(_on_maintenance_changed)
+	ConfigManager.connectivity_changed.connect(func(_o: bool) -> void: _render_live())
+	var timer := Timer.new()
+	timer.wait_time = 1.0
+	timer.autostart = true
+	timer.timeout.connect(_render_live)
+	add_child(timer)
+	_render()
+	# The flag can clear between idle's redirect and this scene connecting to
+	# maintenance_changed (e.g. a fast boot fetch overriding a cached flag).
+	if not ConfigManager.is_in_maintenance():
+		Nav.go_idle.call_deferred()
+
+
+func _on_maintenance_changed(enabled: bool, _message_text: String) -> void:
+	if not enabled:
+		Nav.go_idle()
+	else:
+		_render()
+
+
+func get_message_text() -> String:
+	return _message.text
+
+
+func get_cell_value(key: String) -> String:
+	return _values[key].text
+
+
+func get_fault_lines() -> PackedStringArray:
+	var lines: PackedStringArray = []
+	for child in _faults_list.get_children():
+		lines.append(child.text)
+	return lines
+
+
+func is_faults_visible() -> bool:
+	return _faults_panel.visible
+
+
+func get_exit_hint_text() -> String:
+	return _exit_hint.text
+
+
+func _render() -> void:
+	var info := ConfigManager.get_maintenance_info()
+	var tenant := ConfigManager.get_tenant()
+	var unknown := ConfigManager.get_message("diag_unknown")
+	_message.text = info.message
+	_values.diag_machine_id.text = ConfigManager.machine_id if ConfigManager.machine_id != "" else unknown
+	_values.diag_site.text = tenant.get("site", "") if tenant.get("site", "") != "" else unknown
+	_values.diag_flagged_by.text = info.flagged_by if info.flagged_by != "" else unknown
+	var v := Engine.get_version_info()
+	_values.diag_software.text = "%s (godot %d.%d.%d)" % [ConfigManager.app_version(), v.major, v.minor, v.patch]
+	_values.diag_payments.text = ConfigManager.get_message("maintenance_payments_disabled")
+
+	var faults: Array = info.faults
+	_faults_panel.visible = not faults.is_empty()
+	_apply_spacing(not faults.is_empty())
+	_faults_title.text = ConfigManager.get_message("maintenance_faults_title", {"count": faults.size()})
+	for child in _faults_list.get_children():
+		child.queue_free()
+		_faults_list.remove_child(child)
+	for fault in faults:
+		var line := Label.new()
+		line.theme_type_variation = &"MonoValue"
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.text = "%s · %s" % [fault.get("code", ""), fault.get("description", "")]
+		_faults_list.add_child(line)
+
+	var phone: String = tenant.get("support_phone", "")
+	_service.visible = phone != ""
+	_service.text = ConfigManager.get_message("maintenance_service", {"phone": phone})
+	# A local fault clears by itself (telemetry decision 1); remote maintenance doesn't.
+	_exit_hint.text = ConfigManager.get_message(
+		"maintenance_exit_hint_local" if info.source == "local" else "maintenance_exit_hint")
+	_render_live()
+
+
+## Values that change with time: clock, flagged-at "ago", network, heartbeat.
+func _render_live() -> void:
+	var now := Time.get_unix_time_from_system()
+	var unknown := ConfigManager.get_message("diag_unknown")
+	_clock.text = Fmt.datetime_short(now)
+	var flagged := Fmt.iso_to_unix(ConfigManager.get_maintenance_info().flagged_at)
+	_values.diag_flagged_at.text = unknown if flagged == 0.0 else \
+		"%s · %s" % [Fmt.time_short(flagged), Fmt.ago(now - flagged)]
+	var online := ConfigManager.is_online
+	var net: Label = _values.diag_network
+	net.text = ConfigManager.get_message("maintenance_network_online" if online else "maintenance_network_offline")
+	net.add_theme_color_override("font_color", Palette.SUCCESS if online else Palette.WARNING)
+	var beat := ConfigManager.last_successful_fetch_unix
+	_values.diag_last_heartbeat.text = ConfigManager.get_message("diag_never") if beat == 0.0 else Fmt.ago(now - beat)
+	# The hardware bridge (separate from the server heartbeat above), SAL-02.
+	var age := TelemetryReporter.bridge_heartbeat_age_sec()
+	var bridge: Label = _values.diag_bridge
+	var bridge_key := "maintenance_bridge_down" if TelemetryReporter.is_bridge_down() \
+		else ("maintenance_bridge_unseen" if age < 0.0 else "maintenance_bridge_ok")
+	bridge.text = ConfigManager.get_message(bridge_key)
+	bridge.add_theme_color_override("font_color", Palette.SUCCESS if bridge_key == "maintenance_bridge_ok" else Palette.WARNING)
+	_values.diag_bridge_heartbeat.text = ConfigManager.get_message("diag_never") if age < 0.0 else Fmt.ago(age)
+	# Versions arrive with the bridge heartbeat (OTA-01).
+	_values.diag_bridge_version.text = ConfigManager.bridge_version if ConfigManager.bridge_version != "" else unknown
+	_values.diag_firmware.text = "v" + ConfigManager.firmware_version if ConfigManager.firmware_version != "" else unknown
+
+
+# --- Layout ------------------------------------------------------------------
+
+func _build() -> void:
+	var bg := ColorRect.new()
+	bg.color = Palette.BG
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+
+	var root := VBoxContainer.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_theme_constant_override("separation", 0)
+	add_child(root)
+
+	var stripe := HazardStripe.new()
+	stripe.name = "HazardStripe"
+	stripe.custom_minimum_size.y = 28
+	root.add_child(stripe)
+
+	var margin := MarginContainer.new()
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override("margin_left", Palette.PAD)
+	margin.add_theme_constant_override("margin_right", Palette.PAD)
+	margin.add_theme_constant_override("margin_top", 68)
+	root.add_child(margin)
+	_content_margin = margin
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	margin.add_child(col)
+
+	var header := HBoxContainer.new()
+	col.add_child(header)
+	header.add_child(_label("Mono", ConfigManager.get_message("maintenance_header")))
+	header.add_child(_expander())
+	_clock = _label("Mono", "")
+	header.add_child(_clock)
+
+	col.add_child(_named_gap("status"))
+	var status := HBoxContainer.new()
+	status.add_theme_constant_override("separation", 18)
+	col.add_child(status)
+	var dot := StatusDot.new()
+	dot.color = Palette.WARNING
+	dot.diameter = 22
+	dot.pulse = true
+	status.add_child(dot)
+	status.add_child(_label("MonoWarning", ConfigManager.get_message("maintenance_status")))
+
+	col.add_child(_gap(24))
+	col.add_child(_label("DisplayXL", ConfigManager.get_message("maintenance_title")))
+
+	col.add_child(_named_gap("message"))
+	_message = _label("Body", "")
+	_message.name = "Message"
+	_message.add_theme_font_size_override("font_size", 40)
+	_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_message)
+
+	col.add_child(_named_gap("diagnostics"))
+	col.add_child(_build_diagnostics())
+
+	col.add_child(_named_gap("faults"))
+	_faults_panel = PanelContainer.new()
+	_faults_panel.name = "Faults"
+	_faults_panel.theme_type_variation = &"FaultPanel"
+	col.add_child(_faults_panel)
+	var faults_col := VBoxContainer.new()
+	faults_col.add_theme_constant_override("separation", 14)
+	_faults_panel.add_child(faults_col)
+	_faults_title = _label("MonoWarning", "")
+	faults_col.add_child(_faults_title)
+	_faults_list = VBoxContainer.new()
+	_faults_list.add_theme_constant_override("separation", 10)
+	faults_col.add_child(_faults_list)
+
+	root.add_child(_hline())
+	var footer := MarginContainer.new()
+	footer.add_theme_constant_override("margin_left", Palette.PAD)
+	footer.add_theme_constant_override("margin_right", Palette.PAD)
+	footer.add_theme_constant_override("margin_top", 36)
+	footer.add_theme_constant_override("margin_bottom", 36)
+	root.add_child(footer)
+	_footer_margin = footer
+	var footer_row := HBoxContainer.new()
+	footer.add_child(footer_row)
+	_service = _label("MonoMuted", "")
+	footer_row.add_child(_service)
+	footer_row.add_child(_expander())
+	_exit_hint = _label("Mono", "")
+	# Wraps instead of widening the page if the (editable) copy is long.
+	_exit_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_exit_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_exit_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	footer_row.add_child(_exit_hint)
+
+
+func _build_diagnostics() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = "Diagnostics"
+	panel.theme_type_variation = &"DiagPanel"
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 0)
+	panel.add_child(rows)
+	var title := _padded(_label("MonoMuted", ConfigManager.get_message("maintenance_diagnostics_title")))
+	_pads.append(title)
+	rows.add_child(title)
+	for r in range(0, CELLS.size(), 2):
+		rows.add_child(_hline())
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 0)
+		rows.add_child(row)
+		row.add_child(_cell(CELLS[r]))
+		var vline := ColorRect.new()
+		vline.color = Palette.BORDER
+		vline.custom_minimum_size.x = 2
+		row.add_child(vline)
+		row.add_child(_cell(CELLS[r + 1]))
+	return panel
+
+
+func _cell(key: String) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(_label("Mono", ConfigManager.get_message(key)))
+	var value := _label("MonoValue", "")
+	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(value)
+	_values[key] = value
+	var padded := _padded(box)
+	_pads.append(padded)
+	padded.name = "Cell_" + key
+	padded.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	padded.size_flags_stretch_ratio = 1.0
+	return padded
+
+
+func _padded(child: Control) -> MarginContainer:
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 28)
+	m.add_child(child)
+	return m
+
+
+func _label(variation: StringName, text: String) -> Label:
+	var l := Label.new()
+	l.theme_type_variation = variation
+	l.text = text
+	return l
+
+
+func _hline() -> ColorRect:
+	var line := ColorRect.new()
+	line.color = Palette.BORDER
+	line.custom_minimum_size.y = 2
+	return line
+
+
+func _named_gap(key: String) -> Control:
+	var gap := _gap(SPACING[key][0])
+	_gaps[key] = gap
+	return gap
+
+
+## Compact when faults are listed: with six diagnostics rows, two long faults and a two-line
+## "flagged by" pushed the footer off the bottom at the design's spacing.
+func _apply_spacing(compact: bool) -> void:
+	if compact == _compact:
+		return
+	_compact = compact
+	var i := 1 if compact else 0
+	for key in _gaps:
+		_gaps[key].custom_minimum_size.y = SPACING[key][i]
+	_content_margin.add_theme_constant_override("margin_top", SPACING.top[i])
+	for side in ["margin_top", "margin_bottom"]:
+		_footer_margin.add_theme_constant_override(side, SPACING.footer[i])
+		for pad in _pads:
+			pad.add_theme_constant_override(side, SPACING.pad[i])
+
+
+func is_compact() -> bool:
+	return _compact
+
+
+func _gap(height: int) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size.y = height
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return c
+
+
+func _expander() -> Control:
+	var c := Control.new()
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return c

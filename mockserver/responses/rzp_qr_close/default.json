@@ -1,0 +1,5 @@
+{
+  "description": "QR closed on demand",
+  "status": 200,
+  "body": {"id": "qr_MockQr00000001", "entity": "qr_code", "status": "closed", "close_reason": "on_demand"}
+}

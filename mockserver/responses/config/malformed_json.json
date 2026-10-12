@@ -1,0 +1,5 @@
+{
+  "description": "Truncated JSON body (parse error)",
+  "status": 200,
+  "raw_body": "{\"version\": 1, \"flavors\": ["
+}

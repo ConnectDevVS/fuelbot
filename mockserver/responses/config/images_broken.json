@@ -1,0 +1,11 @@
+{
+  "description": "Image failures: chocolate 404, electro a corrupt file, vanilla too wide (2100 px)",
+  "extends": "default",
+  "body_patch": {
+    "flavors": [
+      {"id": "chocolate", "image_url": "{{origin}}/__mock/assets/flavors/mmn_chocolate-20260926z.png"},
+      {"id": "electro", "image_url": "{{origin}}/__mock/assets/flavors/broken-20260926a.png"},
+      {"id": "vanilla", "image_url": "{{origin}}/__mock/assets/flavors/too_wide-20260926a.png"}
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "description": "HTTP 400: record rejected (the app drops it)",
+  "status": 400,
+  "body": {"error": "invalid record"}
+}

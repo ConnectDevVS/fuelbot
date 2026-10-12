@@ -1,0 +1,5 @@
+{
+  "description": "Sale record accepted",
+  "status": 201,
+  "body": {"ok": true}
+}

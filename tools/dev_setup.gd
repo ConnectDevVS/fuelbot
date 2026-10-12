@@ -1,0 +1,133 @@
+extends SceneTree
+## Provisions user:// for development.
+## godot --headless --path . --script res://tools/dev_setup.gd -- \
+##     [--tenant=powerfuel] [--machine=DEV00001] [--machine-key=<key>] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
+##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--clear] [--print-dir]
+##
+## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
+##   + razorpay_base_url -> mock server (the --api origin, or --razorpay-api when the config API
+##   is the real backend server). Your real razorpay_credentials.cfg is never touched.
+## --payments=razorpay-test: real Razorpay (test mode) using razorpay_credentials.cfg.
+##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
+## --bridge-check=off (default): no dead-bridge watchdog, so the app runs without a bridge.
+##   on: out of service after 30 s without a bridge heartbeat (run a real or fake bridge).
+
+const TENANT_PATH := "user://tenant_id.txt"
+const MACHINE_PATH := "user://machine_id.txt"
+const MACHINE_KEY_PATH := "user://machine_key.txt"
+## The server seed's key for DEV00001 (dev only; server/src/services/keys.js DEV_KEY).
+const DEV_MACHINE_KEY := "DEVK-EYDE-VKEY-DEVK-EY01"
+const OVERRIDE_PATH := "user://local_settings.override.json"
+const CACHE_PATH := "user://config_cache.json"
+const CREDS_PATH := "user://razorpay_credentials.cfg"
+const MOCK_CREDS_PATH := "user://razorpay_credentials.mock.cfg"
+const QR_PATH := "user://qr_current.png"
+const IMAGE_CACHE_DIR := "user://image_cache"
+
+
+func _initialize() -> void:
+	var tenant := "powerfuel"
+	var machine_key := DEV_MACHINE_KEY
+	var machine := "DEV00001"   # the server seed's pinned dev id; real machines get generated ids
+	var api := "http://127.0.0.1:8787/fuelbot"
+	var poll := 10.0
+	var payments := "mock"
+	var razorpay_api := ""
+	var bridge_check := "off"
+	var clear := false
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--tenant="):
+			tenant = arg.trim_prefix("--tenant=")
+		elif arg.begins_with("--machine="):
+			machine = arg.trim_prefix("--machine=")
+		elif arg.begins_with("--machine-key="):
+			machine_key = arg.trim_prefix("--machine-key=")
+		elif arg.begins_with("--api="):
+			api = arg.trim_prefix("--api=")
+		elif arg.begins_with("--poll="):
+			poll = float(arg.trim_prefix("--poll="))
+		elif arg == "--payments":
+			payments = "mock"
+		elif arg.begins_with("--payments="):
+			payments = arg.trim_prefix("--payments=")
+		elif arg.begins_with("--razorpay-api="):
+			razorpay_api = arg.trim_prefix("--razorpay-api=")
+		elif arg.begins_with("--bridge-check="):
+			bridge_check = arg.trim_prefix("--bridge-check=")
+		elif arg == "--clear":
+			clear = true
+		elif arg == "--print-dir":
+			print("user data dir: ", OS.get_user_data_dir())
+			quit(0)
+			return
+	print("user data dir: ", OS.get_user_data_dir())
+	if clear:
+		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
+				print("removed ", path)
+		if DirAccess.dir_exists_absolute(IMAGE_CACHE_DIR):
+			for file in DirAccess.get_files_at(IMAGE_CACHE_DIR):
+				DirAccess.remove_absolute(IMAGE_CACHE_DIR.path_join(file))
+			DirAccess.remove_absolute(IMAGE_CACHE_DIR)
+			print("removed ", IMAGE_CACHE_DIR)
+		quit(0)
+		return
+	if payments not in ["mock", "razorpay-test"]:
+		printerr("unknown --payments=%s (use mock or razorpay-test)" % payments)
+		quit(2)
+		return
+
+	if bridge_check not in ["off", "on"]:
+		printerr("unknown --bridge-check=%s (use off or on)" % bridge_check)
+		quit(2)
+		return
+
+	var override := {
+		"api": {"base_url": api},
+		"timing": {"maintenance_poll_interval_sec": poll},
+		"bridge": {"require_heartbeat": bridge_check == "on"},
+	}
+	if payments == "mock":
+		override.api["razorpay_base_url"] = razorpay_api if razorpay_api != "" else _origin(api)
+		override["payments"] = {"credentials_path": MOCK_CREDS_PATH}
+		var cfg := ConfigFile.new()
+		cfg.set_value("razorpay", "key_id", "mock_key")
+		cfg.set_value("razorpay", "key_secret", "mock_secret")
+		cfg.save(MOCK_CREDS_PATH)
+		print("wrote ", MOCK_CREDS_PATH, " (mock keys; real credentials file untouched)")
+	elif not _has_real_test_keys():
+		printerr("No Razorpay test keys found. Create this file by hand (never commit it):\n  %s\n\n[razorpay]\nkey_id=\"rzp_test_...\"\nkey_secret=\"...\"\n"
+			% ProjectSettings.globalize_path(CREDS_PATH))
+		quit(1)
+		return
+
+	_write(TENANT_PATH, tenant)
+	_write(MACHINE_PATH, machine)
+	_write(MACHINE_KEY_PATH, machine_key)
+	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
+	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s" % [
+		tenant, machine, api, poll, payments, bridge_check])
+	quit(0)
+
+
+func _has_real_test_keys() -> bool:
+	var cfg := ConfigFile.new()
+	if cfg.load(CREDS_PATH) != OK:
+		return false
+	return String(cfg.get_value("razorpay", "key_id", "")).begins_with("rzp_test_") \
+		and String(cfg.get_value("razorpay", "key_secret", "")) != ""
+
+
+## "http://127.0.0.1:8787/fuelbot" -> "http://127.0.0.1:8787"
+func _origin(url: String) -> String:
+	var scheme_end := url.find("://")
+	var path_start := url.find("/", scheme_end + 3 if scheme_end >= 0 else 0)
+	return url if path_start < 0 else url.left(path_start)
+
+
+func _write(path: String, text: String) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text)
+	f.close()
+	print("wrote ", path)

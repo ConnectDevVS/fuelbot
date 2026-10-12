@@ -1,0 +1,148 @@
+/* Sales (dashboard plan §5.7; mock-up design/sales-filters-phone.png). Colours from tokens.css only. */
+.tabs {
+  margin-bottom: 8px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.period {
+  min-width: 150px;
+}
+
+.select {
+  width: 180px;
+}
+
+.dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row {
+  margin-top: 16px;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Phone: a button and the summary; the sheet holds the fields. */
+.phoneBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.summary {
+  min-width: 0;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.sheetTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheetBody {
+  display: grid;
+  gap: 18px;
+}
+
+.sheetField {
+  display: grid;
+  justify-items: start;   /* a Segmented keeps its own width, as in the mock-up */
+  gap: 8px;
+}
+
+.sheetField .select {
+  width: 100%;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheetFooter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pickTenant {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--fb-muted);
+  text-align: center;
+}
+
+.note {
+  margin-bottom: 16px;
+}
+
+/* Print (dashboard plan §5.8): the header and the not-dispensed list exist on paper only. */
+.printHeader {
+  margin-bottom: 16px;
+}
+
+.printMeta {
+  color: var(--fb-muted);
+  font-size: 12px;
+}
+
+.printBlock {
+  margin-top: 16px;
+}
+
+.printTitle {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.printTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.printTable th,
+.printTable td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--fb-border);
+  text-align: left;
+}
+
+.printTable tr {
+  break-inside: avoid;
+}
+
+/* On a machine's Sales tab (DP §5.6.4): no page title of its own. */
+.embeddedHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.embeddedActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}

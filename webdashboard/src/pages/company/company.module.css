@@ -1,0 +1,66 @@
+/* Company (dashboard plan §5.13). The badge preview uses the kiosk's lime fill. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 520px) minmax(0, 320px);
+  align-items: start;
+  gap: 24px;
+}
+
+.form {
+  min-width: 0;
+}
+
+.logoInput {
+  width: 120px;
+  font-family: var(--fb-font-mono);
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.previewCard {
+  background: var(--fb-text) !important;
+  color: var(--fb-surface);
+}
+
+.previewCard :global(.overline) {
+  color: var(--fb-dim);
+}
+
+.kioskHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--fb-accent);
+  color: var(--fb-on-accent);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.display {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+@media (max-width: 1099px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

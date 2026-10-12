@@ -1,0 +1,103 @@
+# FuelBot web dashboard
+
+The dashboard for FuelBot staff and for the companies that run FuelBot
+machines: React + Vite + Ant Design (JavaScript), served by the backend at
+`/dashboard/`. It uses only the backend's admin API (`/api/v1`).
+
+- Spec: [devdocs/plans/dashboard-plan.md](devdocs/plans/dashboard-plan.md);
+  stories in [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md).
+- Rules for changing it: [CLAUDE.md](CLAUDE.md).
+
+## Run it (development)
+
+Needs Node.js 22 or later.
+
+```sh
+cd server && npm install && npm run db     # terminal 1: MongoDB
+cd server && npm run seed && npm start     # terminal 2: the API on :8790
+cd webdashboard && npm ci && npm run dev   # terminal 3: http://127.0.0.1:5173/dashboard/
+```
+
+Vite proxies `/api` and `/files` to `DASHBOARD_API_URL` (default
+`http://127.0.0.1:8790`), so the browser sees one origin and the session
+cookie works. The dev server sends no CSP; the built app is what runs under it.
+
+**Signing in.** The dev database (`server/.data/`, kept between runs; seed
+once) has no known password: create a FuelBot admin with
+`cd server && npm run create-admin -- --email=you@fuelbot.example` (a
+hidden prompt asks for the password), pick a tenant in the top bar, and add
+tenant users on its Users page. Re-running `npm run seed` resets the six
+sample products, DEV00001's menu and the tenant's branding; users, sales,
+other machines and keys stay.
+
+**A demo with sample data:** `npm run build && node e2e/server.mjs`, then
+http://127.0.0.1:8795/dashboard/ with the test accounts below. It's in
+memory: every start is a fresh seed, and nothing is kept. Stop it before
+`npm run e2e` (same port).
+
+## Build (what production serves)
+
+```sh
+cd webdashboard && npm run build   # dist/, never committed
+# the server serves it: http://127.0.0.1:8790/dashboard/
+```
+
+The server renders `index.html` per request with a fresh CSP style nonce
+(Ant Design writes its styles at runtime). Without a build, `/dashboard/`
+answers 503.
+
+## Test
+
+```sh
+npm run lint    # eslint, including the security bans
+npm test        # vitest: unit tests + a build check
+npm run e2e     # build, then Playwright on the installed Chrome
+```
+
+### Browser tests (e2e)
+
+`npm run e2e` builds `dist/`, starts `e2e/server.mjs` (the real server on an
+in-memory MongoDB, **port 8795**, seeded by `e2e/seed.mjs`), and runs
+`e2e/*.spec.js` headless at three widths: phone 390, tablet 820, desktop
+1440. Every test fails on a CSP violation, a page error, or horizontal page
+overflow (`e2e/fixtures.js`; checked on every screenshot too).
+
+- **Screenshots** land in `.screenshots/<project>-<name>.png` (gitignored).
+  Look at them: overflow, clipping, wrong role controls, unreadable states.
+- Seeded accounts (password `e2e password 123`): `staff@fuelbot.test`
+  (platform), `owner@powerfuel.test` (tenant admin), `desk@powerfuel.test`
+  (operator on DEV00001 only), `ops@powerfuel.test` (operator),
+  `look@powerfuel.test` (viewer), `new@powerfuel.test` (must change
+  password), `boss@globex.test` (Globex admin). See `e2e/seed.mjs` for the
+  machines, sales and stock states.
+- A spec that writes calls `resetData()` (`POST /__e2e/reset`, test server
+  only) and signs in again.
+- It uses the installed Google Chrome (`channel: 'chrome'`). Without it:
+  `npx playwright install chromium` once, then `E2E_CHANNEL=chromium npm run e2e`.
+- `npm run e2e:ui` opens Playwright's UI for debugging (a window).
+- Port 8795 taken → the server refuses to start; stop the other copy.
+
+## Fonts
+
+`src/styles/fonts/` holds the kiosk's OFL fonts (`../assets/fonts/`),
+subset once to WOFF2 with fonttools (in a throwaway venv:
+`python3 -m venv v && v/bin/pip install fonttools brotli`):
+
+```sh
+U="U+0020-007E,U+00A0-00FF,U+2009,U+2013-2014,U+2018-201F,U+2022,U+2026,U+2032-2033,U+20B9,U+2190-2193,U+2212"
+v/bin/pyftsubset assets/fonts/Archivo-Variable.ttf --unicodes="$U" \
+  --layout-features='kern,liga,calt,tnum,lnum,case,ccmp,locl,mark,mkmk' \
+  --flavor=woff2 --output-file=webdashboard/src/styles/fonts/archivo.woff2
+v/bin/pyftsubset assets/fonts/JetBrainsMono-Variable.ttf --unicodes="$U" \
+  --layout-features='kern,calt,zero,ccmp,locl,mark,mkmk' \
+  --flavor=woff2 --output-file=webdashboard/src/styles/fonts/jetbrains-mono.woff2
+```
+
+(run from the repo root). Archivo: 77 KB with `₹`, both variable axes kept;
+JetBrains Mono: 37 KB (it has no `₹`; Archivo is its fallback).
+
+## Bundle
+
+Baseline (SRV-30 placeholder: React, antd, the theme): 894 KB JS, **285 KB
+gzip** (spike G: 346 KB for a fuller antd page). Routes load lazily from
+SRV-33 on.

@@ -1,0 +1,5 @@
+{
+  "description": "Razorpay rejects the request (e.g. close_by too soon)",
+  "status": 400,
+  "body": {"error": {"code": "BAD_REQUEST_ERROR", "description": "close_by should be at least 2 minutes after current time"}}
+}
