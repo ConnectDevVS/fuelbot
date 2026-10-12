@@ -907,6 +907,12 @@ S7 adds (SRV-29):
   dashboard CSP; anything that isn't a bare https origin stops the server
   at boot).
 
+Staging (2026-10-12):
+- `ENV_LABEL` (empty): a tag such as `staging`, written into the dashboard's
+  `<meta name="fb-env">` and shown bottom left on the sign-in page. Letters,
+  digits, space `. _ -`, at most 24 characters; anything else stops the
+  server at boot. Unset in production.
+
 Ports in use locally:
 - 8787: the mock;
 - 8788: the test mock;

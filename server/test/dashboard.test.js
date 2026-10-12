@@ -21,6 +21,7 @@ async function bareServer(env) {
 }
 
 const INDEX = '<!doctype html><html><head><meta name="csp-nonce" content="__CSP_NONCE__">'
+  + '<meta name="fb-env" content="__ENV_LABEL__">'
   + '<script type="module" src="/dashboard/assets/app-abc123.js"></script></head><body><div id="root"></div></body></html>';
 
 /** A fake build: index.html, favicon.svg, assets/app-abc123.js. */
@@ -35,6 +36,7 @@ function makeBuild() {
 
 const directive = (csp, name) => csp.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `) || d === name);
 const nonceOf = (res) => /'nonce-([^']+)'/.exec(res.headers['content-security-policy'])?.[1];
+const metaEnv = (html) => /<meta name="fb-env" content="([^"]*)">/.exec(html)?.[1];
 const metaNonce = (html) => /<meta name="csp-nonce" content="([^"]*)">/.exec(html)?.[1];
 
 describe('/dashboard', () => {
@@ -124,6 +126,24 @@ describe('/dashboard', () => {
       assert.ok(res.headers['content-security-policy'].includes('upgrade-insecure-requests'));
     } finally {
       await prod.stop();
+    }
+  });
+
+  it('ENV_LABEL fills the fb-env meta; none by default', async () => {
+    assert.equal(metaEnv((await request(ctx.app).get('/dashboard/')).text), '');
+    const staging = await bareServer({ DASHBOARD_DIR: dir, ENV_LABEL: ' staging ' });
+    try {
+      for (const url of ['/dashboard/', '/dashboard/t/powerfuel/home']) {
+        const res = await request(staging.app).get(url);
+        assert.equal(metaEnv(res.text), 'staging', url);
+        assert.ok(!res.text.includes('__ENV_LABEL__'));
+      }
+    } finally {
+      await staging.stop();
+    }
+    assert.equal(loadSettings({ ENV_LABEL: 'Dev 2_test-1.0' }).envLabel, 'Dev 2_test-1.0');
+    for (const bad of ['"><script>', 'stag<ing', 'a'.repeat(25), '-x', 'stag\ning']) {
+      assert.throws(() => loadSettings({ ENV_LABEL: bad }), /ENV_LABEL/, bad);
     }
   });
 

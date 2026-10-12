@@ -15,6 +15,7 @@ const STRINGS = {
   'signin.title': 'Sign in',
   'signin.email': 'Email',
   'signin.password': 'Password',
+  'signin.env': 'Environment: {label}',
   'signin.submit': 'Sign in',
   'signin.required.email': 'Enter your email',
   'signin.required.password': 'Enter your password',
