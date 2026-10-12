@@ -30,3 +30,6 @@ local_settings.override.json
 __pycache__/
 .mock.log
 .dev_setup.log
+
+# graphify (knowledge graph output; built locally with /graphify)
+graphify-out/
