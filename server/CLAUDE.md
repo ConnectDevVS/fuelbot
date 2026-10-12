@@ -93,6 +93,14 @@ the Godot kiosk app. Read it only when a change touches the app.
   (the agent adds the CSRF header on writes). The login rate limiter lives in
   the app, which a test file shares: a test that exhausts it uses its own
   email.
+- **The dashboard's browser tests import server internals:**
+  `webdashboard/e2e/server.mjs` uses `startServer()` (`test/helpers.js`), and
+  `e2e/seed.mjs` writes through the models (`Machine`, `Product`, `Sale`,
+  `StockEvent`, `Tenant`, `TelemetryEvent`, `User`), `importConfig()`,
+  `createMachine()`, `issueKey()`, `applyHealthEvent()`, `hashPassword()` and
+  `scripts/lib.js` (`readConfigFile()`, `stripImageUrls()`). `npm test` here
+  doesn't run them: after changing one of those signatures or a schema, run
+  `npm run e2e` in `webdashboard/`.
 - Inside a sub-router `req.path` is relative (`/me`, not `/auth/me`); use
   `req.baseUrl + req.path` when matching full paths.
 - Mongoose's default connection is per process. That works because
