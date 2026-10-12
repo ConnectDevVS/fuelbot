@@ -21,6 +21,15 @@ function imageOrigins(value) {
   });
 }
 
+/** ENV_LABEL: a short tag for a non-production deployment ("staging"); empty = none. Anything else throws at boot. */
+function envLabel(value) {
+  const label = (value || '').trim();
+  if (label && !/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,23}$/.test(label)) {
+    throw new Error(`ENV_LABEL: letters, digits, space . _ - only, at most 24 characters: ${label}`);
+  }
+  return label;
+}
+
 function int(value, fallback) {
   const n = Number.parseInt(value ?? '', 10);
   return Number.isFinite(n) ? n : fallback;
@@ -64,6 +73,7 @@ export function loadSettings(env = process.env) {
     localStorageDir: env.LOCAL_STORAGE_DIR || new URL('../uploads/', import.meta.url).pathname,
     dashboardDir: env.DASHBOARD_DIR || fileURLToPath(new URL('../../webdashboard/dist/', import.meta.url)),
     imageOrigins: imageOrigins(env.IMAGE_ORIGINS),
+    envLabel: envLabel(env.ENV_LABEL),
     s3: {
       bucket: env.S3_BUCKET || '',
       region: env.S3_REGION || 'ap-south-1',
