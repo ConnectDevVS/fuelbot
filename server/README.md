@@ -23,6 +23,11 @@ curl http://127.0.0.1:8790/healthz
 
 `npm run dev` restarts on file changes.
 
+The npm scripts read `.env` if present. To use another file, set `ENV_FILE`
+(`ENV_FILE=.env.production npm start`); that file must exist. Values already in
+the environment win over the file. All `.env*` files except `.env.example` are
+gitignored.
+
 ## Data
 
 ```sh

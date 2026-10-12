@@ -15,7 +15,9 @@ the Godot kiosk app. Read it only when a change touches the app.
   in-memory MongoDB, so no database is needed).
 - `npm run db`: local persistent MongoDB on 27017 (data in `.data/`).
 - `npm start` / `npm run dev` (watch): the server on **:8790**. It reads
-  `.env` if present (see `.env.example`).
+  `.env` if present (see `.env.example`), or the file named by `ENV_FILE`
+  (`ENV_FILE=.env.production npm start`; it must exist). Every npm script
+  preloads `src/env.js` for this; values already in the environment win.
 - `npm run seed`: tenant `powerfuel`, machine `DEV00001` with the dev key
   `DEVK-EYDE-VKEY-DEVK-EY01` (the mock's catalog, no image URLs). `npm run import-config -- --tenant= --machine= file`.
 - `npm run create-admin -- --email=… [--name=…]`: a platform_admin (hidden
