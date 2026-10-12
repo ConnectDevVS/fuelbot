@@ -1,18 +1,21 @@
-// SRV-45: Products (library, drawer, create, archive, portion size). Desktop first (DP §0.1 row 3).
+// SRV-45: Products (library, drawer, create, archive, portion size). All three widths.
 // Specs that write reset.
-import { CSRF, expect, resetData, test } from './fixtures.js';
-
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
+import { CSRF, expect, isPhone, resetData, test } from './fixtures.js';
 
 const API = '/api/v1/tenants/powerfuel/products';
 const drawer = (page) => page.getByRole('dialog');
 
-/** A drawer shot: wait for the slide-in (its right edge at the window's), scrolled to the top. */
+/**
+ * A drawer shot: wait for the slide-in (its right edge at the window's; on a phone, the bottom
+ * sheet's lower edge at the window's bottom), scrolled to the top.
+ */
 async function drawerShot(page, shot, name) {
+  const phone = isPhone(page);
   await expect.poll(async () => {
     const box = await page.locator('.ant-drawer-content-wrapper').boundingBox();
-    return box ? Math.round(box.x + box.width) : -1;
-  }).toBe(page.viewportSize().width);
+    if (!box) return -1;
+    return Math.round(phone ? box.y + box.height : box.x + box.width);
+  }).toBe(phone ? page.viewportSize().height : page.viewportSize().width);
   await page.locator('.ant-drawer-body').evaluate((el) => { el.scrollTop = 0; });
   await page.mouse.move(1, 1);
   await shot(name, { fullPage: false });
@@ -37,13 +40,13 @@ async function save(page) {
 test('library lists the products with price, portion and machines', async ({ page, signInAs, shot }) => {
   await signInAs('owner');
   await page.goto('t/powerfuel/products');
-  const guava = page.locator('main tbody tr').filter({ hasText: 'guava' });
+  const guava = page.locator('main [data-row]').filter({ hasText: 'guava' });
   await expect(guava).toContainText('Prymor Guava');
   await expect(guava).toContainText('₹75');
   await expect(guava).toContainText('32.5 g');
-  await expect(page.locator('main tbody tr').filter({ hasText: 'vanilla' })).toContainText('not set');
+  await expect(page.locator('main [data-row]').filter({ hasText: 'vanilla' })).toContainText('not set');
   await page.getByRole('textbox', { name: 'Search name or id' }).fill('choc');
-  await expect(page.locator('main tbody tr')).toHaveCount(1);
+  await expect(page.locator('main [data-row]')).toHaveCount(1);
   await page.getByRole('textbox', { name: 'Search name or id' }).fill('');
   await page.mouse.move(1, 1);
   await shot('products');
@@ -132,7 +135,7 @@ test("create a product; a duplicate id → 'That id is taken'", async ({ page, r
     expect(req.postDataJSON()).toMatchObject({ product_id: 'mango', name: 'Alphonso Mango', actual_price: 80, allergens: ['Milk'] });
     await expect(page.getByText('Product Alphonso Mango created')).toBeVisible();
     await expect(page).toHaveURL(/\?p=mango$/);
-    await expect(page.locator('main tbody tr').filter({ hasText: 'mango' })).toContainText('Alphonso Mango');
+    await expect(page.locator('main [data-row]').filter({ hasText: 'mango' })).toContainText('Alphonso Mango');
   } finally {
     await resetData(request);
   }
@@ -152,9 +155,9 @@ test('archive a product on a menu → the product_in_use message names the machi
     await drawer(page).getByRole('button', { name: 'Archive' }).click();
     await expect(page.getByText('Kiwi archived')).toBeVisible();
     await drawer(page).getByRole('button', { name: 'Close' }).click();
-    await expect(page.locator('main tbody tr').filter({ hasText: 'kiwi' })).toHaveCount(0);
+    await expect(page.locator('main [data-row]').filter({ hasText: 'kiwi' })).toHaveCount(0);
     await page.getByRole('checkbox', { name: 'Show archived' }).check();
-    await expect(page.locator('main tbody tr').filter({ hasText: 'kiwi' })).toContainText('Archived');
+    await expect(page.locator('main [data-row]').filter({ hasText: 'kiwi' })).toContainText('Archived');
   } finally {
     await resetData(request);
   }

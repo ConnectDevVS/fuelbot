@@ -1,7 +1,5 @@
-// SRV-46: Company (branding). Desktop first (DP §0.1 row 3).
+// SRV-46: Company (branding). All three widths.
 import { expect, resetData, test } from './fixtures.js';
-
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
 
 test('owner changes logo text; the config preview header shows it', async ({ page, request, signInAs, shot }) => {
   await signInAs('owner');

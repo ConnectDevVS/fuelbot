@@ -36,8 +36,10 @@ export default function MachinesPage() {
 
   const extraColumns = [
     // "Not configured" is already a chip in Status.
-    { key: 'menu', title: t('machines.col.menu'), priority: 3, render: (m) => (m.configured ? tn('machines.menuItems', m.menu?.length ?? 0) : '—') },
-    { key: 'location', title: t('machines.col.location'), priority: 3,
+    { key: 'menu', title: t('machines.col.menu'), priority: 3,
+      render: (m) => <span className={styles.nowrap}>{m.configured ? tn('machines.menuItems', m.menu?.length ?? 0) : '—'}</span> },
+    // Desktop only: squeezed into a tablet's width it wrapped onto four lines.
+    { key: 'location', title: t('machines.col.location'), priority: 4,
       render: (m) => <span className={styles.location}>{[m.location_label, m.site].filter(Boolean).join(' · ') || '—'}</span> },
   ];
 

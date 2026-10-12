@@ -1,7 +1,5 @@
-// SRV-44: the machine's Settings, Bases and Sales tabs. Desktop first (DP §0.1 row 3). Specs that write reset.
+// SRV-44: the machine's Settings, Bases and Sales tabs. All three widths. Specs that write reset.
 import { CSRF, expect, resetData, test } from './fixtures.js';
-
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
 
 const API = '/api/v1/tenants/powerfuel/machines/DEV00001';
 const config = async (page) => (await page.request.get(`${API}/config`).then((r) => r.json())).config;
@@ -102,7 +100,7 @@ test('disable asks, then the machine shows Disabled on the list; enable restores
     await expect(page.getByText('Bay 02 disabled')).toBeVisible();
     await expect(page.getByText('This machine is disabled')).toBeVisible();
     await page.goto('t/powerfuel/machines');
-    await expect(page.locator('main tbody tr').filter({ hasText: 'DEV00001' })).toContainText('Disabled');
+    await expect(page.locator('main [data-row]').filter({ hasText: 'DEV00001' })).toContainText('Disabled');
     await open(page, 'settings');
     await page.getByRole('button', { name: 'Enable machine' }).click();
     await expect(page.getByText('Bay 02 enabled')).toBeVisible();

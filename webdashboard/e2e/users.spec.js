@@ -1,10 +1,8 @@
-// SRV-46: Users. Desktop first (DP §0.1 row 3). Specs that write reset.
+// SRV-46: Users. All three widths. Specs that write reset.
 import { expect, PASSWORD, resetData, test, USERS } from './fixtures.js';
 
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
-
 const dialog = (page) => page.getByRole('dialog');
-const row = (page, email) => page.locator('main tbody tr').filter({ hasText: email });
+const row = (page, email) => page.locator('main [data-row]').filter({ hasText: email });
 const TEMP = /^[A-HJ-KM-NP-Za-km-np-z2-9]{14}$/;   // no 0/1, I/L/O, l/o
 
 async function action(page, email, name) {

@@ -1,12 +1,4 @@
 /* Telemetry and faults lists (dashboard plan §5.6.9–5.6.10, §5.15–5.16). */
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 16px;
-}
-
 .type {
   min-width: 200px;
 }

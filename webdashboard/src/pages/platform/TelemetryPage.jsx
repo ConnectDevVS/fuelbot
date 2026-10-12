@@ -8,7 +8,7 @@ import { PageHeader } from '../../ui/PageHeader.jsx';
 import { formatDayHeading } from '../../lib/time.js';
 import { useDebounced } from '../../lib/useDebounced.js';
 import { TelemetryList } from '../telemetry/TelemetryList.jsx';
-import { EMPTY_FILTERS, StaffFilters } from './StaffFilters.jsx';
+import { EMPTY_FILTERS, StaffFilterFields, staffCount } from './StaffFilters.jsx';
 import { t } from '../../strings.js';
 import styles from './platform.module.css';
 
@@ -21,11 +21,18 @@ export default function TelemetryPage() {
   return (
     <section>
       <PageHeader overline={formatDayHeading(openedAt, tz)} title={t('page.telemetry')} />
-      <StaffFilters value={f} onChange={setF} dates={false}>
-        <Input allowClear prefix={<SearchOutlined />} placeholder={t('tel.orderSearch')} aria-label={t('tel.orderSearch')}
-          value={order} onChange={(e) => setOrder(e.target.value)} className={styles.search} />
-      </StaffFilters>
-      <TelemetryList base={{ tenant: f.tenant, machine: f.machine, order_id: orderId }} showMachine />
+      {/* One filter group with the list's own (type, days): one "Filters" button on a phone. */}
+      <TelemetryList base={{ tenant: f.tenant, machine: f.machine, order_id: orderId }} showMachine extra={{
+        fields: (
+          <>
+            <StaffFilterFields value={f} onChange={setF} dates={false} />
+            <Input allowClear prefix={<SearchOutlined />} placeholder={t('tel.orderSearch')} aria-label={t('tel.orderSearch')}
+              value={order} onChange={(e) => setOrder(e.target.value)} className={styles.search} />
+          </>
+        ),
+        count: staffCount(f) + (order.trim() ? 1 : 0),
+        reset: () => { setF(EMPTY_FILTERS); setOrder(''); },
+      }} />
     </section>
   );
 }

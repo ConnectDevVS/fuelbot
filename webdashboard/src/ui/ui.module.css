@@ -238,3 +238,33 @@
 .total {
   margin-top: 8px;
 }
+
+/* Filters (FilterBar): a wrapping row; on a phone, a button and a sheet with one control per line. */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.filterBar {
+  margin-bottom: 16px;
+}
+
+.filterSheetTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filterStack {
+  display: grid;
+  gap: 12px;
+}
+
+.filterStack > * {
+  width: 100% !important;
+  min-width: 0 !important;
+}

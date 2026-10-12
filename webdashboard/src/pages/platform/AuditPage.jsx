@@ -58,7 +58,8 @@ export default function AuditPage() {
   return (
     <section>
       <PageHeader overline={formatDayHeading(query.dataUpdatedAt || undefined, tz)} title={t('page.audit')} actions={<RefreshButton queries={[query]} />} />
-      <StaffFilters value={f} onChange={setF}>
+      <StaffFilters value={f} onChange={setF} count={(user ? 1 : 0) + (action ? 1 : 0)}
+        onReset={() => { setUser(''); setAction(''); setOther(''); }}>
         <Select aria-label={t('audit.user')} value={user} onChange={setUser} className={styles.select} showSearch={{ optionFilterProp: 'label' }}
           popupMatchSelectWidth={false}
           options={[{ value: '', label: t('audit.user.all') }, ...(users.data ?? []).map((u) => ({ value: u.id, label: u.email }))]} />

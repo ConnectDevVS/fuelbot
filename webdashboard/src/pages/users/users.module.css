@@ -1,4 +1,4 @@
-/* Users (dashboard plan §5.12). Desktop first. Colours from tokens.css only. */
+/* Users (dashboard plan §5.12). Colours from tokens.css only. */
 .toolbar {
   display: flex;
   gap: 12px;
@@ -16,7 +16,7 @@
 .who {
   display: grid;
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .muted {
@@ -54,4 +54,10 @@
   margin: 0;
   color: var(--fb-muted);
   font-size: 13px;
+}
+
+@media (max-width: 759px) {
+  .tenant {
+    width: 100%;
+  }
 }

@@ -1,4 +1,4 @@
-/* Settings and Bases tabs (dashboard plan §5.6.5, §5.6.6). Desktop first. Colours from tokens.css only. */
+/* Settings and Bases tabs (dashboard plan §5.6.5, §5.6.6). Colours from tokens.css only. */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 560px) minmax(0, 420px);
@@ -74,5 +74,43 @@
 @media (max-width: 1099px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Phone: a base on two lines (id and name; code and on), its fields labelled, no header row. */
+@media (max-width: 759px) {
+  .baseHead {
+    display: none;
+  }
+
+  .baseRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    grid-template-areas:
+      "id   name remove"
+      "code on   .";
+    gap: 0 12px;
+    padding: 12px 0 4px;
+    border-bottom: 1px solid var(--fb-border);
+  }
+
+  .baseId {
+    grid-area: id;
+  }
+
+  .baseName {
+    grid-area: name;
+  }
+
+  .baseCode {
+    grid-area: code;
+  }
+
+  .baseOn {
+    grid-area: on;
+  }
+
+  .baseRemove {
+    grid-area: remove;
+    align-self: center;
   }
 }

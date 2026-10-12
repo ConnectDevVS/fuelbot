@@ -15,6 +15,7 @@ import { applyServerError } from '../../ui/forms/applyServerError.js';
 import { useToast } from '../../ui/dialogs.js';
 import { issueKey } from '../../lib/issueKey.js';
 import { machineName, useMachines } from '../../lib/names.js';
+import { useLayoutSize } from '../../lib/useMedia.js';
 import { ProvisioningCard } from './ProvisioningCard.jsx';
 import { t } from '../../strings.js';
 import styles from './machines.module.css';
@@ -140,6 +141,7 @@ export default function RegisterMachinePage() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const canKeys = useCan()('keys:manage');
+  const phone = useLayoutSize() === 'phone';
   const [machine, setMachine] = useState(null);
   const [menu, setMenu] = useState(null);       // {kind, from?}
   const [issued, setIssued] = useState(null);   // {key, machine_key}: this page's state only
@@ -159,7 +161,7 @@ export default function RegisterMachinePage() {
     <section>
       <div className="no-print">
         <PageHeader overline={t('register.overline')} title={machine ? machineName(machine) : t('page.machineNew')} />
-        <Steps className={styles.steps} current={step} items={[
+        <Steps className={styles.steps} current={step} size={phone ? 'small' : undefined} items={[
           { title: t('register.step.details'), description: machine?.id },
           { title: t('register.step.menu'), description: menuNote },
           { title: t('register.step.key') },

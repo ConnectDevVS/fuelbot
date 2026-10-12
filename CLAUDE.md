@@ -581,7 +581,10 @@ any change to `RazorpayManager` or the create payload.
 - **Real backend:** built in `server/` (config, sales, telemetry, machine keys,
   admin API; see server/CLAUDE.md) and run end to end with this app
   (`tools/dev_run.sh --backend=server`). **Not deployed yet** (hosting
-  undecided); the app's tests still use the mock.
+  undecided); the app's tests still use the mock. The web dashboard
+  (`webdashboard/`, S7) is done too (its SIGNOFF, 2026-09-30); its
+  real-app run changed prices, maintenance and a new machine's menu on
+  this app from the dashboard.
 - ~~Flavor images from S3~~: built in Milestone 7 (images SIGNOFF, §7 step
   4b against the mock). The config API serves `image_url` (server S1);
   **pending:** the real S3 bucket and the server's upload endpoint (server

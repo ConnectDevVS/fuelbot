@@ -96,11 +96,13 @@ covers the Godot kiosk, which S7 never touches.
 - **Look at every screenshot** a UI story produces (`.screenshots/`):
   overflow, clipping, wrong role controls, unreadable states. Say in the
   commit message that you looked.
-- **Desktop first from SRV-42** (product owner, 2026-09-29; DP §0.1 row 3):
-  new pages are designed and checked at 1440 only, and new e2e specs run on
-  the desktop project (`test.skip` elsewhere). Phone and tablet layouts
-  come after the functionality is final. Existing specs keep all three
-  widths and must stay green.
+- **Every page at all three widths** (390 / 820 / 1440; DP §2.9). SRV-42–48
+  were built desktop first (product owner, 2026-09-29) and got their phone
+  and tablet layouts in SRV-49 part 2. New pages and specs cover all three
+  from the start; only API-only specs run on desktop alone. Tests find rows
+  with `main [data-row]` (table rows and phone cards alike), read a field
+  with `fieldOf(row, 'Column')`, and reach filters with `openFilters(page)`
+  (the phone's sheet) and `isPhone(page)` (all in `e2e/fixtures.js`).
 
 ## Gotchas (spikes and stories)
 
@@ -176,3 +178,19 @@ covers the Godot kiosk, which S7 never touches.
   size it through its className (PriceField's `160px !important`).
 - The seed's stock states are exact because refills are stamped after
   every seeded dose; keep new seeded sales older than `now - 10 min`.
+- **The phone project widens its layout viewport** (`isMobile`): a page
+  wider than 390 px makes `window.innerWidth` grow with it, so an overflow
+  check against `innerWidth` always passes. Compare `scrollWidth` with
+  `page.viewportSize().width` (the guard and every `shot()` do). The
+  guard alone only sees the page a test ends on; `shot()` checks each
+  captured screen (the Maintenance tab overflowed only while on).
+- A grid with fixed columns squeezes its flexible one to nothing at 390 px
+  (the provisioning card printed one character per line): below 760 px
+  give such grids one column. A value with `overflow-wrap: anywhere` in a
+  flex row shrinks to one character wide; key groups are `flex: none`.
+- A sticky bar (Unsaved changes) covers the rows under it until the page
+  is scrolled: a test that drags or clicks a lower row scrolls it into
+  view first (`scrollIntoView({ block: 'center' })`).
+- A click that reorders a list re-renders it after `click()` returns: wait
+  for the new order (`expect.poll`) before the next click, or it lands on
+  the row that slid into place.

@@ -10,7 +10,14 @@ decision-log entry.
 
 ## 0. Status & decision log
 
-**Status (2026-09-27).** **S0–S4, S6 and S6b done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
+**Status (2026-09-30).** **S7, the web dashboard, is done** ([dashboard SIGNOFF](../../../webdashboard/devdocs/stories/dashboard/SIGNOFF.md)):
+SRV-27 to SRV-49, every page for every role at phone, tablet and desktop
+widths, a leak scan proving no platform-only data reaches a tenant screen,
+and a run with the real kiosk app (price, override, maintenance, an order,
+a timed-out order, and a machine registered and provisioned from the
+dashboard). It is served by this server at `/dashboard/`.
+
+**S0–S4, S6 and S6b done** ([kiosk-api](../stories/kiosk-api/SIGNOFF.md),
 [users-rbac](../stories/users-rbac/SIGNOFF.md), [catalog-admin](../stories/catalog-admin/SIGNOFF.md),
 [machine-keys](../stories/machine-keys/SIGNOFF.md), [read-apis](../stories/read-apis/SIGNOFF.md), [stock](../stories/stock/SIGNOFF.md) SIGNOFFs).
 S6b: estimated stock per hopper (refills minus portions per real dose).
@@ -26,13 +33,12 @@ the three kiosk endpoints serve real data, and the app sends its machine id
 and keeps 401/403 records. The real app has run end to end against the
 server (`tools/dev_run.sh --backend=server`).
 
-**Next: S7, the dashboard.** It's planned in detail (2026-09-28) and
-awaits product-owner review before any code. The plan is
+The dashboard's plan is
 [dashboard-plan.md](../../../webdashboard/devdocs/plans/dashboard-plan.md),
-and the stories are SRV-27 to SRV-49 in
+and its stories are SRV-27 to SRV-49 in
 [webdashboard/devdocs/stories/dashboard/](../../../webdashboard/devdocs/stories/dashboard/README.md).
 
-S5 (product images) is deferred. Deploy comes after the hosting decision.
+S5 (product images, the S3 bucket and upload) is deferred. Deploy comes after the hosting decision.
 Nothing is deployed. The mock (`mockserver/`) stays as the app's test
 backend.
 
@@ -69,6 +75,8 @@ the index.
 | 2026-09-28 | **Dashboard UI: Ant Design 6** instead of hand-written CSS, and **JavaScript** (product owner). antd's runtime styles run under the strict dashboard CSP through a **per-request style nonce**: the server renders `index.html` with a fresh nonce in a meta tag and in `style-src`, and the app stamps it on every `<style>`. Spike G: 63 violations without it, 0 with it; antd's `zeroRuntime` doesn't work with a custom theme in 6.6.5 | Ready-made accessible components (tables, forms, date-range picker, selects, drawers) for a small team; no `unsafe-inline` | §4.6, §4.10 |
 | 2026-09-28 | **Tenant in dashboard URLs is safe**, as the product owner asked. The URL only names what to ask for; every `/api/v1` call is checked against the session's own tenant (another tenant → 404). S7 adds a test sweeping every `/tenants/:tid` route with another tenant's id (SRV-28) | Staff deep links need the tenant in the URL; tenant users gain nothing by editing it | §4.7 |
 | 2026-09-28 | **Tenant users see who recorded a refill** (`last_refill.by`, an email), FuelBot staff emails included (product owner) | Refills are tenant operations; knowing who filled a hopper helps the owner, and it isn't platform-only data | §4.13; dashboard SRV-41 |
+| 2026-09-29 | **Dashboard: desktop first from SRV-42** (product owner): SRV-42–48 were built and checked at 1440 px first; their phone and tablet layouts came in one pass before sign-off (SRV-49, 2026-09-30) | Settle the functionality before the small-screen layouts | dashboard plan §0.1 row 3 |
+| 2026-09-29 | **Disabled machines stay in Refill soon** (product owner): no `disabled` filter on `/stock` or in the dashboard | A disabled machine with a menu still has hoppers to look after | §4.13; dashboard plan §0.1 row 13, §5.10 |
 | 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../devdocs/stories/ota/README.md) |
 
 ## 1. Context
@@ -1067,7 +1075,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S5 | Product images (**deferred**, after S6) | §4.8, local and S3 drivers (S3 tested against a stubbed client) | the images SIGNOFF's pending "real S3" item, once a bucket exists |
 | S6 | Read APIs | §4.9, fleet status | reporting without the dashboard |
 | S6b | Estimated stock | §4.13: `portion_g`, `low_portions`, `StockEvent`, refills / adjustments, the estimate, stock APIs | knowing when to refill, before the dashboard shows it |
-| S7 | Dashboard (**planned 2026-09-28; review pending**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
+| S7 | Dashboard (**done 2026-09-30**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../devdocs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |

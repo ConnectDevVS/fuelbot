@@ -1,6 +1,8 @@
 // Tables (§4 pattern 5, §2.9): antd Table from 760 px; below, a card per row with the columns of
-// priority ≤ 2 (the first column is the card's title, the rest label/value pairs). A row links to
-// its page (rowHref): the first cell is a real link, so keyboards and screen readers reach it.
+// priority ≤ 2 (the first column is the card's title, the rest label/value pairs; an empty value
+// leaves its pair out). Priority 4 columns show on desktop only (≥ 1100 px). A row links to its page
+// (rowHref): the first cell is a real link, so keyboards and screen readers reach it. Every row and
+// card carries data-row="<key>" (tests find rows the same way at every width).
 // Cursor lists page with Load more (no page numbers: the API pages by cursor).
 import { Link, useNavigate } from 'react-router';
 import { Button, Card, Table } from 'antd';
@@ -9,12 +11,14 @@ import { t } from '../strings.js';
 import styles from './ui.module.css';
 
 /**
- * columns: [{key, title, render?(row), align?, priority? (1 = always; phone shows ≤ 2), sorter?, width?}]
+ * columns: [{key, title, render?(row), align?, priority? (1 = always; phone shows ≤ 2; 3, the default,
+ *   tablet and desktop; 4 desktop only), sorter?, width?}]
  * expand: {render(row), can?(row)}: an expandable detail per row (a telemetry cycle's stages); on a
  * phone card it's shown under the fields.
  */
 export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empty, footer, expand }) {
-  const phone = useLayoutSize() === 'phone';
+  const size = useLayoutSize();
+  const phone = size === 'phone';
   const navigate = useNavigate();
   const keyOf = (row) => (typeof rowKey === 'function' ? rowKey(row) : row[rowKey]);
   const cell = (col, row) => (col.render ? col.render(row) : row[col.key]);
@@ -25,30 +29,34 @@ export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empt
 
   if (phone) {
     const shown = columns.slice(1).filter((c) => (c.priority ?? 3) <= 2);
+    const pairs = (row) => shown.map((c) => [c, cell(c, row)]).filter(([, v]) => v !== null && v !== undefined && v !== false && v !== '');
     return (
       <div className={styles.cards}>
         {rows.length === 0 && !loading && empty}
-        {rows.map((row) => (
-          <Card key={keyOf(row)} size="small" className={rowHref ? styles.clickable : undefined}
-            onClick={rowHref ? () => navigate(rowHref(row)) : undefined}>
-            <div className={styles.cardTitle}>{titleCell(row)}</div>
-            {shown.length > 0 && (
-              <dl className={styles.pairs}>
-                {shown.map((c) => [
-                  <dt key={`${c.key}-t`} className="overline">{c.title}</dt>,
-                  <dd key={`${c.key}-v`}>{cell(c, row)}</dd>,
-                ])}
-              </dl>
-            )}
-            {expand && (!expand.can || expand.can(row)) && <div className={styles.cardExpand}>{expand.render(row)}</div>}
-          </Card>
-        ))}
+        {rows.map((row) => {
+          const filled = pairs(row);
+          return (
+            <Card key={keyOf(row)} data-row={keyOf(row)} size="small" className={rowHref ? styles.clickable : undefined}
+              onClick={rowHref ? () => navigate(rowHref(row)) : undefined}>
+              <div className={styles.cardTitle}>{titleCell(row)}</div>
+              {filled.length > 0 && (
+                <dl className={styles.pairs}>
+                  {filled.map(([c, value]) => [
+                    <dt key={`${c.key}-t`} className="overline">{c.title}</dt>,
+                    <dd key={`${c.key}-v`}>{value}</dd>,
+                  ])}
+                </dl>
+              )}
+              {expand && (!expand.can || expand.can(row)) && <div className={styles.cardExpand}>{expand.render(row)}</div>}
+            </Card>
+          );
+        })}
         {footer}
       </div>
     );
   }
 
-  const antColumns = columns.map((c, i) => ({
+  const antColumns = columns.filter((c) => size === 'desktop' || (c.priority ?? 3) <= 3).map((c, i) => ({
     key: c.key,
     dataIndex: c.key,
     title: <span className="overline">{c.title}</span>,
@@ -69,7 +77,7 @@ export function DataTable({ columns, rows, rowKey = 'id', rowHref, loading, empt
         locale={{ emptyText: empty ?? t('table.empty') }}
         rowClassName={rowHref ? styles.clickable : undefined}
         expandable={expand ? { expandedRowRender: expand.render, rowExpandable: expand.can ?? (() => true) } : undefined}
-        onRow={rowHref ? (row) => ({ onClick: () => navigate(rowHref(row)) }) : undefined}
+        onRow={(row) => ({ 'data-row': keyOf(row), ...(rowHref ? { onClick: () => navigate(rowHref(row)) } : {}) })}
       />
       {footer}
     </div>

@@ -2,6 +2,7 @@
 // (slug), a name, the bridge's base code (B<digit>) and on/off; at most 6. PUT …/bases with
 // If-Match: menu_version. Checked here before sending (at least one on, ids unique: the server's
 // rules too); a bad code is the server's field error on its row. Read-only without machines:manage.
+// On a phone each base takes two lines and its fields carry their own labels (no header row).
 import { useState } from 'react';
 import { Button, Form, Input, Switch } from 'antd';
 import { CloseOutlined, PlusOutlined } from '@ant-design/icons';
@@ -12,6 +13,7 @@ import { useFormDirty } from '../../ui/forms/useFormDirty.js';
 import { FormError } from '../../ui/forms/FormError.jsx';
 import { UnsavedBar } from '../../ui/forms/UnsavedBar.jsx';
 import { machineName } from '../../lib/names.js';
+import { useLayoutSize } from '../../lib/useMedia.js';
 import { machineKey, machinePath } from './machineQuery.js';
 import { t } from '../../strings.js';
 import styles from './settings.module.css';
@@ -36,6 +38,8 @@ function rowLabels(bases = []) {
 
 export default function BasesTab({ tid, mid, machine }) {
   const manage = useCan()('machines:manage');
+  const phone = useLayoutSize() === 'phone';
+  const fieldLabel = (k) => (phone ? t(`bases.col.${k}`) : undefined);
   const [form] = Form.useForm();
   const { dirty, onValuesChange, reset } = useFormDirty(form);
   const [loaded, setLoaded] = useState(machine);
@@ -54,7 +58,7 @@ export default function BasesTab({ tid, mid, machine }) {
   });
 
   return (
-    <Form form={form} initialValues={valuesOf(machine)} onValuesChange={onValuesChange} disabled={!manage}
+    <Form form={form} initialValues={valuesOf(machine)} onValuesChange={onValuesChange} disabled={!manage} layout={phone ? 'vertical' : undefined}
       onFinish={() => saver.submit(form.getFieldsValue(true))} className={styles.basesForm}>
       <p className={styles.lead}>{t('bases.lead')}</p>
       <FormError problem={saver.problem} form={form} labels={rowLabels(form.getFieldValue('bases'))} />
@@ -69,20 +73,20 @@ export default function BasesTab({ tid, mid, machine }) {
               const label = form.getFieldValue(['bases', field.name, 'name']) || form.getFieldValue(['bases', field.name, 'id']) || t('bases.new');
               return (
                 <div key={field.key} className={styles.baseRow} role="listitem" aria-label={label}>
-                  <Form.Item name={[field.name, 'id']} rules={[{ required: true, message: t('bases.idRequired') },
+                  <Form.Item name={[field.name, 'id']} label={fieldLabel('id')} className={styles.baseId} rules={[{ required: true, message: t('bases.idRequired') },
                     { pattern: /^[a-z0-9][a-z0-9_-]*$/, message: t('bases.idRule') }]}>
                     <Input aria-label={t('bases.idOf', { name: label })} maxLength={40} />
                   </Form.Item>
-                  <Form.Item name={[field.name, 'name']} rules={[{ required: true, whitespace: true, message: t('bases.nameRequired') }, { max: 40 }]}>
+                  <Form.Item name={[field.name, 'name']} label={fieldLabel('name')} className={styles.baseName} rules={[{ required: true, whitespace: true, message: t('bases.nameRequired') }, { max: 40 }]}>
                     <Input aria-label={t('bases.nameOf', { name: label })} maxLength={40} />
                   </Form.Item>
-                  <Form.Item name={[field.name, 'code']} extra={t('bases.codeHelp')}>
+                  <Form.Item name={[field.name, 'code']} label={fieldLabel('code')} className={styles.baseCode} extra={t('bases.codeHelp')}>
                     <Input aria-label={t('bases.codeOf', { name: label })} maxLength={2} className={styles.code} />
                   </Form.Item>
-                  <Form.Item name={[field.name, 'enabled']} valuePropName="checked">
+                  <Form.Item name={[field.name, 'enabled']} label={fieldLabel('on')} className={styles.baseOn} valuePropName="checked">
                     <Switch aria-label={t('bases.enabledOf', { name: label })} />
                   </Form.Item>
-                  <div>
+                  <div className={styles.baseRemove}>
                     {manage && <Button type="text" icon={<CloseOutlined />} aria-label={t('bases.remove', { name: label })}
                       onClick={() => { remove(field.name); onValuesChange(); }} />}
                   </div>

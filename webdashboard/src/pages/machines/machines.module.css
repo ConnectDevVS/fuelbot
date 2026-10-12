@@ -8,7 +8,8 @@
   white-space: nowrap;
 }
 
-.seen {
+.seen,
+.nowrap {
   white-space: nowrap;
 }
 
@@ -146,6 +147,8 @@
 }
 
 .keyGroup {
+  flex: none;   /* a group never breaks ("MMV" / "F" on a phone) */
+  white-space: nowrap;
   padding: 2px 8px;
   border: 1px solid var(--fb-border);
   border-radius: 6px;
@@ -198,5 +201,58 @@
   .card {
     max-width: none;
     border-width: 1px;
+  }
+}
+
+/* Tablet: the file name above its value, Copy beside it (the key's groups need the width). */
+@media (max-width: 1099px) {
+  .cardRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cardFile {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Phone (design/provisioning-phone.png): one column, Copy under each value; ids 22 px, the key's
+   groups 19 px without dashes so the five stay on one line; Done full width. */
+@media (max-width: 759px) {
+  .search {
+    width: 100%;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .cardRow {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 10px;
+  }
+
+  .big {
+    font-size: 22px;
+  }
+
+  .keyGroups,
+  .keyGroupWrap {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .keyGroup {
+    padding: 2px 5px;
+    font-size: 19px;
+  }
+
+  .keyDash {
+    display: none;
+  }
+
+  .cardFoot {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

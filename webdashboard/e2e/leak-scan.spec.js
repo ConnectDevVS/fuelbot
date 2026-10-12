@@ -1,9 +1,8 @@
 // SRV-49: platform-only data never reaches a tenant role. Each tenant role walks every page its nav
 // offers, a machine's tabs, an order and a product; every JSON response and every page's text is
-// scanned. Desktop first for now (DP §0.1 row 3): the phone and tablet pass comes with the mobile work.
-import { expect, test } from './fixtures.js';
+// scanned, at all three widths (a phone shows other components: cards, sheets).
+import { expect, navPaths, test } from './fixtures.js';
 
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
 test.setTimeout(180_000);
 
 const FORBIDDEN_KEYS = ['maintenance', 'faults', 'status', 'last_seen_ip', 'health', 'dispensing_result', 'dispensing_reason',
@@ -42,9 +41,7 @@ async function walk(page) {
   };
 
   await page.goto('');
-  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
-  const nav = await page.getByRole('navigation', { name: 'Main' }).getByRole('link').evaluateAll((els) => els.map((e) => e.getAttribute('href')));
-  const paths = [...new Set(nav.map((h) => h.replace(/^\/dashboard\//, '')))];
+  const paths = await navPaths(page);
   for (const path of paths) await visit(path);
 
   // A machine's tabs (the first machine this role sees), an order, a product.

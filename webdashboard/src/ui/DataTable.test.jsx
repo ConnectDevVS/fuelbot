@@ -32,4 +32,28 @@ describe('DataTable', () => {
     expect(screen.queryByText('Ground floor')).toBeNull();   // priority 3: tablet and up only
     expect(screen.getByRole('link', { name: 'Bay 02' })).toBeTruthy();
   });
+
+  it('shows priority 4 on desktop only, and marks every row and card with data-row', () => {
+    const columns = [...COLUMNS, { key: 'location', title: 'Location', priority: 4 }];
+    const rows = [{ ...ROWS[0], location: 'FUELBOT · BAY 02' }];
+    for (const [width, shown] of [[1440, true], [1024, false]]) {
+      restore = setWidth(width);
+      const view = renderUi(<DataTable columns={columns} rows={rows} />);
+      expect(Boolean(screen.queryByText('FUELBOT · BAY 02')), `${width}`).toBe(shown);
+      expect(view.container.querySelector('tr[data-row="DEV00001"]')).not.toBeNull();
+      view.unmount();
+      restore();
+    }
+    restore = setWidth(390);
+    const phone = renderUi(<DataTable columns={columns} rows={rows} />);
+    expect(phone.container.querySelector('.ant-card[data-row="DEV00001"]')).not.toBeNull();
+  });
+
+  it('leaves an empty value out of a phone card', () => {
+    restore = setWidth(390);
+    const columns = [COLUMNS[0], { key: 'status', title: 'Status', priority: 2, render: (r) => (r.archived ? 'Archived' : null) }];
+    renderUi(<DataTable columns={columns} rows={[{ id: 'a', name: 'Guava' }, { id: 'b', name: 'Kiwi', archived: true }]} />);
+    expect(screen.getAllByText('Status')).toHaveLength(1);
+    expect(screen.getByText('Archived')).toBeTruthy();
+  });
 });

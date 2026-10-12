@@ -23,7 +23,7 @@ Vite and served by the backend at `/dashboard/`. It uses only the admin API
 |---|---|---|---|
 | 1 | Framework | **React + Vite, with a build step.** This replaces the previous session's "no build, no framework" | §2.1 stack; the server serves Vite's `dist/` (§2.4); CI and deploy need `npm run build` |
 | 2 | Where the code lives | **`/webdashboard`** at the repo root; **all its docs in `/webdashboard/devdocs`** | Not `server/public/` (server plan §5 updated); this doc and the stories live here |
-| 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop. Revised 2026-09-29: **from SRV-42, desktop first**; phone and tablet layouts are finished after the functionality is final | Three layouts (§2.9). SRV-27–41 were built and checked at 390, 820 and 1440 px; from SRV-42, new pages are designed and screenshot-checked at 1440 only, and new e2e specs run on the desktop project (existing specs keep all three widths) |
+| 3 | Devices | **Fully responsive everywhere**: phone, tablet, desktop. Revised 2026-09-29: **from SRV-42, desktop first**; phone and tablet layouts are finished after the functionality is final | Three layouts (§2.9). SRV-27–41 were built and checked at 390, 820 and 1440 px; SRV-42–48 were built at 1440 first, then given their phone and tablet layouts in one pass (SRV-49 part 2, 2026-09-30). Every page and every e2e spec now runs at all three widths |
 | 4 | Charts | **Revenue over time** (day / week / month) and **flavor mix**. No machine-comparison chart | Two chart components (§4.9); per-machine numbers are a table |
 | 5 | Refresh | **No auto-refresh.** Data loads on page entry, with a Refresh button and an "Updated hh:mm" stamp | No polling, so `/fleet` and `/stock` costs stay bounded (§2.6) |
 | 6 | Look | **One FuelBot look, light theme only** (revised 2026-09-28: "no need of dark mode for now"; the first answer was dark + a light toggle). The kiosk brand carries over through the lime accent, Archivo/JetBrains Mono type and uppercase headings. The tenant's name and `logo_text` badge sit in the top bar | One validated theme (§2.8); no theme toggle; tokens kept in one block so a dark theme can be added later; no per-tenant colours or logo uploads |
@@ -438,7 +438,13 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
   - `Table` on tablet and desktop, and our card list (antd `Card`s) on
     phone. Not antd `List`, which 6.6 deprecates;
   - `Drawer` becomes `placement="bottom"`, full height on phone;
-  - filters in a bottom `Drawer` on phone;
+  - filters in a bottom `Drawer` on phone: Sales edits a draft applied
+    with "Show results" (its filters live in the URL); every other filter
+    row goes through `FilterBar` (`src/ui/`), whose sheet holds the same
+    controls, applied as they change ("Show results" closes it, Reset
+    clears them). A page shows one "Filters (n)" button: the staff
+    Telemetry page puts its tenant, machine and order id into the list's
+    own filter bar;
   - `Modal` for dialogs.
 - The mock-ups in `design/` show Home at desktop, tablet and phone, and
   the provisioning card, Menu editor, Stock tab and Sales filters (§5).
@@ -564,7 +570,12 @@ Use `App.useApp()` for `message` and `modal`, never the static
 5. **Tables:**
    - header row in mono caps; numbers right-aligned in tabular figures;
    - rows link to the detail page;
-   - on phone, a card per row with the 2–3 key fields.
+   - on phone, a card per row with the 2–3 key fields (columns of
+     `priority` ≤ 2; an empty value leaves its pair out); columns of
+     priority 4 show on desktop only (a squeezed column on a tablet: the
+     Machines list's Location, Users' Last sign-in);
+   - every row and card carries `data-row="<key>"`, so tests find rows
+     the same way at every width.
 6. **Status components** (never colour alone):
    - `StatusBadge`: platform `ok/maintenance/fault/offline`; tenant
      "Online/Offline" + "In service/Out of service";
@@ -917,8 +928,10 @@ MENU · Bay 02                                      [Copy menu from… ▾]
  Unsaved changes · Changes reach the machine at its next restart   [Discard] [Save]
 ```
 
-- **Phone:** each item is a card. The reorder handle is on the left, and
-  the fields stack.
+- **Tablet:** two lines per item (product, hopper, price; then badge,
+  sold out, on). **Phone:** each item is a card. The reorder handle and
+  ↑/↓ (44 px) are on the left, and the fields stack. Below 1100 px the
+  header row is hidden and each control shows its own label.
 
 #### 5.6.2 Config preview tab
 
@@ -1010,6 +1023,8 @@ hidden.
   number"), enabled. Add/remove, max 6.
 - **Client checks:** at least one enabled; ids unique.
 - Save carries the `RestartNote`. Read-only without `machines:manage`.
+- **Phone:** a base on two lines (id and name; code and on), each field
+  labelled (no header row).
 
 #### 5.6.7 Keys tab (`keys:manage`)
 

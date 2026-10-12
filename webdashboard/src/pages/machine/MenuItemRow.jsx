@@ -1,7 +1,9 @@
 // One menu item on the Menu tab (dashboard plan §5.6.1; mock-up design/menu-desktop.png): drag handle
 // and ↑/↓ (keyboard), product, hopper, price (the product's, or an override for price:write), badge,
 // sold out, on, remove. A Form.List row, so server errors map by index (menu[2].hopper). The drag
-// transform goes through React's style prop (the CSSOM), which the CSP allows.
+// transform goes through React's style prop (the CSSOM), which the CSP allows. Below 1100 px the
+// header row is hidden and each control shows its own label: two lines per item on a tablet, a card
+// with the fields stacked on a phone (plan §5.6.1; menu.module.css).
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AutoComplete, Button, Form, Select, Switch, Tooltip } from 'antd';
@@ -22,6 +24,16 @@ function ProductPrice({ product, locked }) {
       <span className={styles.muted}> · {t('menu.productPrice')}</span>
       {locked && <Tooltip title={t('price.locked')}><LockOutlined className={styles.lock} aria-label={t('price.locked')} /></Tooltip>}
     </span>
+  );
+}
+
+/** A control with the label it shows below 1100 px (the header row names it on desktop). */
+function Cell({ className, label, children }) {
+  return (
+    <div className={`${styles.cell} ${className}`}>
+      <span className={`overline ${styles.cellLabel}`} aria-hidden="true">{label}</span>
+      {children}
+    </div>
   );
 }
 
@@ -70,12 +82,14 @@ export function MenuItemRow({ field, index, count, product, canEdit, canPrice, w
         </span>
       </div>
 
-      <Form.Item name={at('hopper')} noStyle>
-        <Select aria-label={t('menu.hopperOf', { name })} disabled={!canEdit} className={styles.hopper}
-          options={HOPPERS.map((h) => ({ value: h, label: String(h) }))} />
-      </Form.Item>
+      <Cell className={styles.hopperCell} label={t('menu.col.hopper')}>
+        <Form.Item name={at('hopper')} noStyle>
+          <Select aria-label={t('menu.hopperOf', { name })} disabled={!canEdit} className={styles.hopper}
+            options={HOPPERS.map((h) => ({ value: h, label: String(h) }))} />
+        </Form.Item>
+      </Cell>
 
-      <div className={styles.price}>
+      <Cell className={styles.price} label={t('menu.col.price')}>
         <Form.Item noStyle shouldUpdate={(a, b) => a.menu?.[field.name]?.override !== b.menu?.[field.name]?.override}>
           {() => {
             const override = form.getFieldValue(['menu', field.name, 'override']);
@@ -115,19 +129,25 @@ export function MenuItemRow({ field, index, count, product, canEdit, canPrice, w
             );
           }}
         </Form.Item>
-      </div>
+      </Cell>
 
-      <Form.Item name={at('badge')} noStyle>
-        <AutoComplete aria-label={t('menu.badgeOf', { name })} disabled={!canEdit} placeholder={t('menu.noBadge')} maxLength={20}
-          allowClear options={BADGES.map((b) => ({ value: b }))} className={styles.badge} />
-      </Form.Item>
-      <Form.Item name={at('sold_out')} valuePropName="checked" noStyle>
-        <Switch aria-label={t('menu.soldOutOf', { name })} disabled={!canEdit} />
-      </Form.Item>
-      <Form.Item name={at('enabled')} valuePropName="checked" noStyle>
-        <Switch aria-label={t('menu.enabledOf', { name })} disabled={!canEdit} />
-      </Form.Item>
-      <div>
+      <Cell className={styles.badgeCell} label={t('menu.col.badge')}>
+        <Form.Item name={at('badge')} noStyle>
+          <AutoComplete aria-label={t('menu.badgeOf', { name })} disabled={!canEdit} placeholder={t('menu.noBadge')} maxLength={20}
+            allowClear options={BADGES.map((b) => ({ value: b }))} className={styles.badge} />
+        </Form.Item>
+      </Cell>
+      <Cell className={styles.soldCell} label={t('menu.col.soldOut')}>
+        <Form.Item name={at('sold_out')} valuePropName="checked" noStyle>
+          <Switch aria-label={t('menu.soldOutOf', { name })} disabled={!canEdit} />
+        </Form.Item>
+      </Cell>
+      <Cell className={styles.onCell} label={t('menu.col.on')}>
+        <Form.Item name={at('enabled')} valuePropName="checked" noStyle>
+          <Switch aria-label={t('menu.enabledOf', { name })} disabled={!canEdit} />
+        </Form.Item>
+      </Cell>
+      <div className={styles.removeCell}>
         {canEdit && <Button type="text" icon={<CloseOutlined />} aria-label={t('menu.remove', { name })} onClick={() => onRemove(index)} />}
       </div>
 

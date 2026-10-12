@@ -21,6 +21,12 @@ import { UserDialog } from './UserDialog.jsx';
 import { t } from '../../strings.js';
 import styles from './users.module.css';
 
+/** An email that wraps after its @ in a narrow column ("new@" / "powerfuel.test"), not mid-word. */
+function Email({ value }) {
+  const at = value.indexOf('@');
+  return at < 0 ? <span>{value}</span> : <span>{value.slice(0, at + 1)}<wbr />{value.slice(at + 1)}</span>;
+}
+
 export default function UsersPage() {
   const { tid } = useParams();   // undefined on /users (staff)
   const tz = useDisplayTz();
@@ -74,7 +80,7 @@ export default function UsersPage() {
   };
   const columns = [
     { key: 'name', title: t('users.col.name'), priority: 1, render: (u) => (
-      <span className={styles.who}><b>{u.name || '—'}{isSelf(u) && <span className={styles.muted}> · {t('users.you')}</span>}</b><span>{u.email}</span></span>
+      <span className={styles.who}><b>{u.name || '—'}{isSelf(u) && <span className={styles.muted}> · {t('users.you')}</span>}</b><Email value={u.email} /></span>
     ) },
     { key: 'role', title: t('users.col.role'), priority: 2, render: (u) => t(`role.${u.role}`) },
     ...(!tid ? [{ key: 'tenant', title: t('users.col.tenant'), priority: 2, render: (u) => (u.tenant_id ? tenantNames.get(u.tenant_id) ?? u.tenant_id : '—') }] : []),
@@ -82,7 +88,8 @@ export default function UsersPage() {
     { key: 'machines', title: t('users.col.machines'), priority: 2, render: (u) => (!u.tenant_id ? '—' : u.machines?.length
       ? u.machines.map((id) => machineNames.get(id) ?? id).join(', ') : t('users.allMachines')) },
     { key: 'status', title: t('users.col.status'), priority: 2, render: status },
-    { key: 'last', title: t('users.col.lastSignIn'), priority: 3, render: (u) => (u.last_login_at ? <DateTime value={u.last_login_at} /> : t('users.never')) },
+    // Desktop only: on a tablet the emails need the width.
+    { key: 'last', title: t('users.col.lastSignIn'), priority: 4, render: (u) => (u.last_login_at ? <DateTime value={u.last_login_at} /> : t('users.never')) },
     { key: 'actions', title: '', priority: 2, align: 'right', render: (u) => {
       const items = [
         { key: 'edit', label: t('users.edit') },

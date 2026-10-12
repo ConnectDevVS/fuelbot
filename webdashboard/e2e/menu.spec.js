@@ -1,7 +1,5 @@
-// SRV-43: the Menu tab and the Config preview. Desktop first (DP §0.1 row 3). Specs that write reset.
-import { CSRF, expect, resetData, test } from './fixtures.js';
-
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
+// SRV-43: the Menu tab and the Config preview. All three widths. Specs that write reset.
+import { CSRF, expect, modalReady, resetData, test } from './fixtures.js';
 
 const API = '/api/v1/tenants/powerfuel/machines/DEV00001';
 const list = (page) => page.getByRole('list', { name: 'Menu' });
@@ -42,18 +40,33 @@ test('operator reorders and marks sold out; price is locked', async ({ page, req
     await expect(page.getByText('Changes reach the machine at its next restart.')).toBeVisible();
     // ↑ on the keyboard path, then a real drag: Beast Coffee to the top.
     await row(page, 'MMN Chocolate').getByRole('button', { name: 'Move MMN Chocolate up' }).click();
+    // Below 1100 px the list is taller than the screen and the sticky Unsaved bar covers its bottom:
+    // drag one row up (Beast Coffee above Cookies & Cream, scrolled to the middle), then ↑ the rest.
+    // Each move re-renders the list: wait for the new order before the next click, or it lands on
+    // the row that slid into place.
+    const compact = page.viewportSize().width < 1100;
+    const aboveName = compact ? 'Cookies & Cream' : 'MMN Chocolate';
     const handle = row(page, 'Beast Coffee').getByRole('button', { name: 'Drag to reorder Beast Coffee' });
-    const target = await row(page, 'MMN Chocolate').boundingBox();
+    if (compact) await handle.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    const target = await row(page, aboveName).boundingBox();
     const from = await handle.boundingBox();
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
     await page.mouse.down();
     await page.mouse.move(from.x + from.width / 2, from.y - 20, { steps: 5 });
-    // closestCenter: the dragged row's centre has to pass the first row's, so drop above it.
+    // closestCenter: the dragged row's centre has to pass the one above's, so drop above it.
     await page.mouse.move(from.x + from.width / 2, target.y - 30, { steps: 20 });
     await page.mouse.up();
     // dnd-kit swallows clicks for 50 ms after a drop (so the drop isn't a click); wait that out.
     await page.evaluate(() => new Promise((resolve) => { setTimeout(resolve, 60); }));
-    expect(await order(page)).toEqual(['Beast Coffee', 'MMN Chocolate', 'Prymor Guava', 'Prymor Electro', 'ON Vanilla', 'Cookies & Cream']);
+    const rest = ['MMN Chocolate', 'Prymor Guava', 'Prymor Electro', 'ON Vanilla'];
+    if (compact) {
+      await expect.poll(() => order(page)).toEqual([...rest, 'Beast Coffee', 'Cookies & Cream']);
+      for (let at = 3; at >= 0; at -= 1) {
+        await row(page, 'Beast Coffee').getByRole('button', { name: 'Move Beast Coffee up' }).click();
+        await expect.poll(() => order(page)).toEqual([...rest.slice(0, at), 'Beast Coffee', ...rest.slice(at), 'Cookies & Cream']);
+      }
+    }
+    await expect.poll(() => order(page)).toEqual(['Beast Coffee', ...rest, 'Cookies & Cream']);
 
     const { json, ifMatch } = await save(page);
     expect(ifMatch).toBe(String(before.menu_version));
@@ -150,7 +163,7 @@ test('conflict: two tabs edit the menu; the second Save opens the Conflict dialo
   }
 });
 
-test('copy menu from Bay 02 to Bay 4 makes it configured', async ({ page, request, signInAs }) => {
+test('copy menu from Bay 02 to Bay 4 makes it configured', async ({ page, request, signInAs, shot }) => {
   await signInAs('owner');
   try {
     await openMenu(page, 'E2E00003');
@@ -159,6 +172,9 @@ test('copy menu from Bay 02 to Bay 4 makes it configured', async ({ page, reques
     await page.locator('.ant-select-dropdown:visible').getByTitle('Bay 02 · DEV00001').click();
     const confirm = page.getByRole('dialog').filter({ hasText: 'Copy the menu from Bay 02 to Bay 4?' });
     await expect(confirm).toContainText('price overrides included');
+    await modalReady(page, confirm);
+    await page.mouse.move(1, 1);
+    await shot('menu-copy-confirm', { fullPage: false });
     await confirm.getByRole('button', { name: 'Copy menu' }).click();
     await expect(page.getByText('Menu copied from Bay 02. Reaches Bay 4 at its next restart.')).toBeVisible();
     await expect(list(page).getByRole('listitem')).toHaveCount(6);

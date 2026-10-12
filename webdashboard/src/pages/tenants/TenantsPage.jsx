@@ -15,6 +15,7 @@ import { DateTime } from '../../ui/DateTime.jsx';
 import { useConfirm, useToast } from '../../ui/dialogs.js';
 import { EmptyState, ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
 import { formatDayHeading } from '../../lib/time.js';
+import { useLayoutSize } from '../../lib/useMedia.js';
 import { NewTenantDialog } from './NewTenantDialog.jsx';
 import { t } from '../../strings.js';
 import styles from './tenants.module.css';
@@ -24,6 +25,8 @@ export default function TenantsPage() {
   const can = useCan();
   const confirm = useConfirm();
   const toast = useToast();
+  // Small buttons in a table row; full-size ones on a phone card (touch).
+  const size = useLayoutSize() === 'phone' ? 'middle' : 'small';
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ['tenants'],
@@ -52,10 +55,10 @@ export default function TenantsPage() {
     { key: 'status', title: t('tenants.col.status'), priority: 2, render: (x) => (x.disabled ? <Tag>{t('tenants.disabled')}</Tag> : t('tenants.active')) },
     { key: 'actions', title: '', priority: 2, align: 'right', render: (x) => (
       <Space onClick={(e) => e.stopPropagation()}>
-        <Link to={`/t/${encodeURIComponent(x.id)}/home`}><Button size="small">{t('tenants.open')}</Button></Link>
+        <Link to={`/t/${encodeURIComponent(x.id)}/home`}><Button size={size}>{t('tenants.open')}</Button></Link>
         {can('tenants:disable') && (x.disabled
-          ? <Button size="small" onClick={() => setDisabled(x, false)}>{t('tenants.enable')}</Button>
-          : <Button size="small" danger onClick={() => setDisabled(x, true)}>{t('tenants.disable')}</Button>)}
+          ? <Button size={size} onClick={() => setDisabled(x, false)}>{t('tenants.enable')}</Button>
+          : <Button size={size} danger onClick={() => setDisabled(x, true)}>{t('tenants.disable')}</Button>)}
       </Space>
     ) },
   ];

@@ -1,12 +1,4 @@
-/* Staff pages (dashboard plan §5.15–5.18). Desktop first. Colours from tokens.css only. */
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 16px;
-}
-
+/* Staff pages (dashboard plan §5.15–5.18). Colours from tokens.css only. */
 .select {
   min-width: 200px;
 }

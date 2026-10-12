@@ -1,8 +1,6 @@
 // SRV-42: the Machines list, registering a machine, the provisioning card and the Keys tab.
-// Desktop only (product owner, 2026-09-29: desktop first from SRV-42). Specs that write reset.
-import { expect, resetData, test } from './fixtures.js';
-
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
+// All three widths. Specs that write reset.
+import { expect, isPhone, resetData, test } from './fixtures.js';
 
 const KEY_RE = /^[A-HJ-KM-NP-Z2-9]{4}(-[A-HJ-KM-NP-Z2-9]{4}){4}$/;
 const KIOSK = 'http://127.0.0.1:8795/fuelbot/config';
@@ -60,12 +58,13 @@ async function registerBay5(page, shot = null) {
 test('list shows every visible machine with status and menu state', async ({ page, signInAs, shot }) => {
   await signInAs('owner');
   await page.goto('t/powerfuel/machines');
-  const rows = page.locator('main tbody tr');
+  const rows = page.locator('main [data-row]');
   await expect(rows).toHaveCount(4);
   await expect(rows.filter({ hasText: 'E2E00003' })).toContainText('Not configured');
   await expect(rows.filter({ hasText: 'E2E00004' })).toContainText('Disabled');
-  await expect(rows.filter({ hasText: 'DEV00001' })).toContainText(/\d+ items/);
-  await expect(rows.filter({ hasText: 'DEV00001' })).toContainText('FUELBOT · BAY 02 · Ground floor');
+  // Menu from 760 px (a phone card keeps status, today, last seen); location on desktop only.
+  if (!isPhone(page)) await expect(rows.filter({ hasText: 'DEV00001' })).toContainText(/\d+ items/);
+  if (page.viewportSize().width >= 1100) await expect(rows.filter({ hasText: 'DEV00001' })).toContainText('FUELBOT · BAY 02 · Ground floor');
   await page.getByRole('textbox', { name: 'Search name, id or location' }).fill('bay 4');
   await expect(rows).toHaveCount(1);
   await page.getByRole('textbox', { name: 'Search name, id or location' }).fill('');
@@ -163,8 +162,8 @@ test('revoke asks, then marks the key Revoked; the kiosk call with it → 401', 
   try {
     await page.goto('t/powerfuel/machines/DEV00001/keys');
     await expect(page.getByRole('tab', { name: 'Keys' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('main tbody tr')).toHaveCount(1);   // the seeded "Bay 02 kiosk"
-    await expect(page.locator('main tbody tr')).toContainText('Bay 02 kiosk');
+    await expect(page.locator('main [data-row]')).toHaveCount(1);   // the seeded "Bay 02 kiosk"
+    await expect(page.locator('main [data-row]')).toContainText('Bay 02 kiosk');
     await page.mouse.move(1, 1);
     await shot('keys-tab');
     await page.getByRole('button', { name: 'Issue a new key' }).click();
@@ -175,7 +174,7 @@ test('revoke asks, then marks the key Revoked; the kiosk call with it → 401', 
     expect((await kiosk(request, values)).status()).toBe(200);
     await acknowledgeAndDone(page);
 
-    const row = page.locator('main tbody tr').filter({ hasText: 'spare' });
+    const row = page.locator('main [data-row]').filter({ hasText: 'spare' });
     await expect(row).toContainText('Active');
     await page.getByRole('button', { name: 'Refresh' }).click();   // nothing refetches by itself
     await expect(row).toContainText('just now');   // the kiosk call above used it
@@ -195,7 +194,7 @@ test("operators and viewers can't register or see keys", async ({ page, signInAs
   for (const who of ['desk', 'ops', 'look']) {
     await signInAs(who);
     await page.goto('t/powerfuel/machines');
-    await expect(page.locator('main tbody tr').first()).toBeVisible();
+    await expect(page.locator('main [data-row]').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Register a machine' }), who).toHaveCount(0);
     await page.goto('t/powerfuel/machines/new');
     await expect(page.getByText('Not available'), who).toBeVisible();

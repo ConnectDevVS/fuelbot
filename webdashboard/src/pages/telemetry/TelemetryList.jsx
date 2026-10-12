@@ -9,6 +9,7 @@ import { DatePicker, Input, Select } from 'antd';
 import { api } from '../../api/client.js';
 import { useDisplayTz } from '../../auth/session.js';
 import { DataTable, LoadMore } from '../../ui/DataTable.jsx';
+import { FilterBar } from '../../ui/FilterBar.jsx';
 import { DateTime } from '../../ui/DateTime.jsx';
 import { StageTimeline } from '../../ui/StageTimeline.jsx';
 import { EmptyState, ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
@@ -21,8 +22,12 @@ import styles from './telemetry.module.css';
 export const EVENT_TYPES = ['dispense_cycle', 'machine_fault', 'machine_ok', 'bridge_down', 'bridge_up', 'image_download_failed'];
 const OTHER = '__other__';
 
-/** base: fixed params ({machine} or {tenant}); showMachine: the staff page's machine column. */
-export function TelemetryList({ base = {}, showMachine = false }) {
+/**
+ * base: fixed params ({machine} or {tenant}); showMachine: the staff page's machine column.
+ * extra: the page's own filters {fields, count, reset()}, shown first in the same FilterBar (one
+ * "Filters" button on a phone).
+ */
+export function TelemetryList({ base = {}, showMachine = false, extra = null }) {
   const tz = useDisplayTz();
   const [type, setType] = useState('');
   const [other, setOther] = useState('');
@@ -62,13 +67,15 @@ export function TelemetryList({ base = {}, showMachine = false }) {
 
   return (
     <>
-      <div className={styles.filters} role="group" aria-label={t('tel.type')}>
+      <FilterBar label={t('tel.filters')} count={[type, from, to].filter(Boolean).length + (extra?.count ?? 0)}
+        onReset={() => { setType(''); setOther(''); setFrom(null); setTo(null); extra?.reset(); }}>
+        {extra?.fields}
         <Select aria-label={t('tel.type')} value={type} onChange={setType} className={styles.type} popupMatchSelectWidth={false}
           options={[{ value: '', label: t('tel.type.all') }, ...EVENT_TYPES.map((x) => ({ value: x, label: x })), { value: OTHER, label: t('tel.type.other') }]} />
         {type === OTHER && <Input aria-label={t('tel.type.other')} value={other} onChange={(e) => setOther(e.target.value)} className={styles.other} />}
         <DatePicker aria-label={t('tel.from')} placeholder={t('tel.from')} format="D MMM YYYY" value={from ? dayjs(from) : null} onChange={day(setFrom)} />
         <DatePicker aria-label={t('tel.to')} placeholder={t('tel.to')} format="D MMM YYYY" value={to ? dayjs(to) : null} onChange={day(setTo)} />
-      </div>
+      </FilterBar>
       {query.isPending && <PageSkeleton rows={6} />}
       {query.error && <ErrorPanel error={query.error} onRetry={query.refetch} />}
       {query.data && (

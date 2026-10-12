@@ -22,6 +22,19 @@ Vite proxies `/api` and `/files` to `DASHBOARD_API_URL` (default
 `http://127.0.0.1:8790`), so the browser sees one origin and the session
 cookie works. The dev server sends no CSP; the built app is what runs under it.
 
+**Signing in.** The dev database (`server/.data/`, kept between runs; seed
+once) has no known password: create a FuelBot admin with
+`cd server && npm run create-admin -- --email=you@fuelbot.example` (a
+hidden prompt asks for the password), pick a tenant in the top bar, and add
+tenant users on its Users page. Re-running `npm run seed` resets the six
+sample products, DEV00001's menu and the tenant's branding; users, sales,
+other machines and keys stay.
+
+**A demo with sample data:** `npm run build && node e2e/server.mjs`, then
+http://127.0.0.1:8795/dashboard/ with the test accounts below. It's in
+memory: every start is a fresh seed, and nothing is kept. Stop it before
+`npm run e2e` (same port).
+
 ## Build (what production serves)
 
 ```sh
@@ -47,7 +60,7 @@ npm run e2e     # build, then Playwright on the installed Chrome
 in-memory MongoDB, **port 8795**, seeded by `e2e/seed.mjs`), and runs
 `e2e/*.spec.js` headless at three widths: phone 390, tablet 820, desktop
 1440. Every test fails on a CSP violation, a page error, or horizontal page
-overflow (`e2e/fixtures.js`).
+overflow (`e2e/fixtures.js`; checked on every screenshot too).
 
 - **Screenshots** land in `.screenshots/<project>-<name>.png` (gitignored).
   Look at them: overflow, clipping, wrong role controls, unreadable states.

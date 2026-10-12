@@ -1,11 +1,9 @@
-// SRV-47: staff's Tenants page and a machine's Maintenance, Telemetry and Faults tabs. Desktop first
-// (DP §0.1 row 3). Specs that write reset.
-import { CSRF, expect, PASSWORD, resetData, test, USERS } from './fixtures.js';
-
-test.skip(({ viewport }) => viewport.width < 1100, 'desktop first (DP §0.1 row 3)');
+// SRV-47: staff's Tenants page and a machine's Maintenance, Telemetry and Faults tabs. All three
+// widths. Specs that write reset.
+import { CSRF, expect, isPhone, modalReady, openFilters, PASSWORD, resetData, test, USERS } from './fixtures.js';
 
 const KIOSK = 'http://127.0.0.1:8795/fuelbot/config';
-const row = (page, text) => page.locator('main tbody tr').filter({ hasText: text });
+const row = (page, text) => page.locator('main [data-row]').filter({ hasText: text });
 
 /** DEV00001's kiosk config, with a key issued for the test (the seeded one isn't kept). */
 async function kioskConfig(page) {
@@ -14,11 +12,6 @@ async function kioskConfig(page) {
   const res = await page.request.get(KIOSK, { headers: { 'X-Tenant-Id': 'powerfuel', 'X-Machine-Id': 'DEV00001', Authorization: `Bearer ${key}` } });
   expect(res.status()).toBe(200);
   return res.json();
-}
-
-async function modalReady(page, dialog) {
-  await expect(dialog).toBeVisible();
-  await expect.poll(() => dialog.evaluate((el) => getComputedStyle(el.closest('.ant-modal') ?? el).opacity)).toBe('1');
 }
 
 test("staff creates a tenant; a duplicate id → 'That id is taken'", async ({ page, request, signInAs, shot }) => {
@@ -32,6 +25,9 @@ test("staff creates a tenant; a duplicate id → 'That id is taken'", async ({ p
     const d = page.getByRole('dialog');
     await d.getByLabel('Id').fill('globex');
     await d.getByLabel('Name', { exact: true }).fill('Another Globex');
+    await modalReady(page, d);
+    await page.mouse.move(1, 1);
+    await shot('tenants-new', { fullPage: false });
     await d.getByRole('button', { name: 'Create tenant' }).click();
     await expect(d.locator('.ant-form-item-explain-error').filter({ hasText: 'That id is taken' })).toBeVisible();
     await d.getByLabel('Id').fill('acme');
@@ -126,15 +122,18 @@ test('telemetry tab lists cycles with a stage timeline and filters by type', asy
   await page.goto('t/powerfuel/machines/DEV00001/telemetry');
   const cycles = row(page, 'dispense_cycle');
   await expect(cycles.first()).toBeVisible();
-  await cycles.first().getByRole('button', { name: /expand/i }).click();
-  const timeline = page.getByRole('figure', { name: 'Stages of the dispense cycle' });
+  if (!isPhone(page)) await cycles.first().getByRole('button', { name: /expand/i }).click();   // a phone card shows it
+  // Desktop and tablet: the expanded row (one figure); a phone shows every card's.
+  const timeline = page.getByRole('figure', { name: 'Stages of the dispense cycle' }).first();
   await expect(timeline).toContainText('HOMING_DONE');
   await page.mouse.move(1, 1);
   await shot('telemetry-expanded');
   await expect(cycles.first().getByRole('link')).toHaveAttribute('href', /\/orders\/E2E-PF-\d{4}$/);
+  const close = await openFilters(page);
   await page.getByRole('combobox', { name: 'Event type' }).click();
   await page.locator('.ant-select-dropdown:visible').getByTitle('machine_fault', { exact: true }).click();
-  await expect(page.locator('main tbody tr.ant-table-row')).toHaveCount(1);
+  await close();
+  await expect(page.locator('main [data-row]')).toHaveCount(1);
   await expect(row(page, 'machine_fault')).toContainText('HOMING_TIMEOUT');
 });
 

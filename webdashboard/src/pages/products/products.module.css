@@ -1,4 +1,4 @@
-/* Products (dashboard plan §5.11). Desktop first. Colours from tokens.css only. */
+/* Products (dashboard plan §5.11). Colours from tokens.css only. */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -123,4 +123,10 @@
 .footerActions {
   display: flex;
   gap: 8px;
+}
+
+@media (max-width: 759px) {
+  .search {
+    width: 100%;
+  }
 }
