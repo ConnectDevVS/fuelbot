@@ -135,8 +135,9 @@ of commit `cb8ee54`; there are no earlier releases.
 ### Verified
 
 - **Automated**: app 225 tests, Python 81, server 201, dashboard unit 94;
-  dashboard browser tests at phone, tablet and desktop (2026-09-30), and
-  desktop again for this release (120 passed).
+  dashboard browser tests on this release's code at all three widths
+  (2026-10-13): desktop 120 passed, phone and tablet 232 passed, 0 failed
+  (11 skipped by design: API-only and layout-specific tests).
 - **Real app against the real server** (2026-09-29): a price change and a
   menu override reached the kiosk; maintenance on/off took effect within
   seconds; a paid order and a timed-out order appeared correctly in the
@@ -167,6 +168,5 @@ of commit `cb8ee54`; there are no earlier releases.
   (`devdocs/plans/greenfield-rewrite.md`).
 - **Staging**: replace the seeded `DEV00001` dev key in the dashboard if the
   database was seeded.
-- **Before production**: run the full dashboard browser suite at all three
-  widths on the release commit, and follow the guide's production
-  checklist.
+- **Before production**: follow the guide's production checklist, and run
+  the dashboard browser suite again if anything changed since 13 October.

@@ -33,6 +33,14 @@ machine id, order id or name (it found the seed's Globex machine carrying
 "PowerFuel Gym / Bay 02" as its site, imported from the default config:
 seed data, fixed in the seed).
 
+**Re-run on 2026-10-13** (release 0.1.0, after the SRV-49 part 2 commit and
+the staging tag), dashboard rebuilt first: server 201, dashboard unit 94,
+lint and build PASS; browser desktop 120 passed + 1 skipped, phone and
+tablet 232 passed + 10 skipped (API-only and layout-specific specs skip by
+design), 0 failed at any width. The harness checks (overflow, CSP, page
+errors) passed on every screen; the screenshots weren't reviewed by eye
+again (last review: 2026-09-30, below).
+
 ## Screenshots looked at
 
 Every story's screenshots were looked at when it was built (the commit
