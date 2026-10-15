@@ -1,5 +1,5 @@
 class_name Palette
-## Design tokens measured from designs/GMRFuelBot-OnDevice-SsampleScreens.pdf.
+## Design tokens measured from docs/designs/GMRFuelBot-OnDevice-SsampleScreens.pdf.
 ## The only place colour literals live.
 
 const BG := Color("#111215")

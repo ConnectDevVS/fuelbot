@@ -1,7 +1,7 @@
 class_name ReportQueue
 extends RefCounted
 ## A durable outbound queue of JSON records, POSTed one at a time, oldest first
-## (devdocs/stories/telemetry/TEL-05; Milestone 6's SalesReporter reuses it).
+## (docs/stories/telemetry/TEL-05; Milestone 6's SalesReporter reuses it).
 ## - Durable before network: every change is written to disk atomically (tmp + rename).
 ## - 2xx: removed. 408/429/5xx/connection error: kept and retried on a timer.
 ## - 401/403: kept and retried. The machine isn't identified or authorised yet (no machine id or

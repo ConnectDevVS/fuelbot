@@ -1,5 +1,5 @@
 extends Node
-## Receives the bridge's JSON events on UDP 4246 (devdocs/stories/telemetry/README.md),
+## Receives the bridge's JSON events on UDP 4246 (docs/stories/telemetry/README.md),
 ## stamps what the bridge can't know, and posts them via a durable ReportQueue.
 ##   dispense_cycle, machine_fault, machine_ok -> enriched, queued, POSTed
 ##   bridge_status (heartbeat, every 10 s)     -> machine health only, never posted

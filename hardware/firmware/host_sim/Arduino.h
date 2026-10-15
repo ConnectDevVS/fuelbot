@@ -1,5 +1,5 @@
 // Host-only Arduino API for the firmware simulator (sim.cpp) and the syntax check
-// (tools/check_firmware.sh). Declarations only; sim.cpp implements them against a
+// (hardware/tools/check_firmware.sh). Declarations only; sim.cpp implements them against a
 // simulated board. Just enough of the core for VM_code.ino.
 #pragma once
 #include <stdint.h>

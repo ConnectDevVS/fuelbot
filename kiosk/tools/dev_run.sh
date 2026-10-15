@@ -94,7 +94,7 @@ MSG
 fi
 bridge_note="running on :$order_port"
 if udp_port_free "$order_port"; then
-	bridge_note="NONE on :$order_port. Orders will fail after the safety cap. Start one: python3 tools/fake_dispense_bridge.py --mode done"
+	bridge_note="NONE on :$order_port. Orders will fail after the safety cap. Start one (from the repo root): python3 hardware/tools/fake_dispense_bridge.py --mode done"
 fi
 
 "$GODOT" --headless --path . --import >/dev/null 2>&1 || true

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Prints every UDP packet sent to the bridge ports (dev aid; stdlib only).
 
-Usage: python3 tools/udp_monitor.py [--ports 4242] [--host 127.0.0.1]
+Usage: python3 hardware/tools/udp_monitor.py [--ports 4242] [--host 127.0.0.1]
 Default: 4242, where the app sends ORDER/CANCEL (protocol v2).
 Only one process may bind a port, so it can't run alongside the real bridge
-or tools/fake_dispense_bridge.py. The app binds 4245 (bridge results), so
+or hardware/tools/fake_dispense_bridge.py. The app binds 4245 (bridge results), so
 --ports 4242,4245 works only while the app isn't running.
 """
 import argparse

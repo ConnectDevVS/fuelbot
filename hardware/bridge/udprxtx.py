@@ -15,8 +15,8 @@
 
 Single-cup machine: one order at a time. Never blocks without a deadline.
 Standard library only (termios serial; no pyserial). Python 3.9+.
-See devdocs/stories/dispensing/README.md (protocol) and
-devdocs/stories/telemetry/README.md (telemetry events, machine health).
+See docs/stories/dispensing/README.md (protocol) and
+docs/stories/telemetry/README.md (telemetry events, machine health).
 
 Usage: python3 hardware/bridge/udprxtx.py [--serial /dev/arduino] [--deadline 110] ...
 """

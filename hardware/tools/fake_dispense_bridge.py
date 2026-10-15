@@ -2,10 +2,10 @@
 """Fake hardware bridge for the Level 0 test rig (plan §6): stands in for
 hardware/bridge/udprxtx.py so the app's dispensing flow runs with no hardware.
 
-Usage: python3 tools/fake_dispense_bridge.py [--mode done|timeout|reject|silent] [--delay 8]
+Usage: python3 hardware/tools/fake_dispense_bridge.py [--mode done|timeout|reject|silent] [--delay 8]
            [--homing-fault-sec N] [--heartbeat-sec 10]
 Binds the order port (4242) like the real bridge, so it can't run alongside
-udprxtx.py or tools/udp_monitor.py. Replies to the app on 4245:
+udprxtx.py or hardware/tools/udp_monitor.py. Replies to the app on 4245:
   done    -> DONE <id>              after --delay
   timeout -> TIMEOUT <id> deadline  after --delay
   reject  -> REJECTED <id> busy     at once
@@ -28,7 +28,7 @@ import time
 from typing import Callable, List, Optional, Tuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "..", "hardware", "bridge"))
+sys.path.insert(0, os.path.join(HERE, "..", "bridge"))
 sys.path.insert(0, HERE)
 import udprxtx  # noqa: E402
 import fake_arduino_serial  # noqa: E402

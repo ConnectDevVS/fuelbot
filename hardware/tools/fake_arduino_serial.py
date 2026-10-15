@@ -2,7 +2,7 @@
 """Fake Arduino for the Level 1 test rig (plan §6): mimics hardware/firmware/VM_code.ino
 over a PTY, so the real bridge (hardware/bridge/udprxtx.py) can run with no board.
 
-Usage: python3 tools/fake_arduino_serial.py [--time-scale 1.0]
+Usage: python3 hardware/tools/fake_arduino_serial.py [--time-scale 1.0]
            [--fault none|never_done|silent|disconnect|homing_timeout|homing_flaky]
            [--assigned 1,2,3,4] [--link PATH]
 Prints "SERIAL <pty path>" first; point the bridge at it (or at --link):

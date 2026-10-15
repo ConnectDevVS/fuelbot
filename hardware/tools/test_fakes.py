@@ -1,5 +1,5 @@
 """Tests for the test-rig fakes, plus the automated Level 1 run (real bridge + fake Arduino).
-Run: python3 -m unittest tools/test_fakes.py"""
+Run: python3 -m unittest hardware/tools/test_fakes.py"""
 import json
 import os
 import socket
@@ -10,7 +10,7 @@ import time
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BRIDGE_DIR = os.path.join(HERE, "..", "hardware", "bridge")
+BRIDGE_DIR = os.path.join(HERE, "..", "bridge")
 sys.path.insert(0, HERE)
 sys.path.insert(0, BRIDGE_DIR)
 import fake_arduino_serial as fa  # noqa: E402

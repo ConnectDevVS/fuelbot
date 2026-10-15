@@ -1,5 +1,5 @@
 extends Node
-## One billing record per paid order (plan §3.12, devdocs/stories/sales/README.md), POSTed
+## One billing record per paid order (plan §3.12, docs/stories/sales/README.md), POSTed
 ## via a durable ReportQueue to api.base_url + api.sales_path. Recorded by the dispensing
 ## screen once the outcome is known: dispensing_result success | timeout | rejected |
 ## no_response. order_id is the backend's dedupe key; a second report for it is ignored.

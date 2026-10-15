@@ -1,6 +1,6 @@
 extends Node
 ## UDP link to the hardware bridge (hardware/bridge/udprxtx.py), protocol v2
-## (devdocs/stories/dispensing/README.md):
+## (docs/stories/dispensing/README.md):
 ##   app -> bridge  4242  ORDER <order_id> P<hopper> B<n>    once, only after payment (plan §3.2)
 ##                  4242  CANCEL <order_id>                  cancel/failure/expiry (informational)
 ##   bridge -> app  4245  DONE <order_id>

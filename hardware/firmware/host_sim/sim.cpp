@@ -1,5 +1,5 @@
 // Firmware host simulator: runs hardware/firmware/VM_code.ino against a simulated
-// Arduino Mega + machine (devdocs/stories/telemetry/TEL-01). Not an AVR emulator:
+// Arduino Mega + machine (docs/stories/telemetry/TEL-01). Not an AVR emulator:
 // time is delay() arithmetic; registers and interrupts aren't modelled.
 //
 //   sim [--start-pos N] [--broken-limit FROM:TO]... [--at T:LINE]... [--until S] [--max-boots N]

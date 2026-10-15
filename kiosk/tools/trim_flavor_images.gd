@@ -1,6 +1,6 @@
 extends SceneTree
 ## Trims the transparent border off the bundled flavor images and scales them down to fit
-## 600 x 800 (the S3 image spec, devdocs/image-spec.md), in place. Idempotent.
+## 600 x 800 (the S3 image spec, docs/image-spec.md), in place. Idempotent.
 ## godot --headless --path . --script res://tools/trim_flavor_images.gd
 ## then: godot --headless --path . --import
 ## Images README decision 16: done once, as files, not at every load on the Pi.

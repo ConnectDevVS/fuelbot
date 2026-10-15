@@ -1,5 +1,5 @@
 extends Node
-## Flavor images from S3 (plan §3.14, devdocs/stories/images/README.md).
+## Flavor images from S3 (plan §3.14, docs/stories/images/README.md).
 ## Each enabled flavor's image_url is downloaded once, checked (PNG/JPEG/WebP, size, pixels),
 ## trimmed of transparent borders and cached in cache_dir under the URL's file name. A known
 ## file name is never downloaded again; the backend gives every changed image a new name.
