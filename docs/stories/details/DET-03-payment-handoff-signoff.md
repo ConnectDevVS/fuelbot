@@ -17,7 +17,7 @@ scenes/flavor_detail/flavor_detail.gd  # _proceed() wired
 config/local_settings.json             # + payment stub strings/timing
 tests/unit/test_payment_handoff.gd
 tests/unit/test_order_state_nav.gd     # + PAYMENT path exists
-devdocs/stories/details/SIGNOFF.md
+docs/stories/details/SIGNOFF.md
 CLAUDE.md                              # updated (see below)
 ```
 
@@ -73,7 +73,7 @@ Strings and timing to add:
 
 ### `SIGNOFF.md`
 
-Use the same shape as `devdocs/stories/idle/SIGNOFF.md`: automated checks,
+Use the same shape as `docs/stories/idle/SIGNOFF.md`: automated checks,
 the flow, visual comparison with PDF page 3 (guava, electro, offline), and
 deliberate differences (for example the demo product photo, sample ingredient
 data, and no allergen icons). Record any issues found while executing.

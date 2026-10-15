@@ -11,8 +11,8 @@ Depends on: TEL-01 … TEL-06.
 ## Deliverables
 
 ```
-devdocs/stories/telemetry/SIGNOFF.md
-devdocs/plans/greenfield-rewrite.md   # §0 log + status, §3.8, §3.10, §4, §5 (M5), §6, §7 step 11 notes
+docs/stories/telemetry/SIGNOFF.md
+docs/plans/greenfield-rewrite.md   # §0 log + status, §3.8, §3.10, §4, §5 (M5), §6, §7 step 11 notes
 README.md                             # telemetry, the simulator, the new fake options
 CLAUDE.md                             # new rules, commands, gotchas; the M4 "stuck board" open item closed
 ```

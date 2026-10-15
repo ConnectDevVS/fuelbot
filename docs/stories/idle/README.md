@@ -4,10 +4,10 @@ Stories that take this repo from empty to a **launchable Godot 4.7 project**
 covering the idle part of the kiosk: the attract loop, the item listing, and
 the maintenance screen that idle redirects to. Source material:
 
-- Plan: [devdocs/plans/greenfield-rewrite.md](../../plans/greenfield-rewrite.md)
+- Plan: [docs/plans/greenfield-rewrite.md](../../plans/greenfield-rewrite.md)
   (§3.1 schema, §3.3 ConfigManager, §3.4 OrderState, §3.6 idle scene,
   §3.11 maintenance, §3.13 idle video, §5 Milestones 0/1/3, §7 verification)
-- Designs: [designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf)
+- Designs: [docs/designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf)
   - page 1 — **00 Attract / Tap to Start** → `scenes/idle/`
   - page 2 — **01 Item Listing / Idle** → `scenes/flavor_select/`
   - page 6 — **05 Maintenance (unbranded)** → `scenes/maintenance/`
@@ -40,7 +40,7 @@ tenant, and opens the app. Pressing F5 in the Godot editor works the same way
 ## Conventions (apply to every story)
 
 **Paths.** The Godot project root is the **repo root** (`project.godot` sits
-next to `devdocs/`). Every `res://` path in these stories is relative to it.
+next to `docs/`). Every `res://` path in these stories is relative to it.
 
 **Godot binary.** `godot` on `PATH` (verified: `4.7.2.stable.official`). Scripts
 read `${GODOT:-godot}` so another binary can be substituted.

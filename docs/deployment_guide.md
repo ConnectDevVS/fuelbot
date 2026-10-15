@@ -524,7 +524,7 @@ In the dashboard, as the admin:
 ### 8.3 Connect a kiosk (on the kiosk computer)
 
 Run this on the computer running the kiosk app (a Mac in development, the
-machine's Raspberry Pi later), in the repo folder, **not** on the server:
+machine's Raspberry Pi later), in the repo's `kiosk/` folder, **not** on the server:
 
 ```bash
 godot --headless --path . --script res://tools/dev_setup.gd -- \
@@ -541,7 +541,7 @@ dev settings):
 
 ```bash
 python3 mockserver/server.py --port 8787 &            # fake Razorpay
-python3 tools/fake_dispense_bridge.py --mode done &   # fake machine (omit on real hardware)
+python3 ../hardware/tools/fake_dispense_bridge.py --mode done &   # fake machine (omit on real hardware)
 godot --path .
 ```
 
@@ -557,7 +557,7 @@ mockserver/scenario.sh reset
 Keep the quotes (`{qr_id}` is part of the route name). The mock's QR isn't
 scannable, and it always "captures" ₹75 (the kiosk logs a mismatch warning
 for other prices and dispenses anyway). Real Razorpay test mode is a
-separate check: root `CLAUDE.md`, "Razorpay test-mode run".
+separate check: `kiosk/CLAUDE.md`, "Razorpay test-mode run".
 
 **Check:** the kiosk shows the dashboard's menu; the machine shows
 **Online** in the dashboard; an order appears under **Sales** after Refresh
@@ -626,7 +626,7 @@ Before a production server takes real machines:
 - [ ] The full browser test suite (`cd webdashboard && npm run e2e`, all
       three widths) passed on the deployed commit.
 - [ ] Monitoring: something polls `https://<domain>/healthz`.
-- [ ] Rotate the old Razorpay key quoted in `devdocs/plans/greenfield-rewrite.md`.
+- [ ] Rotate the old Razorpay key quoted in `docs/plans/greenfield-rewrite.md`.
 
 **Staging and production on one server** (if unavoidable): a different
 `PORT` per env file, one pm2 app each (two entries in

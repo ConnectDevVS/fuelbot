@@ -44,5 +44,5 @@ server on the same network is enough until hosting is decided).
   sign, upload, publish, promote, pause, withdraw, retry; what to do when a
   machine is behind; replacing a lost or leaked signing key).
 - Kiosk plan §0/§5 (Milestone 9 status), server plan §0, dashboard plan
-  status, root CLAUDE.md (the "writes only under `user://`" rule; how to cut
+  status, kiosk/CLAUDE.md (the "writes only under `user://`" rule; how to cut
   a release), README.

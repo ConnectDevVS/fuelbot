@@ -4,7 +4,7 @@
 and to ask it to step aside, **so that** an update never interrupts a
 customer and a broken update is noticed.
 
-Refs: README decisions 3, 14, 15; root CLAUDE.md (idle is the only
+Refs: README decisions 3, 14, 15; kiosk/CLAUDE.md (idle is the only
 enforcement point; atomic writes; sandboxed tests).
 Depends on: OTA-01 (the version in the state file).
 
@@ -40,7 +40,7 @@ every 10 s), and every 60 s otherwise:
   other scene.
 - `written_at` lets the updater tell a live app from a stale file (older
   than 2 minutes = the app isn't running properly).
-- Times are UTC with `Z` (root CLAUDE.md: Godot omits it).
+- Times are UTC with `Z` (kiosk/CLAUDE.md: Godot omits it).
 
 ### `user://update_request.json` (written by the updater, read by the app)
 
@@ -62,7 +62,7 @@ leave the machine without its app.
 ### Sandbox and tests
 
 Both paths go through `ConfigManager.user_path()` so tests and
-`check_boot.sh` use `user://sandbox/` (root CLAUDE.md: a new autoload that
+`check_boot.sh` use `user://sandbox/` (kiosk/CLAUDE.md: a new autoload that
 keeps a `user://` file maps its default through `user_path()`).
 `tests/test_runner.gd` points them at `user://test_runner/`.
 
@@ -85,7 +85,7 @@ its binary: the release folders are replaced on update.
       only after the order ends (scene test with `Nav.dry_run`).
 - [ ] Removing the request clears `UPDATING`.
 - [ ] Sandboxed runs never touch the real `user://` files (fingerprint check
-      as in root CLAUDE.md).
+      as in kiosk/CLAUDE.md).
 - [ ] `run_tests.sh` fails on a test file that writes outside `user://`
       (prove the check with a deliberate bad sample, then remove it).
 - [ ] Screenshot of the "Updating" maintenance screen, looked at.

@@ -8,7 +8,7 @@ records the server refuses for identity reasons.
 - Plan: [server-plan.md](../../plans/server-plan.md) §3 (the contract, all
   of it), §4.1 (models), §4.2, §4.5 (health), §6 S1, §7 contract tests 1–3.
 - Conventions: [server/CLAUDE.md](../../../CLAUDE.md); for the app story,
-  the root [CLAUDE.md](../../../../CLAUDE.md).
+  the kiosk's [CLAUDE.md](../../../../kiosk/CLAUDE.md).
 
 ## Execution order
 

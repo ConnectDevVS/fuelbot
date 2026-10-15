@@ -6,14 +6,14 @@ drives the Arduino and reports **`DONE`** or **`TIMEOUT`** back on UDP 4245.
 The **Thank You / Dispensing** screen shows blending progress, then the
 collect state, then returns to attract.
 
-- Design: [designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf),
+- Design: [docs/designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf),
   **page 5, "04 Thank You / Dispensing"**.
 - Plan: [greenfield-rewrite.md](../../plans/greenfield-rewrite.md) §0 decision
   log, §3.2 (hopper rule), §3.7 (dispensing signal), §5 Milestone 4, §6 (test
   rig levels), §7 steps 5, 7, 8.
 - Old working logic to port (not copy): `fuelbotsource_og/VM_code.ino`
   (firmware) and `fuelbotsource_og/udprxtx.py` (bridge). Both are read-only.
-- Conventions, gotchas and test patterns: [CLAUDE.md](../../../CLAUDE.md).
+- Conventions, gotchas and test patterns: [CLAUDE.md](../../../kiosk/CLAUDE.md).
   This set assumes them.
 
 ## Goals

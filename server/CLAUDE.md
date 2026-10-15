@@ -1,6 +1,6 @@
 # server/CLAUDE.md
 
-Rules for working on the backend. The root [CLAUDE.md](../CLAUDE.md) covers
+Rules for working on the backend. The kiosk's [CLAUDE.md](../kiosk/CLAUDE.md) covers
 the Godot kiosk app. Read it only when a change touches the app.
 
 - **Source of truth:** [devdocs/plans/server-plan.md](devdocs/plans/server-plan.md).
@@ -23,7 +23,7 @@ the Godot kiosk app. Read it only when a change touches the app.
 - `npm run create-admin -- --email=… [--name=…]`: a platform_admin (hidden
   password prompt, or `ADMIN_PASSWORD`).
 - **The real app against this server:** start db + seed + server, then
-  `tools/dev_run.sh --backend=server` from the repo root (config, telemetry and
+  `kiosk/tools/dev_run.sh --backend=server` (config, telemetry and
   sales go to :8790; Razorpay stays on the mock).
 
 ## Rules
@@ -75,12 +75,13 @@ the Godot kiosk app. Read it only when a change touches the app.
   only the changed fields (`diff()`). It scrubs secret-named keys anyway.
 - `createApp({settings})` takes its dependencies; tests build one per
   file (`test/helpers.js`).
-- `server/.gdignore` keeps Godot out of `node_modules/`. Don't remove it.
+- No `.gdignore` needed: since 2026-10-15 the Godot project is `kiosk/`, which
+  never sees `server/` or its `node_modules/`.
 - **The dashboard's CSP lives in `src/dashboard.js`** (dashboard plan §2.4):
   `index.html` is rendered per request with a fresh style nonce (Ant Design
   writes styles at runtime), never served by `express.static`, and sent
   `no-store`. Never add `unsafe-inline`; the API keeps helmet's default CSP.
-- `mockserver/` stays the app's test backend. Server work never depends on it at
+- `kiosk/mockserver/` stays the app's test backend. Server work never depends on it at
   runtime (tests read its JSON as contract fixtures); app stories may add scenarios.
 
 ## Gotchas

@@ -11,8 +11,8 @@ Depends on: SAL-01 … SAL-03.
 ## Deliverables
 
 ```
-devdocs/stories/sales/SIGNOFF.md
-devdocs/plans/greenfield-rewrite.md   # §0 log + status, §3.10, §3.12, §4, §5 (M6)
+docs/stories/sales/SIGNOFF.md
+docs/plans/greenfield-rewrite.md   # §0 log + status, §3.10, §3.12, §4, §5 (M6)
 README.md, CLAUDE.md
 ```
 

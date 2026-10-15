@@ -12,8 +12,8 @@ Depends on: PAY-05.
 ## Deliverables
 
 ```
-devdocs/stories/payment/SIGNOFF.md
-devdocs/plans/greenfield-rewrite.md    # §0 + §5: Milestone 2 status; record the real close_by minimum
+docs/stories/payment/SIGNOFF.md
+docs/plans/greenfield-rewrite.md    # §0 + §5: Milestone 2 status; record the real close_by minimum
 CLAUDE.md                              # payment rules, mock features, gotchas found
 README.md                              # payments section: mock vs test keys, credentials file
 ```

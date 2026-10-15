@@ -15,7 +15,7 @@ deploy/systemd/fuelbot-bridge.service, fuelbot-app.service      # run from /opt/
 deploy/systemd/fuelbot-updater.service, fuelbot-updater.timer   # (from OTA-04)
 deploy/provision.sh            # one Pi: install units, key, first release, identity
 deploy/README.md               # building a machine, step by step
-devdocs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
+docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
 ```
 
 ## Spec

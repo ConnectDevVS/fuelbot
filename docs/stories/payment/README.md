@@ -4,7 +4,7 @@ Replaces the payment stub with a real **Scan to pay** flow. A dynamic
 Razorpay UPI QR is created, payment status is checked for, and the hopper
 command goes to the bridge only **after** payment succeeds.
 
-- Design: [designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf),
+- Design: [docs/designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf),
   **page 4, "03 Payment — waiting for UPI"**.
 - Plan: [greenfield-rewrite.md](../../plans/greenfield-rewrite.md) §0 decision
   log, §3.2 (hopper rule), §3.4 (OrderState: `order_id`, `order_number`),
@@ -12,7 +12,7 @@ command goes to the bridge only **after** payment succeeds.
 - Old working logic to port (not copy): `fuelbotsource_og/second.gd` (QR
   create/poll) and `fuelbotsource_og/udprxtx.py` (bridge protocol). **That
   file contains a live key: never copy credentials out of it.**
-- Conventions, gotchas and test patterns: [CLAUDE.md](../../../CLAUDE.md).
+- Conventions, gotchas and test patterns: [CLAUDE.md](../../../kiosk/CLAUDE.md).
   This set assumes them.
 
 ## Execution order

@@ -134,7 +134,6 @@ views intact):**
 webdashboard/
 ├── CLAUDE.md            rules for changing the dashboard (SRV-30)
 ├── README.md            how to run, build and test it
-├── .gdignore            Godot must never scan node_modules/ (like server/.gdignore)
 ├── package.json         scripts: dev, build, preview, test (vitest), e2e (playwright), lint
 ├── vite.config.js       base '/dashboard/'; dev proxy /api and /files → DASHBOARD_API_URL (default http://127.0.0.1:8790)
 ├── playwright.config.js projects: phone 390×844, tablet 820×1180, desktop 1440×900
@@ -1385,7 +1384,7 @@ AT               USER                  ACTION         TARGET       TENANT · MAC
 ### 5.19 Software and releases (platform; OTA set, planned 2026-10-09)
 
 Over-the-air updates (kiosk plan Milestone 9; server plan §3.8–3.10,
-§4.14). Built in [OTA-06](../../../devdocs/stories/ota/OTA-06-dashboard.md),
+§4.14). Built in [OTA-06](../../../docs/stories/ota/OTA-06-dashboard.md),
 which has the full spec. Platform-only, like Telemetry and Faults: tenant
 roles get no tab, no page, no request and no keys (the leak scan proves it).
 

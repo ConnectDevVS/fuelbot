@@ -176,7 +176,7 @@ mutate the real autoload).
       `--payments=razorpay-test` without real creds exits 1 with instructions.
       `--clear` removes creds.
 - [ ] `tools/run_tests.sh`, `tools/check_boot.sh` and the mock tests pass.
-      `git grep -nE "rzp_(live|test)_[A-Za-z0-9]{6,}" -- ':!devdocs'` is empty.
+      `git grep -nE "rzp_(live|test)_[A-Za-z0-9]{6,}" -- ':!docs'` is empty.
 
 ## Out of scope
 

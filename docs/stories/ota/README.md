@@ -15,7 +15,7 @@ doesn't come up healthy.
 - Builds on: machine identity and keys (server S1, S4), `ReportQueue`, the
   local fault set and the maintenance screen (Milestones 5–6), the
   dashboard (S7).
-- Conventions, gotchas and test patterns: [CLAUDE.md](../../../CLAUDE.md)
+- Conventions, gotchas and test patterns: [CLAUDE.md](../../../kiosk/CLAUDE.md)
   (kiosk), [server/CLAUDE.md](../../../server/CLAUDE.md),
   [webdashboard/CLAUDE.md](../../../webdashboard/CLAUDE.md).
 
@@ -59,6 +59,12 @@ Pi: fuelbot-updater ── download, verify ──▶ /opt/fuelbot/releases/<ver
 - **The server** (OTA-05) decides each machine's target version from the
   release's rollout stage, the machine's pin, and staff's "Update now".
 
+**Paths (since 2026-10-15).** The Godot project lives in `kiosk/`: paths
+like `tools/run_tests.sh`, `autoload/`, `tests/` or `project.godot` in these
+stories are relative to `kiosk/` (see [kiosk/CLAUDE.md](../../../kiosk/CLAUDE.md)).
+Bridge and firmware tools are in `hardware/tools/`; `deploy/` (OTA-04) is a
+new top-level folder.
+
 ## Execution order
 
 | # | Story | Depends on | Produces |
@@ -84,10 +90,10 @@ Per area, as in the existing sets:
 
 - **Kiosk, bridge, firmware, tools:** `tools/run_tests.sh` → `ALL TESTS
   PASSED`, `tools/check_boot.sh` → `BOOT OK`, the Python tests → `OK`
-  (`python3 -m unittest mockserver/test_server.py
-  hardware/bridge/test_udprxtx.py tools/test_fakes.py
+  (`python3 -m unittest kiosk/mockserver/test_server.py
+  hardware/bridge/test_udprxtx.py hardware/tools/test_fakes.py
   hardware/firmware/test_firmware.py`, plus `deploy/updater/test_updater.py`
-  from OTA-04), `tools/check_firmware.sh` when the sketch changes, and a
+  from OTA-04), `hardware/tools/check_firmware.sh` when the sketch changes, and a
   screenshot that's looked at for UI changes.
 - **Server:** `cd server && npm test`.
 - **Dashboard:** the gate in [webdashboard/CLAUDE.md](../../../webdashboard/CLAUDE.md)

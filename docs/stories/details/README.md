@@ -3,13 +3,13 @@
 Replaces the temporary `flavor_detail` stub with the real **Ingredients &
 Allergens** screen, the step between tapping a drink and paying.
 
-- Design: [designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf),
+- Design: [docs/designs/GMRFuelBot-OnDevice-SsampleScreens.pdf](../../designs/GMRFuelBot-OnDevice-SsampleScreens.pdf),
   **page 3, "02 Ingredients & Allergens"**.
 - Plan refs: [greenfield-rewrite.md](../../plans/greenfield-rewrite.md) §3.1
   (flavor `ingredients`/`allergens` were wired as data "for whenever UI work
   picks it up"), §3.2 (charge price), §3.4 (OrderState).
 - Builds on the idle set ([../idle/](../idle/README.md)). Follow
-  [CLAUDE.md](../../../CLAUDE.md) for conventions, gotchas and the test
+  [CLAUDE.md](../../../kiosk/CLAUDE.md) for conventions, gotchas and the test
   patterns. This set assumes them rather than repeating them.
 
 ## Execution order

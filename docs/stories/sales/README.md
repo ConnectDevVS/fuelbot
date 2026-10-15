@@ -13,7 +13,7 @@ never takes money for a drink it can't make.
 - The maintenance half of Milestone 6 (the screen and the remote poll) was
   built early in the idle set. Here it only gets re-verified (§7 step 10) and
   extended for multiple local faults.
-- Conventions: [CLAUDE.md](../../../CLAUDE.md).
+- Conventions: [CLAUDE.md](../../../kiosk/CLAUDE.md).
 
 ## Execution order
 

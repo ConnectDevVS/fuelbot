@@ -16,7 +16,7 @@ tools/make_release.sh           # export, pack, manifest, sign
 tools/verify_release.sh         # the same checks the updater makes, for the release Mac
 tools/test_release.py           # tests for the two scripts (temporary folders, a throwaway key)
 tools/run_tests.sh              # leak grep extended to the signing key's marker
-devdocs/stories/ota/RELEASING.md   # how to build, sign and publish (first draft; OTA-09 finishes it)
+docs/stories/ota/RELEASING.md   # how to build, sign and publish (first draft; OTA-09 finishes it)
 ```
 
 ## Spec

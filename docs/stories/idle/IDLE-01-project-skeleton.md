@@ -30,7 +30,7 @@ Also create these empty directories, each holding a `.gitkeep`: `autoload/`,
 `scenes/maintenance/`, `ui/components/`, `assets/images/flavors/`,
 `assets/images/branding/`, `assets/video/`, `assets/fonts/`, `assets/theme/`.
 
-Add an empty **`.gdignore`** to `devdocs/` and `designs/`. Godot then skips
+Add an empty **`.gdignore`** to `docs/` and `docs/designs/`. Godot then skips
 them: no import of the PDF, and they are never exported. Files in a
 `.gdignore`d folder can still be read with `FileAccess` via `res://` when
 running from the project directory, which IDLE-03 relies on for `mockserver/`.
@@ -248,7 +248,7 @@ IDLE-05 insert their autoloads **above** it, so it always stays last.
       no capture.
 - [ ] Opening the project in the Godot editor and pressing F5 shows a 540×960
       window with the placeholder.
-- [ ] The Godot editor's FileSystem dock shows neither `devdocs/` nor `designs/`.
+- [ ] The Godot editor's FileSystem dock shows neither `docs/` nor `docs/designs/`.
 - [ ] `git status` shows no `.godot/` directory and no `.screenshots/`
       directory.
 

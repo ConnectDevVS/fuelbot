@@ -11,9 +11,9 @@ Depends on: DSP-01 … DSP-05.
 ## Deliverables
 
 ```
-devdocs/stories/dispensing/SIGNOFF.md
+docs/stories/dispensing/SIGNOFF.md
 mockserver/responses/config/hopper_shuffle.json   # guava↔electro hoppers swapped (plan §7 step 5)
-devdocs/plans/greenfield-rewrite.md     # §0 log + status, §3.6, §3.7, §4, §5 (M4 status), §6 notes
+docs/plans/greenfield-rewrite.md     # §0 log + status, §3.6, §3.7, §4, §5 (M4 status), §6 notes
 README.md                               # running the bridge and the fakes
 CLAUDE.md                               # new rules, commands and gotchas
 ```

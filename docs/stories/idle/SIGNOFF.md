@@ -11,7 +11,7 @@ Executed 2026-09-24 on macOS (Apple M5), Godot 4.7.2.stable.official, branch
 | `python3 -m unittest mockserver/test_server.py` | PASS | `Ran 8 tests … OK` |
 | `tools/run_tests.sh` | PASS | `ALL TESTS PASSED (67)` |
 | `tools/check_boot.sh`, provisioned and after `--clear` | PASS | `BOOT OK` ×2 |
-| Credential grep (plan §7 step 12) | PASS for code and config, see note | Only hits are in `devdocs/`: the plan quotes the already-exposed key **ID** `rzp_live_Sjz0kAySedgQjK` (not the secret), which it flags for rotation |
+| Credential grep (plan §7 step 12) | PASS for code and config, see note | Only hits are in `docs/`: the plan quotes the already-exposed key **ID** `rzp_live_Sjz0kAySedgQjK` (not the secret), which it flags for rotation |
 | No `change_scene_to` outside `autoload/Nav.gd` | PASS | grep empty |
 
 ## Launch

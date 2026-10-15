@@ -16,8 +16,8 @@ rebuilding the screen.
   [telemetry set](../telemetry/README.md) (`TelemetryReporter.report_event`)
   and the [sales set](../sales/README.md) (test isolation in
   `tests/test_runner.gd`).
-- Image spec for the content team: [devdocs/image-spec.md](../../image-spec.md).
-- Conventions: [CLAUDE.md](../../../CLAUDE.md).
+- Image spec for the content team: [docs/image-spec.md](../../image-spec.md).
+- Conventions: [CLAUDE.md](../../../kiosk/CLAUDE.md).
 
 ## Execution order
 
@@ -26,7 +26,7 @@ rebuilding the screen.
 | 01 | [Schema, validation & mock images](IMG-01-schema-and-mock-images.md) | — | `image_url` in `normalise()`/`validate_config()`; generated mock images under `mockserver/assets/flavors/`; `image_url` in the mock catalog; scenarios `images_v2`, `images_broken`; mock `asset_counts` and `?delay_ms=` |
 | 02 | [`FlavorImages`: download, check, trim, cache](IMG-02-flavor-images-cache.md) | 01 | the autoload: one download at a time, limits, trim, `.tmp` + rename, flavor → file index, retry, cleanup, `image_download_failed`; test isolation |
 | 03 | [Screens: show order and in-place swap](IMG-03-screens.md) | 02 | `FlavorImages.get_texture()` in the card, details and payment summary; swap on `flavor_image_ready`; bundled fallbacks trimmed once as files |
-| 04 | [Image spec, end-to-end & sign-off](IMG-04-spec-e2e-signoff.md) | 01–03 | `devdocs/image-spec.md`; plan §7 step 4b run against the real app; SIGNOFF; plan / README / CLAUDE.md |
+| 04 | [Image spec, end-to-end & sign-off](IMG-04-spec-e2e-signoff.md) | 01–03 | `docs/image-spec.md`; plan §7 step 4b run against the real app; SIGNOFF; plan / README / CLAUDE.md |
 
 ## Definition of Done (every story)
 

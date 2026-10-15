@@ -17,7 +17,7 @@ done only after Part B confirms creation and close for real.
 | `python3 -m unittest mockserver/test_server.py` | PASS | `Ran 16 tests … OK` |
 | `tools/check_boot.sh` | PASS | `BOOT OK` |
 | No credentials logged | PASS | Booted with sentinel creds (`rzp_test_SENTINEL1` / `SENTINEL2`): 0 occurrences in the log, only `[Razorpay] ready (mode=test)`. `run_tests.sh` also greps `RazorpayManager.gd` for print/warn calls formatting keys |
-| No credentials committed | PASS | `git grep -nE "rzp_(live\|test)_[A-Za-z0-9]{6,}" -- ':!devdocs'` is empty. The only repo hit is the plan quoting the old, already-exposed key **ID** (flagged for rotation there) |
+| No credentials committed | PASS | `git grep -nE "rzp_(live\|test)_[A-Za-z0-9]{6,}" -- ':!docs'` is empty. The only repo hit is the plan quoting the old, already-exposed key **ID** (flagged for rotation there) |
 
 ## Part A — end to end against the mock (real `Nav`, synthetic taps)
 

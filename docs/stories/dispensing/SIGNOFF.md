@@ -21,7 +21,7 @@ done once Level 2 confirms the real board prints `STATUS:DONE` and the
 | `python3 -m unittest tools/test_fakes.py` | PASS | `Ran 13 tests … OK`, 3×. Includes the **automated Level 1** tests: normal → `DONE`, never-done → `TIMEOUT deadline`, hopper 5 → `TIMEOUT fault:HOPPER_UNASSIGNED`, disconnect → `TIMEOUT serial_lost` |
 | `tools/check_boot.sh` | PASS | `BOOT OK` |
 | `tools/check_firmware.sh` | PASS | `FIRMWARE SYNTAX OK`. It fails on a planted typo, and a variant with M5/M6 on real pins (so the `#if` branches compile) passes. **This is not an AVR compile:** `arduino-cli` isn't installed (decision 14) |
-| No credentials committed | PASS | `git grep -nE "rzp_(live\|test)_[A-Za-z0-9]{6,}" -- ':!devdocs'` matches only CLAUDE.md's documented test sentinel `rzp_test_SENTINEL1` (a placeholder, not a key). Nothing in `hardware/`, `tools/`, `scenes/`, `autoload/` or `config/` |
+| No credentials committed | PASS | `git grep -nE "rzp_(live\|test)_[A-Za-z0-9]{6,}" -- ':!docs'` matches only CLAUDE.md's documented test sentinel `rzp_test_SENTINEL1` (a placeholder, not a key). Nothing in `hardware/`, `tools/`, `scenes/`, `autoload/` or `config/` |
 
 ## Level 0 — app + mock payments + `tools/fake_dispense_bridge.py`
 

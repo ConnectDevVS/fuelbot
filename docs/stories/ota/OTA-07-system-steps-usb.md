@@ -19,7 +19,7 @@ autoload/RuntimeState.gd              # shows the updater's notices (user://noti
 config/local_settings.json            # messages: fault_usb_done, fault_usb_failed
 tests/unit/test_runtime_state.gd
 tools/make_release.sh                 # --step <script>
-devdocs/stories/ota/RELEASING.md      # writing a system step; the OS update recipe
+docs/stories/ota/RELEASING.md      # writing a system step; the OS update recipe
 ```
 
 ## Spec

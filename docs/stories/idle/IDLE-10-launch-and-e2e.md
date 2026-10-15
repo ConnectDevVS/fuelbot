@@ -14,7 +14,7 @@ Depends on: IDLE-01 … IDLE-09.
 ```
 tools/dev_run.sh
 README.md                      # repo root: quick start
-devdocs/stories/idle/SIGNOFF.md  # filled-in checklist + screenshots list (created while executing this story)
+docs/stories/idle/SIGNOFF.md  # filled-in checklist + screenshots list (created while executing this story)
 ```
 
 ## Spec
@@ -46,7 +46,7 @@ Arguments after `--` are forwarded to Godot, e.g.
 ### Root `README.md`
 
 Keep it to a screen or so:
-- What this is (one paragraph, link to the plan and `devdocs/stories/idle/`).
+- What this is (one paragraph, link to the plan and `docs/stories/idle/`).
 - Requirements: Godot **4.7.x** on PATH (or `GODOT=`), Python 3 (stdlib only).
 - Quick start: `tools/dev_run.sh`. Editor flow: `python3 mockserver/server.py`
   in one terminal, then `godot --headless --path . --script res://tools/dev_setup.gd`

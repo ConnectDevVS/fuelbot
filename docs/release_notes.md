@@ -110,7 +110,7 @@ of commit `cb8ee54`; there are no earlier releases.
 
 ### Deployment and operations
 
-- **Deployment guide**: `devdocs/deployment_guide.md`, from an empty Ubuntu
+- **Deployment guide**: `docs/deployment_guide.md`, from an empty Ubuntu
   server to a working dashboard and connected kiosk (Atlas, pm2, nginx,
   HTTPS, first admin, seeding, updates and rollback, production checklist).
 - **Env files per environment**: `ENV_FILE=.env.dev` / `.env.production`
@@ -165,7 +165,7 @@ of commit `cb8ee54`; there are no earlier releases.
 ### Action items
 
 - **Rotate the old Razorpay live key** quoted in the original plan
-  (`devdocs/plans/greenfield-rewrite.md`).
+  (`docs/plans/greenfield-rewrite.md`).
 - **Staging**: replace the seeded `DEV00001` dev key in the dashboard if the
   database was seeded.
 - **Before production**: follow the guide's production checklist, and run

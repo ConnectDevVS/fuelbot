@@ -11,9 +11,9 @@ Depends on: IMG-01 … IMG-03.
 ## Deliverables
 
 ```
-devdocs/image-spec.md                   # for the content team
-devdocs/stories/images/SIGNOFF.md
-devdocs/plans/greenfield-rewrite.md     # §0 log + status, §3.14 as built, §4, §5 (M7), §7 4b note
+docs/image-spec.md                   # for the content team
+docs/stories/images/SIGNOFF.md
+docs/plans/greenfield-rewrite.md     # §0 log + status, §3.14 as built, §4, §5 (M7), §7 4b note
 README.md, CLAUDE.md, mockserver/README.md
 ```
 
@@ -22,7 +22,7 @@ The walker and captures stay uncommitted (`tmp_capture/`,
 
 ## Spec
 
-### `devdocs/image-spec.md`
+### `docs/image-spec.md`
 
 For people who upload images, not developers. Format (transparent PNG or
 WebP; JPEG is accepted but has no transparency), framing (the product
@@ -64,7 +64,7 @@ also captured, to confirm nothing about ordering changes.
 
 ## Acceptance criteria
 
-- [ ] `devdocs/image-spec.md` written as above.
+- [ ] `docs/image-spec.md` written as above.
 - [ ] SIGNOFF.md: automated results, the isolation check (dev mock
       `asset_counts` and the real image cache fingerprint unchanged by a
       full test run), the step 4b table with evidence, screenshots, issues

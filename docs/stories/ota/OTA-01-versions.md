@@ -19,9 +19,9 @@ hardware/bridge/udprxtx.py           # BRIDGE_VERSION; versions in bridge_status
 hardware/bridge/test_udprxtx.py
 hardware/firmware/VM_code.ino        # // OTA: FIRMWARE_VERSION; "STATUS:BOOT v<n>"
 hardware/firmware/test_firmware.py   # simulator test for the boot line
-tools/fake_dispense_bridge.py        # sends the version fields
-tools/fake_arduino_serial.py         # prints STATUS:BOOT v<n>
-tools/test_fakes.py
+hardware/tools/fake_dispense_bridge.py        # sends the version fields
+hardware/tools/fake_arduino_serial.py         # prints STATUS:BOOT v<n>
+hardware/tools/test_fakes.py
 tests/unit/test_*.gd                 # headers, maintenance rows, heartbeat versions
 ```
 
@@ -37,7 +37,7 @@ tests/unit/test_*.gd                 # headers, maintenance rows, heartbeat vers
   the sketch. The boot line becomes `STATUS:BOOT v<n>`. The bridge's
   `STATUS_RE` already accepts a detail after the stage; it reads `v<n>`
   from it. Old firmware's bare `STATUS:BOOT` means "unknown" (null).
-  Firmware changes follow the root CLAUDE.md rule: a simulator test.
+  Firmware changes follow the hardware/CLAUDE.md rule: a simulator test.
 - **Headers on backend calls** (config, telemetry, sales; never the image
   GET or Razorpay), added where `X-Machine-Id` is added
   (`ConfigManager._headers()`):
@@ -68,8 +68,8 @@ tests/unit/test_*.gd                 # headers, maintenance rows, heartbeat vers
 - [ ] The bridge reads `v3` from `STATUS:BOOT v3`, null from `STATUS:BOOT`;
       `bridge_status` carries both versions (`test_udprxtx.py`).
 - [ ] The simulator prints `STATUS:BOOT v<FIRMWARE_VERSION>` at boot
-      (`test_firmware.py`); `tools/check_firmware.sh` passes.
-- [ ] The fakes speak the new lines and fields (`tools/test_fakes.py`).
+      (`test_firmware.py`); `hardware/tools/check_firmware.sh` passes.
+- [ ] The fakes speak the new lines and fields (`hardware/tools/test_fakes.py`).
 - [ ] The maintenance screen shows the version cells; with two faults it
       fits 1080 × 1920 with the footer on screen (a test that fails at the
       design spacing); screenshots with and without faults looked at.

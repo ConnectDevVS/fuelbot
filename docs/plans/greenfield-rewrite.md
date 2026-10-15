@@ -28,7 +28,7 @@ with `image_url`, sales, telemetry, machine keys and the admin API, run end
 to end with this app. Not deployed yet; the real S3 bucket and image upload
 (server S5) are pending.
 Per-milestone status is in Section 5. Work is executed as story sets under
-`devdocs/stories/`. Each set's README lists its detailed decisions, and its
+`docs/stories/`. Each set's README lists its detailed decisions, and its
 `SIGNOFF.md` records the verification evidence.
 
 **Decision log.** Decisions made after this plan was written. The sections
@@ -88,6 +88,7 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-10-09 | **The Raspberry Pi stays the platform; no Android tablet** (product owner) | The Play Store can't promise an update never lands mid-order, and Android would mean rewriting the bridge (USB serial in a Godot plugin) | ota README decision 1 |
 | 2026-10-09 | **OTA scope** (product owner): firmware is **not** flashed over the air yet (it reports `STATUS:BOOT v<n>`); release files on the API server's storage (S3 left out); **no remote access** for now (a USB rescue stick instead); **no read-only system disk** (OS updates are deliberate, staged system steps); only platform admins publish; one version per release (`application/config/version`); Ed25519 signing key offline | Smallest safe first version; each can be added later through the updater | ota README decisions 4–11 |
 | 2026-10-09 | **The app writes only under `user://`** (enforced by `run_tests.sh` from OTA-02); the updater talks to the app through `user://runtime_state.json` and `user://update_request.json`; the "Updating" screen is the maintenance screen with a local fault `UPDATING` | Release folders are replaced on update; idle stays the only enforcement point | ota README decisions 14–15 |
+| 2026-10-15 | **Repo layout: one folder per part.** The Godot project moved into `kiosk/` (its own `CLAUDE.md`/`README.md`; `mockserver/` stays inside it because tests read it via `res://`), dev docs into `docs/` (`designs/` → `docs/designs/`), and the bridge/firmware fakes and checks into `hardware/tools/`. `server/` and `webdashboard/` keep their own `devdocs/`. Godot `user://` is unchanged (it follows `config/name`) | The root mixed the Godot project with the server, dashboard, hardware and docs | §4, CLAUDE.md |
 
 ## 1. Context
 
@@ -1270,7 +1271,7 @@ PNG or WebP with a **transparent background**, product tightly framed (the
 app trims leftover transparent borders anyway), portrait **600 × 800 px**
 recommended, at most 2 MB and 2048 px, and a **new file name on every
 change** (e.g. a date or version suffix). Written up for the content team in
-[devdocs/image-spec.md](../image-spec.md).
+[docs/image-spec.md](../image-spec.md).
 
 **As built (2026-09-26, [images set](../stories/images/README.md)).**
 `autoload/FlavorImages.gd`: `get_texture(flavor)` / `get_image_source(flavor)`
@@ -1289,55 +1290,64 @@ The mock serves generated images under `/__mock/assets/flavors/` (scenarios
 
 ## 4. Target folder structure
 
-*(Updated 2026-09-24 to the as-built layout; ✓ = exists.)*
+*(Updated 2026-09-24 to the as-built layout; ✓ = exists. Restructured
+2026-10-15: the Godot project moved into `kiosk/`, the dev docs into `docs/`,
+and the bridge/firmware fakes into `hardware/tools/`, so the repo root holds
+one folder per part, like `server/` and `webdashboard/`.)*
 
 ```
 fuelbot/ (repo root)
-├── project.godot                ✓
-├── CLAUDE.md, README.md         ✓ conventions, gotchas, how to run
-├── autoload/
-│   ├── ConfigManager.gd         ✓
-│   ├── OrderState.gd            ✓ replaces the static-var hack
-│   ├── Nav.gd                   ✓ all scene changes (testable)
-│   ├── DevCapture.gd            ✓ dev-only screenshots, always last
-│   ├── RazorpayManager.gd       ✓ rewritten clean, single implementation
-│   ├── Bridge.gd                ✓ UDP to the hardware bridge: ORDER/CANCEL out, results in on 4245
-│   ├── SalesReporter.gd         ✓ one sale per paid order via core/report_queue.gd
-│   ├── FlavorImages.gd          ✓ S3 flavor images: download, check, trim, cache (user://image_cache/)
-│   └── TelemetryReporter.gd     ✓ 4246 events → enrich → ReportQueue; machine faults → maintenance
-├── core/report_queue.gd         ✓ durable outbound JSON queue (class_name ReportQueue)
-├── scenes/
-│   ├── idle/{Idle.tscn, idle.gd}                          ✓
-│   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd} ✓
-│   ├── flavor_detail/{FlavorDetail.tscn, flavor_detail.gd} ✓ Ingredients & Allergens
-│   ├── payment/{Payment.tscn, payment.gd}                  ✓
-│   ├── dispensing/{Dispensing.tscn, dispensing.gd}             ✓ blending → done/failed (one screen, PDF p5)
-│   ├── maintenance/{Maintenance.tscn, maintenance.gd}      ✓
-│   └── scene_paths.gd                                      ✓
-├── ui/                          ✓ components/, theme/palette.gd, format.gd, gallery/
-├── config/
-│   ├── default_config.json      ✓
-│   └── local_settings.json      ✓
-├── assets/
-│   ├── images/flavors/          ✓ bundled flavor images = offline fallback, trimmed to ≤ 600×800 (tools/trim_flavor_images.gd)
-│   ├── fonts/                   ✓ Archivo + JetBrains Mono (OFL)
-│   ├── theme/                   ✓ generated by tools/build_theme.gd
-│   └── video/                   ✓ idle_ad_default.ogv
-├── hardware/                    ✓ (.gdignore'd)
+├── CLAUDE.md, README.md         ✓ cross-cutting rules; what each folder is
+├── kiosk/                       ✓ the Godot project (res:// root)
+│   ├── project.godot            ✓
+│   ├── CLAUDE.md, README.md     ✓ kiosk conventions, gotchas, how to run
+│   ├── autoload/
+│   │   ├── ConfigManager.gd     ✓
+│   │   ├── OrderState.gd        ✓ replaces the static-var hack
+│   │   ├── Nav.gd               ✓ all scene changes (testable)
+│   │   ├── DevCapture.gd        ✓ dev-only screenshots, always last
+│   │   ├── RazorpayManager.gd   ✓ rewritten clean, single implementation
+│   │   ├── Bridge.gd            ✓ UDP to the hardware bridge: ORDER/CANCEL out, results in on 4245
+│   │   ├── SalesReporter.gd     ✓ one sale per paid order via core/report_queue.gd
+│   │   ├── FlavorImages.gd      ✓ S3 flavor images: download, check, trim, cache (user://image_cache/)
+│   │   └── TelemetryReporter.gd ✓ 4246 events → enrich → ReportQueue; machine faults → maintenance
+│   ├── core/report_queue.gd     ✓ durable outbound JSON queue (class_name ReportQueue)
+│   ├── scenes/
+│   │   ├── idle/{Idle.tscn, idle.gd}                          ✓
+│   │   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd} ✓
+│   │   ├── flavor_detail/{FlavorDetail.tscn, flavor_detail.gd} ✓ Ingredients & Allergens
+│   │   ├── payment/{Payment.tscn, payment.gd}                  ✓
+│   │   ├── dispensing/{Dispensing.tscn, dispensing.gd}         ✓ blending → done/failed (one screen, PDF p5)
+│   │   ├── maintenance/{Maintenance.tscn, maintenance.gd}      ✓
+│   │   └── scene_paths.gd                                      ✓
+│   ├── ui/                      ✓ components/, theme/palette.gd, format.gd, gallery/
+│   ├── config/
+│   │   ├── default_config.json  ✓
+│   │   └── local_settings.json  ✓
+│   ├── assets/
+│   │   ├── images/flavors/      ✓ bundled flavor images = offline fallback, trimmed to ≤ 600×800 (tools/trim_flavor_images.gd)
+│   │   ├── fonts/               ✓ Archivo + JetBrains Mono (OFL)
+│   │   ├── theme/               ✓ generated by tools/build_theme.gd
+│   │   └── video/               ✓ idle_ad_default.ogv
+│   ├── mockserver/              ✓ (.gdignore'd) replaces tools/mock_config_server.py: stdlib server + JSON scenarios; assets/flavors/ (make_flavor_images.py). Inside the project because tests read it via res://
+│   ├── tests/                   ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
+│   └── tools/                   ✓ run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd, trim_flavor_images.gd
+├── hardware/                    ✓
 │   ├── firmware/VM_code.ino     ✓ + host_sim/ (simulator; tools/check_firmware.sh)
-│   └── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
-├── mockserver/                  ✓ replaces tools/mock_config_server.py: stdlib server + JSON scenarios; assets/flavors/ (make_flavor_images.py)
-├── tests/                       ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
-├── tools/
-│   ├── run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd, trim_flavor_images.gd  ✓
-│   ├── fake_arduino_serial.py   ✓ Level 1 harness: VM_code.ino over a PTY, --fault modes (incl. homing_timeout/flaky)
-│   ├── fake_dispense_bridge.py  ✓ Level 0 harness: DONE/TIMEOUT/REJECTED/silent + 4246 telemetry, --homing-fault-sec
-│   ├── check_firmware.sh        ✓ host syntax check of the sketch
-│   └── test_fakes.py            ✓ incl. automated Level 1
-├── designs/GMRFuelBot-OnDevice-SsampleScreens.pdf   ✓
-└── devdocs/
+│   ├── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
+│   └── tools/
+│       ├── fake_arduino_serial.py   ✓ Level 1 harness: VM_code.ino over a PTY, --fault modes (incl. homing_timeout/flaky)
+│       ├── fake_dispense_bridge.py  ✓ Level 0 harness: DONE/TIMEOUT/REJECTED/silent + 4246 telemetry, --homing-fault-sec
+│       ├── udp_monitor.py           ✓ prints app → bridge UDP
+│       ├── check_firmware.sh        ✓ host syntax check of the sketch + simulator build
+│       └── test_fakes.py            ✓ incl. automated Level 1
+├── server/                      ✓ backend (own CLAUDE.md, devdocs/)
+├── webdashboard/                ✓ web dashboard (own CLAUDE.md, devdocs/)
+└── docs/
     ├── plans/greenfield-rewrite.md   # this document
+    ├── designs/GMRFuelBot-OnDevice-SsampleScreens.pdf
     ├── image-spec.md                 # flavor image spec for the content team
+    ├── deployment_guide.md, release_notes.md
     └── stories/<set>/                # executable story sets + SIGNOFF.md
 ```
 
@@ -1359,7 +1369,7 @@ existing external reference (docs, muscle memory) to preserve.
 | 4 — Hardware bridge + dispensing | 🟡 Built; **Level 0 + Level 1 PASS** (fake bridge; real bridge + fake Arduino). **Level 2/3 pending hardware**; motors 5–6 are fail-safe placeholders pending wiring | [dispensing SIGNOFF](../stories/dispensing/SIGNOFF.md) |
 | 5 — Telemetry | 🟡 Built; **firmware simulator + Level 0 + Level 1 PASS**; Level 2/3 pending hardware; the telemetry backend is the mock | [telemetry SIGNOFF](../stories/telemetry/SIGNOFF.md) |
 | 6 — Maintenance + sale reporting | ✅ Done in software: maintenance (idle set) re-verified, extended to several local faults; sale reporting and dead-bridge → out of service built; Level 0/1 and §7 steps 9–10 PASS. Real sales backend pending | [idle](../stories/idle/SIGNOFF.md), [sales](../stories/sales/SIGNOFF.md) SIGNOFFs |
-| 7 — Asset migration + flavor images from S3 | ✅ Done in software (2026-09-26): assets ported; flavor images from S3 via `image_url` (§3.14) built and verified against the mock, incl. §7 step 4b; bundled fallbacks trimmed. Config API with `image_url`: built in `server/` (S1); real S3 bucket + upload pending (server S5) | [images SIGNOFF](../stories/images/SIGNOFF.md), [assets/ASSETS.md](../../assets/ASSETS.md) |
+| 7 — Asset migration + flavor images from S3 | ✅ Done in software (2026-09-26): assets ported; flavor images from S3 via `image_url` (§3.14) built and verified against the mock, incl. §7 step 4b; bundled fallbacks trimmed. Config API with `image_url`: built in `server/` (S1); real S3 bucket + upload pending (server S5) | [images SIGNOFF](../stories/images/SIGNOFF.md), [assets/ASSETS.md](../../kiosk/assets/ASSETS.md) |
 | 8 — Raspberry Pi | Not started | — |
 | 9 — Over-the-air updates | Planned (2026-10-09); built with Milestone 8 | [ota README](../stories/ota/README.md) |
 
@@ -1372,7 +1382,7 @@ existing external reference (docs, muscle memory) to preserve.
   portrait viewport, fullscreen, `gl_compatibility` renderer, portrait
   orientation. Drop `text_to_speech=true` (only used by the dead TTS code).
 - Create the folder tree above; this document lives at
-  `devdocs/plans/greenfield-rewrite.md`.
+  `docs/plans/greenfield-rewrite.md`.
 
 **Milestone 1 — Core data & state (no UI yet)**
 - `autoload/ConfigManager.gd`: full boot sequence per Section 3.3.
@@ -1493,7 +1503,7 @@ existing external reference (docs, muscle memory) to preserve.
   machine's most-visible idle screen.
 
 **Milestone 9 — Over-the-air updates** *(planned 2026-10-09)*
-- Story set: [devdocs/stories/ota/](../stories/ota/README.md) (OTA-01 to
+- Story set: [docs/stories/ota/](../stories/ota/README.md) (OTA-01 to
   OTA-09), with its decisions; the server side is in the server plan
   §3.8–3.10 and §4.14, the staff pages in the dashboard plan §5.19.
 - The app: versions on every backend call and on the maintenance screen;

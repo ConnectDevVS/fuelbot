@@ -106,7 +106,7 @@ through with S3 images.** Not verified: a real S3 bucket and WebP on the Pi
 ## Open items
 
 - The backend team: the real S3 bucket, the config API's `image_url` field,
-  and the content team using [devdocs/image-spec.md](../../image-spec.md).
+  and the content team using [docs/image-spec.md](../../image-spec.md).
 - Milestone 8 (Raspberry Pi), including the WebP check above.
 - Carried over: Level 2/3 hardware runs, motors 5–6 wiring, Milestone 2 Part
   B (real Razorpay test mode), refund policy, real sales/telemetry backends.

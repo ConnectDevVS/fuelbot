@@ -12,7 +12,7 @@ again.
   Milestone 5, §6 (rig levels), §7 step 11.
 - Builds on: [dispensing set](../dispensing/README.md) (protocol v2,
   bridge, firmware, fakes) and the idle set's maintenance screen.
-- Conventions, gotchas and test patterns: [CLAUDE.md](../../../CLAUDE.md).
+- Conventions, gotchas and test patterns: [CLAUDE.md](../../../kiosk/CLAUDE.md).
 
 ## Goals
 
