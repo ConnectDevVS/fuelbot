@@ -506,6 +506,7 @@ After sign-in (or `/dashboard/`):
 | Path | Page | Permission |
 |---|---|---|
 | `/sign-in`, `/change-password` | §5.1 | none / signed in |
+| `/forgot-password`, `/reset-password` (S11) | §5.1 | none (the email travels in router state, never the URL) |
 | `/fleet` | §5.2 Fleet | platform (`telemetry:read` stands for "platform"; see §6) |
 | `/sales` | §5.7 Sales, all tenants | platform |
 | `/orders/:orderId` | §5.9 Order detail | `sales:read` |
@@ -693,7 +694,25 @@ states; refresh; wireframe (desktop; phone differences noted).
       Try again, or ask your admin."; 429 `too_many_attempts`.
   - Sign out is available.
 - **Change password (voluntary):** the same form, from the account menu.
-  It notes that other sessions sign out.
+  It notes that other sessions sign out. No code.
+- **Forgot password (S11, SRV-58):** "Forgot password?" under the
+  password on sign-in → `/forgot-password` (the typed email carried over):
+  "Enter your email. We'll send you a 6-character code…", **Send code**
+  (`POST /auth/forgot {email}`, always 200), Back to sign in →
+  `/reset-password` with the email in router state (a reload without it
+  goes back to `/forgot-password`).
+  - Reset: "We sent a code to {email} if it belongs to an account. It's
+    valid for 30 minutes.", then **New password**, **Repeat**, **Code from
+    your email** in that order (product owner); under the code "Nothing
+    yet? Check your spam folder." and **Resend code** (disabled 60 s from
+    arriving and after each resend; the server sends the same code while
+    it's valid); **Set password** (`POST /auth/reset {email, code, new}`);
+    Use a different email.
+  - Errors: `invalid_code` on the code field; `weak_password` on New
+    password; `too_many_attempts` in the alert.
+  - Success replaces the form: "Password changed. Taking you to sign in…"
+    with **Sign in now**; `/sign-in` after **3 s**. The reset doesn't sign
+    in, and every session of that user ends.
 - **States:** a submit spinner. Nothing is stored in the browser.
 
 ```

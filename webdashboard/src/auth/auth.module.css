@@ -49,6 +49,12 @@
   text-align: center;
 }
 
+/* "Forgot password?" under the password field. */
+.forgot:global(.ant-btn) {
+  padding-inline: 0;
+  height: auto;
+}
+
 /* The emailed code: read off a phone, typed letter by letter. */
 .code input,
 input.code {

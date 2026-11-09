@@ -45,7 +45,13 @@ export default function SignInPage() {
           <Form.Item name="email" label={t('signin.email')} rules={[{ required: true, message: t('signin.required.email') }]}>
             <Input type="email" autoComplete="username" inputMode="email" size="large" autoFocus />
           </Form.Item>
-          <Form.Item name="password" label={t('signin.password')} rules={[{ required: true, message: t('signin.required.password') }]}>
+          <Form.Item name="password" label={t('signin.password')} rules={[{ required: true, message: t('signin.required.password') }]}
+            extra={(
+              <Button type="link" className={styles.forgot}
+                onClick={() => navigate('/forgot-password', { state: { email: (form.getFieldValue('email') ?? '').trim() } })}>
+                {t('signin.forgot')}
+              </Button>
+            )}>
             <Input.Password autoComplete="current-password" size="large" />
           </Form.Item>
           {error && <Alert type="error" showIcon title={error} role="alert" className="form-alert" />}

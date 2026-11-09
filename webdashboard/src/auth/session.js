@@ -46,6 +46,16 @@ export function requestOwnCode() {
   return api('POST', '/auth/code');
 }
 
+/** Forgot password: mails a code if the email belongs to an active account (the answer is the same). */
+export function requestResetCode(email) {
+  return api('POST', '/auth/forgot', { body: { email } });
+}
+
+/** Sets a new password with the emailed code. Doesn't sign in; every session of that user ends. */
+export function resetPassword(email, code, next) {
+  return api('POST', '/auth/reset', { body: { email, code, new: next } });
+}
+
 /** Ends the session on the server, then forgets everything this tab knew. */
 export async function signOut(queryClient) {
   try {

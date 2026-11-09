@@ -6,7 +6,11 @@ link on sign-in that gets me a code and lets me set a new password,
 
 - **Refs:** README decisions (product owner 6; planning 7, 10); DP §5.1,
   §7.
-- **Depends on:** SRV-57. **Dashboard only.**
+- **Depends on:** SRV-57. **Dashboard only.** Built after SRV-59 (README),
+  reusing its `CodeInput` and `useCooldown` (`startNow`: the code was just
+  sent).
+- **Deviations (as built):** the e2e mail hooks came with SRV-59. Each forgot test creates its own user: the
+  server's forgot limiter (5 per IP + email) outlives `resetData()`.
 
 ## Deliverables
 
@@ -33,13 +37,15 @@ link on sign-in that gets me a code and lets me set a new password,
   "Back to sign in". On 200 → `/reset-password` with `{email}` in router
   **state** (never the URL). 429 → the rate-limit message.
 - **Reset page:** without an email in state (a reload, a pasted URL) →
-  redirect to `/forgot-password`. Shows "We sent a code to
-  **{email}** if it belongs to an account. It's valid for 30 minutes."
-  Fields: **New password** (rule: at least 10 characters), **Repeat
-  password**, **Code** (6 characters, `autoComplete="one-time-code"`,
-  upper-cased as typed, monospace). Buttons: "Set password", "Resend
-  code" (calls forgot again; disabled 60 s after each send, with the
-  countdown), "Use a different email".
+  redirect to `/forgot-password`. Shows "We sent a code to {email} if it
+  belongs to an account. It's valid for 30 minutes." Fields, in this
+  order: **New password** (rule: at least 10 characters), **Repeat new
+  password**, **Code from your email** (6 characters,
+  `autoComplete="one-time-code"`, upper-cased as typed, monospace). Under
+  the code: "Nothing yet? Check your spam folder." / after a resend "Sent
+  again…", and "Resend code" (calls forgot again; disabled for 60 s from
+  arriving and after each send, with the countdown). Buttons: "Set
+  password", "Use a different email" (back with the email).
 - **Errors:** `invalid_code` → on the Code field ("The code is wrong or
   has expired. Request a new one."); `weak_password` → New password;
   others in the form alert.
@@ -51,15 +57,24 @@ link on sign-in that gets me a code and lets me set a new password,
 
 ## Acceptance criteria
 
-- [ ] `forgot.spec.js` › "forgot then reset, then sign in with the new
-      password" at 390 / 820 / 1440 (code read from the e2e mailer);
-      screenshots of both pages and the success state.
-- [ ] › "a wrong code shows on the Code field"; "weak password on the
-      New password field".
-- [ ] › "success returns to sign-in after 3 seconds".
-- [ ] › "reset page without state goes to forgot".
-- [ ] › "the email and code are never in the URL" (check `page.url()` at
-      every step).
-- [ ] › "resend is disabled for 60 seconds" (clock control).
-- [ ] vitest `ResetPasswordPage.test.jsx` › "code input upper-cases and
-      keeps 6 characters".
+- [x] `forgot.spec.js` › "forgot then reset, then sign in with the new
+      password" at 390 / 820 / 1440 (the field order checked; code read
+      from the e2e mailer, typed in lower case); screenshots `forgot`,
+      `reset`, `reset-done`. The same test checks that the email, the code
+      and the password are never in a URL or browser storage.
+- [x] › "a wrong code shows on the Code field; a short password on New
+      password" (and the old password still works); screenshot
+      `reset-wrong-code`.
+- [x] › "success returns to sign-in after 3 seconds" (Sign in now shown;
+      at least 2.9 s).
+- [x] › "the reset page without an email goes to forgot".
+- [x] › "an unknown email looks the same and mails nothing" (and "Use a
+      different email" carries the address back).
+- [x] › "resend waits 60 seconds, then sends the same code" (Playwright's
+      clock).
+- [x] The code input's upper-casing is covered by
+      `src/auth/CodeField.test.jsx` (SRV-59), so there's no separate
+      `ResetPasswordPage.test.jsx`.
+- [x] Screenshots looked at, all three widths: `forgot`, `reset`,
+      `reset-wrong-code`, `reset-done`, and `sign-in` / `sign-in-error`
+      with the new link.

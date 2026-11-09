@@ -17,9 +17,9 @@ export function CodeInput({ value, onChange, id, ...rest }) {
   );
 }
 
-/** A resend button's wait: {left (seconds), start()}. */
-export function useCooldown(seconds = 60) {
-  const [until, setUntil] = useState(0);
+/** A resend button's wait: {left (seconds), start()}. startNow: a code was just sent. */
+export function useCooldown(seconds = 60, { startNow = false } = {}) {
+  const [until, setUntil] = useState(() => (startNow ? Date.now() + seconds * 1000 : 0));
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (until <= now) return undefined;
