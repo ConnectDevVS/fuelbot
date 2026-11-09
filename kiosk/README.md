@@ -183,6 +183,49 @@ Failures are logged (`[Images] …`), retried every 10 minutes, and reported
 once per file as a telemetry `image_download_failed` event. To start from an
 empty cache, delete `user://image_cache/` (or `tools/dev_setup.gd -- --clear`).
 
+## Settings and Wi-Fi
+
+A technician connects the machine to the gym's Wi-Fi from the screen
+(steps for technicians: [docs/technician-guide.md](../docs/technician-guide.md);
+design: [docs/stories/settings/README.md](../docs/stories/settings/README.md)):
+
+1. **Hold the top-left corner for 5 s** on the attract screen or the
+   out-of-service screen (a short tap there still starts an order).
+2. Type the **settings PIN**. 5 wrong tries lock the pad for 5 minutes,
+   across restarts.
+3. **Network** → the Wi-Fi networks (the connected one on top) → tap one →
+   type the password on the on-screen keyboard → **Connect**.
+
+The app drives NetworkManager through `nmcli` (`autoload/Wifi.gd`). On a Mac
+there is no `nmcli`, so `tools/dev_run.sh` (via `dev_setup.gd`) uses the
+stand-in `tools/fake_nmcli.py` by default, with these networks:
+
+| Network | Password | What happens |
+|---------|----------|--------------|
+| GymStaff | `staffpass1` | connected at start |
+| GymGuest | (open) | connects without the password page |
+| Office-5G | `office2026` | the password page; anything else is "Wrong password" |
+| Corp | (username network) | "This network type isn't supported" |
+
+The dev PIN is **123456** (written by `dev_setup` only when there's no PIN
+yet). Edit `user://fake_nmcli.json` to change the networks (add a `"delay":
+{"sec": 5, "on": "up", "times": 1}` to see a slow connect, or a
+`"fail_next": {"code": 4, "stderr": "Error: Not authorized to control
+networking.", "on": "yes"}` to see the permission error); delete it to get
+the samples back.
+
+```bash
+tools/dev_run.sh                 # fake Wi-Fi (default)
+tools/dev_run.sh --wifi=real     # the system's nmcli: on a Raspberry Pi only (deploy/README.md)
+tools/set_settings_pin.sh --user-dir "<user data dir>"   # set a real PIN (asks twice, stores a hash)
+python3 -m unittest tools/test_fake_nmcli.py              # the fake's own tests
+```
+
+To try a different PIN in dev, delete `user://settings_pin.txt` and run
+`tools/set_settings_pin.sh` (it never overwrites an existing PIN).
+Running on a real Pi (the polkit rule, the kiosk user, the Wi-Fi country):
+[deploy/README.md](../deploy/README.md).
+
 ## Local machine state (`user://`)
 
 On macOS this is `~/Library/Application Support/Godot/app_userdata/FuelBot/`.
@@ -197,13 +240,18 @@ On Linux it is `~/.local/share/godot/app_userdata/FuelBot/`.
 | `razorpay_credentials.mock.cfg` | `dev_setup` (mock mode) | mock keys, selected via the override |
 | `order_counter.txt` | the app | next display order number |
 | `image_cache/` | the app | downloaded flavor images + `index.json` (flavor → last good file) |
+| `settings_pin.txt` | provisioning (`tools/set_settings_pin.sh`; `dev_setup` writes PIN 123456 in dev) | the settings PIN, part of the identity: `<salt>:<sha256(salt + pin)>`, never the PIN |
+| `settings_pin_lock.json` | the app | wrong-PIN count and lock end (5 tries → 5 min) |
+| `fake_nmcli.json` | `tools/fake_nmcli.py` (dev only) | the fake Wi-Fi networks, saved profiles and call log |
+| `wifi_secret.tmp` | the app, for a second | the Wi-Fi password handed to `nmcli` (mode 600), deleted straight after |
 
 Tests and `tools/check_boot.sh` never use these: they boot **sandboxed**,
 with their own state under `user://sandbox/` (and `user://test_*`), no tenant
 and no override.
 
 `tools/dev_setup.gd -- --clear` removes the provisioning, cache and credential
-files and the image cache (not the order counter), which resets the app to a fresh machine with no
+files (including the settings PIN and the fake Wi-Fi state) and the image
+cache (not the order counter), which resets the app to a fresh machine with no
 network. None of these files are ever committed.
 
 ## Kiosk

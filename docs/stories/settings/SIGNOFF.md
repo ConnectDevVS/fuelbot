@@ -94,8 +94,11 @@ hold is intended.
 | 5 | Without the polkit rule, the kiosk user gets an error, never a crash | open |
 | 6 | Touch feel: keys and rows easy to hit; a rescan doesn't freeze the screen | open |
 
-These run with Milestone 8 (the Pi image, the kiosk user, `provision.sh`
-installing the polkit rule and asking for the PIN; OTA-07/08 updated).
+How to set a Pi up and run each check: [deploy/README.md](../../../deploy/README.md)
+("Wi-Fi settings on a Raspberry Pi"). They can be done by hand on any Pi now,
+or with Milestone 8 (the Pi image, the kiosk user, `provision.sh` installing
+the polkit rule, asking for the PIN and setting the Wi-Fi country; OTA-07/08
+updated).
 
 ## Deviations from the stories
 

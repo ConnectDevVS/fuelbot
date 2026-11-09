@@ -14,7 +14,7 @@ Depends on: OTA-04, OTA-07, and Milestone 8's image work (built together).
 deploy/systemd/fuelbot-bridge.service, fuelbot-app.service      # run from /opt/fuelbot/current
 deploy/systemd/fuelbot-updater.service, fuelbot-updater.timer   # (from OTA-04)
 deploy/provision.sh            # one Pi: install units, key, first release, identity
-deploy/README.md               # building a machine, step by step
+deploy/README.md               # building a machine, step by step (started by the settings set: Wi-Fi on a Pi)
 docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
 ```
 
@@ -41,6 +41,9 @@ docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
   sync (it must run offline), and the first config fetch may fail until the
   clock is right (it retries).
 - **No remote access:** SSH off; Raspberry Pi Connect off (decision 6).
+- **Wi-Fi country set to IN** (`raspi-config nonint do_wifi_country IN`):
+  Bookworm keeps Wi-Fi blocked until it's set, and the settings screen
+  (settings set) can't scan or connect without it.
 - **Per-machine uniqueness:** the image is generalised before copying (SSH
   host keys and `/etc/machine-id` regenerated on first boot).
 - **Secrets:** none in the image except the release *public* key; the
@@ -69,3 +72,6 @@ docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
       ids; no private key or identity is in the image.
 - [ ] The Milestone 8 checks (textures, video frame rate, `/dev/arduino`)
       pass on the same image.
+- [ ] The settings set's Pi checks (deploy/README.md "Wi-Fi settings on a
+      Raspberry Pi") pass on the same image: Wi-Fi country set, the polkit
+      rule installed, the PIN asked for by `provision.sh`.

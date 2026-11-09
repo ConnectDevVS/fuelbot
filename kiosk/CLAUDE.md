@@ -224,7 +224,8 @@ overflow were both found this way. Story work is one commit per story
     The password goes in a mode-600 `passwd-file` in `user://`, deleted
     straight after; never on a command line, in a log or in telemetry. A
     failed connect brings the old network back and deletes the new profile.
-  - On the Mac, `dev_setup.gd --wifi=fake` (the default) points `Wifi` at
+  - On the Mac, `dev_setup.gd --wifi=fake` (the default; `dev_run.sh
+    --wifi=fake|real` passes it on) points `Wifi` at
     `tools/fake_nmcli.py` with sample networks in `user://fake_nmcli.json`.
     Tests point a `Wifi` instance (or the autoload, restored afterwards) at the
     fake with their own state file; the test runner points the autoload at a
@@ -570,7 +571,8 @@ are in the root [CLAUDE.md](../CLAUDE.md); hardware ones in
   S5, deferred). The content team follows `docs/image-spec.md`.
 - **Settings / Wi-Fi on a real Pi: open** (settings SIGNOFF): the SET-01
   spike (does `passwd-file` save the password, or switch to `--ask`), the
-  polkit rule, reconnect after a reboot, touch feel. Do it with Milestone 8.
+  polkit rule, reconnect after a reboot, touch feel. Setup and checks:
+  [deploy/README.md](../deploy/README.md).
 - **Walkers on this Mac pick up real input.** Their windows open in front of
   the user, and real mouse movement or clicks reach the app (a movement out
   of the corner cancels a settings hold; a click restarts inactivity timers).

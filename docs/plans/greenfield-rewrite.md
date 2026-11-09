@@ -1348,7 +1348,8 @@ fuelbot/ (repo root)
 │       ├── udp_monitor.py           ✓ prints app → bridge UDP
 │       ├── check_firmware.sh        ✓ host syntax check of the sketch + simulator build
 │       └── test_fakes.py            ✓ incl. automated Level 1
-├── deploy/polkit/               ✓ 50-fuelbot-wifi.rules (the rest of deploy/ comes with OTA-04/08)
+├── deploy/                      ✓ README.md (Wi-Fi settings on a Pi; the machine build comes with OTA-08),
+│                                  polkit/50-fuelbot-wifi.rules (the rest comes with OTA-04/08)
 ├── server/                      ✓ backend (own CLAUDE.md, devdocs/)
 ├── webdashboard/                ✓ web dashboard (own CLAUDE.md, devdocs/)
 └── docs/
