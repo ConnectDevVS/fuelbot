@@ -8,6 +8,7 @@ import { hashPassword } from '../auth/passwords.js';
 import { userView } from '../services/views.js';
 import { findPage } from '../services/pages.js';
 import { audit, diff } from '../services/audit.js';
+import { sendCodeOr502, trySendCode } from '../services/codes.js';
 import { isDuplicateKey } from '../db.js';
 import { HttpError } from '../errors.js';
 
@@ -94,10 +95,11 @@ export function usersRouter(settings) {
         password_hash: await hashPassword(body.password, settings.bcryptCost),
         must_change_password: true,
       });
+      const codeMail = await trySendCode(req, user, 'welcome');
       const view = userView(user);
       await audit(req, { action: 'user.create', tenant_id: tenantId, target: `user:${user._id}`,
-        after: { email: view.email, name: view.name, role: view.role, machines: view.machines } });
-      res.status(201).json({ user: view });
+        after: { email: view.email, name: view.name, role: view.role, machines: view.machines, code_mail: codeMail } });
+      res.status(201).json({ user: view, code_mail: codeMail });
     } catch (err) {
       if (isDuplicateKey(err)) throw new HttpError(409, 'email_taken');
       throw err;
@@ -144,7 +146,8 @@ export function usersRouter(settings) {
     res.json({ user: view });
   });
 
-  // A new temporary password; the user must change it at next sign-in. Your own: /auth/password.
+  // A new temporary password; the user must change it at next sign-in, with the code mailed here
+  // (plan §4.16). Your own: /auth/password.
   router.post('/:id/password', async (req, res) => {
     const target = await findVisible(req.user, req.params.id);
     if (String(target._id) === String(req.user._id)) throw new HttpError(403, 'forbidden_self');
@@ -152,8 +155,20 @@ export function usersRouter(settings) {
     target.must_change_password = true;
     target.token_version += 1;
     await target.save();
-    await audit(req, { action: 'user.password_reset', tenant_id: target.tenant_id, target: `user:${target._id}` });
-    res.json({ user: userView(target) });
+    const codeMail = await trySendCode(req, target, 'reset_by_admin');
+    await audit(req, { action: 'user.password_reset', tenant_id: target.tenant_id, target: `user:${target._id}`,
+      after: { code_mail: codeMail } });
+    res.json({ user: userView(target), code_mail: codeMail });
+  });
+
+  // Mails the user their code again: the same one while it's live, else a new one (plan §4.16).
+  router.post('/:id/code', async (req, res) => {
+    const target = await findVisible(req.user, req.params.id);
+    if (String(target._id) === String(req.user._id)) throw new HttpError(403, 'forbidden_self');
+    if (target.disabled) throw new HttpError(409, 'user_disabled');
+    const body = await sendCodeOr502(req, target, 'requested');
+    await audit(req, { action: 'user.code_sent', tenant_id: target.tenant_id, target: `user:${target._id}` });
+    res.json(body);
   });
 
   return router;

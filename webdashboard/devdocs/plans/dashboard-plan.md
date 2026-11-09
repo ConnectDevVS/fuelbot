@@ -506,6 +506,7 @@ After sign-in (or `/dashboard/`):
 | Path | Page | Permission |
 |---|---|---|
 | `/sign-in`, `/change-password` | §5.1 | none / signed in |
+| `/forgot-password`, `/reset-password` (S11) | §5.1 | none (the email travels in router state, never the URL) |
 | `/fleet` | §5.2 Fleet | platform (`telemetry:read` stands for "platform"; see §6) |
 | `/sales` | §5.7 Sales, all tenants | platform |
 | `/orders/:orderId` | §5.9 Order detail | `sales:read` |
@@ -659,8 +660,10 @@ states; refresh; wireframe (desktop; phone differences noted).
 - **Who:** anyone.
 - **API:**
   - `POST /auth/login {email, password}` → `{user}`, then `GET /auth/me`;
-  - `POST /auth/password {current, new}` → `{user}` (a fresh cookie; other
-    sessions end);
+  - `POST /auth/password {current, new, code?}` → `{user}` (a fresh cookie;
+    other sessions end); `code` (emailed, server plan §4.16) only while
+    forced;
+  - `POST /auth/code` → `{ok, expires_at}` (forced only: "Email me a code");
   - `POST /auth/logout`.
 - **Sign in:**
   - Email and password, with show/hide on the password.
@@ -672,16 +675,44 @@ states; refresh; wireframe (desktop; phone differences noted).
   - After success: `must_change_password` → Change password, else the
     landing page (§3.2).
 - **Change password (forced):**
-  - Shown alone (no nav): "Choose your own password to continue", with
-    Current (the temporary one), New and Repeat, plus the rule "10 or more
-    characters".
+  - Shown alone (no nav): "Enter the temporary password from your admin
+    and the code we emailed you, then choose your own password", with
+    Temporary password, **Code from your email** (S11, SRV-59), New and
+    Repeat, plus the rule "10 or more characters".
+  - The code field: 6 characters, upper-cased as typed, mono,
+    `autocomplete="one-time-code"`. Under it: "It's valid for 30 minutes.
+    Lost it or too late?" and **Email me a code**; after a send, "Code sent
+    to {email}. Valid until {HH:MM IST}." (a `status` region) and "Send
+    again in N s" (60 s, disabled, muted).
   - Errors:
     - 400 `wrong_password`: "Current password is wrong";
+    - `invalid_code`: on the code field, "The code is wrong or has
+      expired. Request a new one.";
     - `same_password`: "Choose a different password";
-    - `weak_password`: the rule.
+    - `weak_password`: the rule;
+    - `mail_failed` (502, Email me a code): "We couldn't send the email.
+      Try again, or ask your admin."; 429 `too_many_attempts`.
   - Sign out is available.
 - **Change password (voluntary):** the same form, from the account menu.
-  It notes that other sessions sign out.
+  It notes that other sessions sign out. No code.
+- **Forgot password (S11, SRV-58):** "Forgot password?" under the
+  password on sign-in → `/forgot-password` (the typed email carried over):
+  "Enter your email. We'll send you a 6-character code…", **Send code**
+  (`POST /auth/forgot {email}`, always 200), Back to sign in →
+  `/reset-password` with the email in router state (a reload without it
+  goes back to `/forgot-password`).
+  - Reset: "We sent a code to {email} if it belongs to an account. It's
+    valid for 30 minutes.", then **New password**, **Repeat**, **Code from
+    your email** in that order (product owner); under the code "Nothing
+    yet? Check your spam folder." and **Resend code** (disabled 60 s from
+    arriving and after each resend; the server sends the same code while
+    it's valid); **Set password** (`POST /auth/reset {email, code, new}`);
+    Use a different email.
+  - Errors: `invalid_code` on the code field; `weak_password` on New
+    password; `too_many_attempts` in the alert.
+  - Success replaces the form: "Password changed. Taking you to sign in…"
+    with **Sign in now**; `/sign-in` after **3 s**. The reset doesn't sign
+    in, and every session of that user ends.
 - **States:** a submit spinner. Nothing is stored in the browser.
 
 ```
@@ -1288,7 +1319,10 @@ IMG  NAME                     PRICE          PORTION   ON MACHINES   STATUS     
   - `GET /users?limit=50[&tenant=]` (cursor) → `{items: [user view], next_cursor}`;
   - `POST /users {email, name, role, tenant_id?, machines?, password}`;
   - `PATCH /users/:id {name?, role?, machines?, disabled?}`;
-  - `POST /users/:id/password {password}`.
+  - `POST /users/:id/password {password}`;
+  - `POST /users/:id/code` → `{ok, expires_at}` (S11).
+  - Create and reset answer `code_mail: 'sent' | 'failed'`: they mail the
+    user a code (server plan §4.16).
 - **Table:**
   - Name / email
   - Role
@@ -1303,10 +1337,19 @@ IMG  NAME                     PRICE          PORTION   ON MACHINES   STATUS     
   - temporary password: a **Generate** button makes a typeable 14-character
     one from the same look-alike-free alphabet, with Copy.
   - Shown once in the dialog: "Give this to the user outside the dashboard.
-    They'll choose their own at first sign-in."
+    We'll also email them a code they need to choose their own password."
+  - After: "{name} added. We emailed them a code; give them the temporary
+    password yourself." When `code_mail` is `failed`, a warning instead:
+    "The code email didn't go out" with **Send code** and Close (the user
+    exists either way).
 - **Edit:** name, role, machines.
   - **Disable/Enable**, with confirmation.
-  - **Reset password**: a new temporary one, the same flow.
+  - **Reset password**: a new temporary one, the same flow (the code mail
+    and its warning too).
+  - **Send code** (S11): mails the user their code again (the same one
+    while it's valid) → toast "Code sent to {email}. Valid until {HH:MM
+    IST}."; an error shows in the page's alert. No confirm (it only sends
+    an email). Not on your own row or a disabled user's.
   - Your own row: no role change, no disable (the server says
     `forbidden_self`, and the UI hides both).
 - **Errors:** §7.
@@ -1317,7 +1360,7 @@ NAME / EMAIL                     ROLE           MACHINES        STATUS          
 Owner · owner@powerfuel.example  Tenant admin   All machines    Active                  28 Sep 12:42   [⋯]
 Desk · desk@powerfuel.example    Operator       Bay 02          Active                  28 Sep 12:43   [⋯]
 Look · look@powerfuel.example    Viewer         All machines    Must change password    never          [⋯]
-[⋯] = Edit · Reset password · Disable                                          [Load more]
+[⋯] = Edit · Reset password · Send code · Disable                              [Load more]
 ```
 
 ### 5.13 Company (branding)
@@ -1469,6 +1512,10 @@ UI checks the specific one, never the role name.
 | `too_many_attempts` (429) | sign in | Too many attempts. Try again in 15 minutes |
 | `tenant_disabled` (403) | sign in / any | Your company's access is disabled. Contact FuelBot |
 | `wrong_password` / `same_password` / `weak_password` (400) | change / set password | Current password is wrong / Choose a different password / 10 or more characters |
+| `invalid_code` (400) | forced change, reset password | code field: "The code is wrong or has expired. Request a new one." |
+| `mail_failed` (502) | Email me a code, Send code, Resend | We couldn't send the email. Try again, or ask your admin. |
+| `not_needed` (409) | Email me a code | Your password is already your own. |
+| `user_disabled` (409) | Send code | This user is disabled. Enable them first. |
 | `invalid_email` / `email_taken` (400/409) | users | email: "Enter a valid email" / "A user with this email exists" |
 | `invalid_role` / `role_scope_change` (400) | users | role: "Not allowed" / "Staff and tenant roles can't be swapped" |
 | `unknown_tenant` (400) | users (staff) | tenant: "No such tenant" |

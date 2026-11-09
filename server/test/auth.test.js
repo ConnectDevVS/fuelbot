@@ -111,7 +111,7 @@ describe('sessions (/api/v1/auth)', () => {
     assert.equal((await login(request(ctx.app), 'ops@fuelbot.example')).status, 200);   // platform unaffected
   });
 
-  it('a temporary password allows only /me, /password and /logout until changed', async () => {
+  it('a temporary password allows only /me, /password, /code and /logout until changed', async () => {
     await makeUser({ email: 'new@powerfuel.example', role: 'operator', tenant_id: 'powerfuel', must_change_password: true });
     const agent = request.agent(ctx.app);
     const other = request.agent(ctx.app);
@@ -123,10 +123,13 @@ describe('sessions (/api/v1/auth)', () => {
     assert.equal(gated.body.error, 'password_change_required');
 
     const change = (body) => agent.post('/api/v1/auth/password').set(CSRF).send(body);
-    assert.equal((await change({ current: 'wrong password!', new: 'a brand new secret' })).body.error, 'wrong_password');
-    assert.equal((await change({ current: PASSWORD, new: PASSWORD })).body.error, 'same_password');
-    assert.equal((await change({ current: PASSWORD, new: 'short' })).body.error, 'weak_password');
-    const ok = await change({ current: PASSWORD, new: 'a brand new secret' });
+    assert.equal((await agent.post('/api/v1/auth/code').set(CSRF)).status, 200, 'a code is allowed too');
+    const code = ctx.mail.lastCodeFor('new@powerfuel.example');
+    assert.equal((await change({ current: 'wrong password!', new: 'a brand new secret', code })).body.error, 'wrong_password');
+    assert.equal((await change({ current: PASSWORD, new: 'a brand new secret' })).body.error, 'invalid_code');
+    assert.equal((await change({ current: PASSWORD, new: PASSWORD, code })).body.error, 'same_password');
+    assert.equal((await change({ current: PASSWORD, new: 'short', code })).body.error, 'weak_password');
+    const ok = await change({ current: PASSWORD, new: 'a brand new secret', code });
     assert.equal(ok.status, 200);
     assert.ok(cookieOf(ok), 'a fresh cookie for this session');
     assert.equal(ok.body.user.must_change_password, false);

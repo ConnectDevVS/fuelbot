@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const MACHINE_AUTH_MODES = ['off', 'optional', 'required'];
 const STORAGE_KINDS = ['local', 's3'];
+const MAIL_TRANSPORTS = ['smtp', 'file', 'memory'];
 
 /** IMAGE_ORIGINS: a comma list of https:// origins (no path); anything else throws at boot. */
 function imageOrigins(value) {
@@ -28,6 +29,42 @@ function envLabel(value) {
     throw new Error(`ENV_LABEL: letters, digits, space . _ - only, at most 24 characters: ${label}`);
   }
   return label;
+}
+
+/** CODE_ENCRYPTION_KEY: 32 bytes as base64. Required in production; dev gets a random one per process. */
+function codeKey(value, production) {
+  if (!value) {
+    if (production) throw new Error('CODE_ENCRYPTION_KEY is required when NODE_ENV=production');
+    return crypto.randomBytes(32);
+  }
+  const key = Buffer.from(value, 'base64');
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value) || key.length !== 32) {
+    throw new Error('CODE_ENCRYPTION_KEY must be 32 bytes as base64 (openssl rand -base64 32)');
+  }
+  return key;
+}
+
+/** Outgoing mail: smtp (Gmail in v1; required in production), file (dev: .eml files) or memory (tests). */
+function mailSettings(env, production) {
+  const transport = env.MAIL_TRANSPORT || (production ? 'smtp' : 'file');
+  if (!MAIL_TRANSPORTS.includes(transport)) {
+    throw new Error(`MAIL_TRANSPORT must be one of ${MAIL_TRANSPORTS.join(', ')}`);
+  }
+  if (production && transport !== 'smtp') throw new Error('MAIL_TRANSPORT must be smtp when NODE_ENV=production');
+  const mail = {
+    transport,
+    host: env.SMTP_HOST || 'smtp.gmail.com',
+    port: int(env.SMTP_PORT, 465),
+    user: env.SMTP_USER || '',
+    pass: env.SMTP_PASS || '',
+    from: env.MAIL_FROM || '',
+    dir: env.MAIL_DIR || fileURLToPath(new URL('../.mail/', import.meta.url)),
+  };
+  if (transport === 'smtp' && (!mail.user || !mail.pass || !mail.from)) {
+    throw new Error('MAIL_TRANSPORT=smtp needs SMTP_USER, SMTP_PASS and MAIL_FROM');
+  }
+  if (!mail.from) mail.from = 'FuelBot <no-reply@localhost>';
+  return mail;
 }
 
 function int(value, fallback) {
@@ -74,6 +111,8 @@ export function loadSettings(env = process.env) {
     dashboardDir: env.DASHBOARD_DIR || fileURLToPath(new URL('../../webdashboard/dist/', import.meta.url)),
     imageOrigins: imageOrigins(env.IMAGE_ORIGINS),
     envLabel: envLabel(env.ENV_LABEL),
+    codeKey: codeKey(env.CODE_ENCRYPTION_KEY, production),
+    mail: mailSettings(env, production),
     s3: {
       bucket: env.S3_BUCKET || '',
       region: env.S3_REGION || 'ap-south-1',

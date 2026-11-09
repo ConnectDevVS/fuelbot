@@ -70,7 +70,7 @@ export async function requireSession(req, res, next) {
 }
 
 // Allowed while a temporary password is still in use (plan §4.4).
-const WHILE_CHANGING = new Set(['GET /auth/me', 'POST /auth/password', 'POST /auth/logout']);
+const WHILE_CHANGING = new Set(['GET /auth/me', 'POST /auth/password', 'POST /auth/code', 'POST /auth/logout']);
 
 /** 403 password_change_required for everything else until the user sets their own password. */
 export function requirePasswordChanged(req, res, next) {

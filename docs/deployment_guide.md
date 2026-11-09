@@ -225,6 +225,7 @@ they stop with `ENV_FILE not found` instead of running on dev defaults.
 ```bash
 cd /tmp
 openssl rand -hex 48          # copy this for JWT_SECRET (a new value per server)
+openssl rand -base64 32       # copy this for CODE_ENCRYPTION_KEY (a new value per server)
 sudo -u fuelbot nano /opt/fuelbot/app/server/<env-file>
 ```
 
@@ -250,6 +251,15 @@ STOCK_LOW_PORTIONS=15
 STORAGE=local
 LOG_REQUESTS=true
 
+# Emailed codes (first sign-in, forgot password): see 4.3
+CODE_ENCRYPTION_KEY=<output of openssl rand -base64 32>
+MAIL_TRANSPORT=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=<gmail-address>
+SMTP_PASS=<gmail-app-password>
+MAIL_FROM=FuelBot <<gmail-address>>
+
 ENV_LABEL=staging
 ```
 
@@ -274,6 +284,8 @@ Notes on the values:
 | `NODE_ENV=production` | production only: refuses to start without `JWT_SECRET`, turns on secure cookies and an extra CSP rule, and makes `npm run seed` refuse |
 | `ENV_LABEL` | a tag (e.g. `staging`) shown bottom left on the sign-in page; letters, digits, space `. _ -`, at most 24 characters. Leave it out in production |
 | `MACHINE_AUTH=required` | machines must send their key |
+| `CODE_ENCRYPTION_KEY` | encrypts the emailed codes in the database; production refuses to start without it. Changing it voids codes already sent (users ask for a new one) |
+| `MAIL_TRANSPORT=smtp` + `SMTP_*`, `MAIL_FROM` | how the codes are mailed (4.3). Production refuses to start with any other transport or a missing user, password or sender |
 
 Save in nano with `Ctrl+O`, `Enter`, `Ctrl+X`, then lock the file down:
 
@@ -308,6 +320,37 @@ sleep 8 && curl -s http://127.0.0.1:<port>/healthz; echo
 | `ENV_LABEL: …` | the label has a character that isn't allowed |
 
 ---
+
+### 4.3 Gmail for the emailed codes
+
+Dashboard users get a 6-character code by email when they're added, when an
+admin resets their password, and when they use Forgot password (server
+plan §4.16). v1 sends it from a Gmail account over SMTP.
+
+1. Sign in to the Gmail account that will send the mail (`<gmail-address>`).
+2. Turn on **2-Step Verification** (Google Account → Security). App
+   passwords need it.
+3. Google Account → Security → **App passwords**: create one named
+   `FuelBot <server>`. Google shows 16 letters once; that's `SMTP_PASS`
+   (the spaces don't matter). Never the account's real password.
+4. Put `SMTP_USER=<gmail-address>`, `SMTP_PASS=<app password>` and
+   `MAIL_FROM=FuelBot <<gmail-address>>` in the env file (4.1). `MAIL_FROM`
+   must be that address or an alias verified in Gmail, or Gmail rewrites it.
+5. After starting (step 5), check it: on the sign-in page use **Forgot
+   password?** with your own admin email. The mail ("Your FuelBot code:
+   …") should arrive within a minute; look in spam the first time and mark
+   it "Not spam". `pm2 logs` shows `[auth] forgot failed (EAUTH)` when the
+   app password is wrong (it never logs addresses or codes).
+
+Limits and notes:
+- A personal Gmail account sends about **500 mails a day**: plenty for a
+  handful of admins, not for bulk mail.
+- Revoking the app password in Google stops the mail at once (`EAUTH`);
+  make a new one and restart.
+- Moving to a transactional mail service (SES, Postmark…) later is only
+  new `SMTP_*` values.
+- Staging and production can share the Gmail account, but each needs its
+  own `CODE_ENCRYPTION_KEY`.
 
 ## 5. Run it with pm2 (server)
 
@@ -614,8 +657,11 @@ Before a production server takes real machines:
 - [ ] Its own Atlas database (`fuelbot`), ideally its own cluster; backups on
       and one test restore done.
 - [ ] Atlas Network Access: only the production server's IP.
-- [ ] `.env.production` with `NODE_ENV=production`, a new `JWT_SECRET`, no
+- [ ] `.env.production` with `NODE_ENV=production`, a new `JWT_SECRET`, a
+      new `CODE_ENCRYPTION_KEY`, the Gmail `SMTP_*` and `MAIL_FROM`, no
       `ENV_LABEL`; `chmod 600`.
+- [ ] Forgot password with a real address delivered a code that worked
+      (4.3).
 - [ ] `branch = main`; deployed commit noted.
 - [ ] HTTPS with a redirect from HTTP; `COOKIE_SECURE` on (production mode).
 - [ ] No seed; tenants, products and machines created in the dashboard;

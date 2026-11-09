@@ -1,11 +1,15 @@
 // The browser tests' server (SRV-31): the real createApp on an in-memory MongoDB, fixed port 8795,
 // serving the built dist/, seeded with e2e/seed.mjs. POST /__e2e/reset reseeds
-// (?without_sales=<tenant>: then deletes that tenant's sales, for empty states); it's added here
-// by wrapping the listening server's handler, never in the server's createApp.
+// (?without_sales=<tenant>: then deletes that tenant's sales, for empty states). The mail hooks
+// (the server's memory mailer, SRV-59): GET /__e2e/mail?to=<email> → {code, count} (the newest
+// code mailed there); POST /__e2e/mail?fail=1|0 makes every send fail or work; POST
+// /__e2e/expire?email=<email> expires that user's code. They're added here by wrapping the
+// listening server's handler, never in the server's createApp.
 //   node e2e/server.mjs      (playwright.config.js starts it)
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { startServer } from '../../server/test/helpers.js';
+import { User } from '../../server/src/models/index.js';
 import { reseed, seed } from './seed.mjs';
 
 export const PORT = 8795;
@@ -39,6 +43,22 @@ ctx.app.on('request', (req, res) => {
       console.error('[e2e] reseed failed', err);
       res.writeHead(500).end();
     });
+    return;
+  }
+  const json = (body) => res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
+  if (req.method === 'GET' && url.pathname === '/__e2e/mail') {
+    const to = url.searchParams.get('to');
+    json({ code: ctx.mail.lastCodeFor(to), count: ctx.mail.to(to).length });
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/__e2e/mail') {
+    ctx.mail.fail = url.searchParams.get('fail') === '1';
+    json({ ok: true });
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === '/__e2e/expire') {
+    User.updateOne({ email: url.searchParams.get('email') }, { $set: { 'email_code.expires_at': new Date(Date.now() - 1000) } })
+      .then(() => json({ ok: true }), () => res.writeHead(500).end());
     return;
   }
   handler(req, res);

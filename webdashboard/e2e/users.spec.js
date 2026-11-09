@@ -1,5 +1,5 @@
 // SRV-46: Users. All three widths. Specs that write reset.
-import { expect, PASSWORD, resetData, test, USERS } from './fixtures.js';
+import { expect, mailCount, mailFails, PASSWORD, resetData, test, USERS } from './fixtures.js';
 
 const dialog = (page) => page.getByRole('dialog');
 const row = (page, email) => page.locator('main [data-row]').filter({ hasText: email });
@@ -58,6 +58,8 @@ test('owner creates an operator limited to Bay 02, and that user must change the
       d.getByRole('button', { name: 'Add user' }).click()]);
     expect(req.postDataJSON()).toMatchObject({ email: 'till@powerfuel.test', role: 'operator', machines: ['DEV00001'], tenant_id: 'powerfuel' });
     await expect(dialog(page)).toHaveCount(0);
+    await expect(page.getByText('Till added. We emailed them a code; give them the temporary password yourself.')).toBeVisible();
+    expect(await mailCount(request, 'till@powerfuel.test')).toBe(1);
     await expect(row(page, 'till@powerfuel.test')).toContainText('Must change password');
     await expect(row(page, 'till@powerfuel.test')).toContainText('Bay 02');
 
@@ -160,6 +162,67 @@ test('reset password forces a change', async ({ page, request, browser, signInAs
     const other = await freshSignIn(browser, USERS.desk.email, temp);
     await expect(other.page).toHaveURL(/\/change-password$/);
     await other.context.close();
+  } finally {
+    await resetData(request);
+  }
+});
+
+test('a failed code mail shows the warning, and Send code retries it', async ({ page, request, signInAs, shot }) => {
+  await signInAs('owner');
+  try {
+    await page.goto('t/powerfuel/users');
+    await mailFails(request, true);
+    await openNewUser(page);
+    const d = dialog(page);
+    await d.getByLabel('Email').fill('till@powerfuel.test');
+    await d.getByLabel('Name').fill('Till');
+    await d.getByRole('button', { name: 'Generate' }).click();
+    await d.getByRole('button', { name: 'Add user' }).click();
+    const warning = page.getByRole('dialog').filter({ hasText: "The code email didn't go out" });
+    await expect(warning).toBeVisible();
+    await expect(warning).toContainText('Till needs the code from it');
+    await expect(row(page, 'till@powerfuel.test')).toContainText('Must change password');   // created anyway
+    await expect.poll(() => warning.evaluate((el) => getComputedStyle(el.closest('.ant-modal') ?? el).opacity)).toBe('1');
+    await page.mouse.move(1, 1);
+    await shot('users-mail-failed', { fullPage: false });
+
+    // Still failing: the error shows on the page, not just in a toast.
+    await warning.getByRole('button', { name: 'Send code' }).click();
+    await expect(page.getByRole('alert')).toContainText("We couldn't send the email");
+    await mailFails(request, false);
+    await action(page, 'till@powerfuel.test', 'Send code');
+    await expect(page.getByText(/^Code sent to till@powerfuel\.test\. Valid until \d\d:\d\d IST\.$/)).toBeVisible();
+    expect(await mailCount(request, 'till@powerfuel.test')).toBe(1);
+  } finally {
+    await resetData(request);
+  }
+});
+
+test('Send code from the row menu; never for yourself or a disabled user', async ({ page, request, signInAs }) => {
+  await signInAs('owner');
+  try {
+    await page.goto('t/powerfuel/users');
+    await action(page, USERS.desk.email, 'Send code');
+    await expect(page.getByText(/^Code sent to desk@powerfuel\.test\./)).toBeVisible();
+    expect(await mailCount(request, USERS.desk.email)).toBe(1);
+
+    const menuOf = async (email) => {
+      await row(page, email).getByRole('button', { name: /^Actions for / }).click();
+      const menu = page.locator('.ant-dropdown:visible').last();
+      await expect(menu.getByRole('menuitem').first()).toBeVisible();
+      const items = await menu.getByRole('menuitem').allTextContents();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('.ant-dropdown:visible')).toHaveCount(0);
+      return items;
+    };
+    expect(await menuOf(USERS.owner.email)).not.toContain('Send code');
+    const look = (await page.request.get('/api/v1/users?tenant=powerfuel').then((r) => r.json())).items
+      .find((u) => u.email === USERS.look.email);
+    await page.request.patch(`/api/v1/users/${look.id}`, { headers: { 'X-Requested-With': 'fuelbot-dashboard' }, data: { disabled: true } });
+    await page.getByRole('button', { name: 'Refresh' }).click();
+    await expect(row(page, USERS.look.email)).toContainText('Disabled');
+    expect(await menuOf(USERS.look.email)).not.toContain('Send code');
+    expect(await menuOf(USERS.ops.email)).toContain('Send code');
   } finally {
     await resetData(request);
   }

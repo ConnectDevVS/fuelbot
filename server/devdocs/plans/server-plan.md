@@ -85,6 +85,7 @@ the index.
 | 2026-09-29 | **Disabled machines stay in Refill soon** (product owner): no `disabled` filter on `/stock` or in the dashboard | A disabled machine with a menu still has hoppers to look after | §4.13; dashboard plan §0.1 row 13, §5.10 |
 | 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../docs/stories/ota/README.md) |
 | 2026-11-09 | **Complaints (S10)** (product owner): `tenant_admin`, `operator` and `viewer` raise complaints (title + description, no machine) from the dashboard; operators and viewers see their own, a `tenant_admin` the whole tenant's, staff everyone's; all of them comment. Statuses `open` (default), `with_service`, `closed`: staff change them in any direction, the creator or a `tenant_admin` reopens a closed one, and **every status change needs a comment**. `platform_admin` doesn't raise complaints, so `complaints:raise` and `complaints:reopen` are the first tenant-only permissions (§4.7) | A support channel in the dashboard, with every answer on record | §4.7, §4.15, §6; [complaints stories](../stories/complaints/README.md) |
+| 2026-11-09 | **Email codes (S11)** (product owner): a 6-character code by email, **valid 30 minutes**, resent unchanged while valid and replaced after; cleared once used; 5 wrong tries void it; stored encrypted. Creating a user (admins still set a temporary password) and an admin reset mail one; replacing a temporary password needs it ("Email me a code" on that page). New **forgot password**: email → code → new password, repeat, code → sign-in after 3 s. Existing users get no mail at rollout. Sent from a personal Gmail account (SMTP, app password). **Reverses** "no email in v1" (2026-09-26) and §8's "Email (invites, password reset by email)" | A temporary password alone can't take over an account; users recover a forgotten password without an admin | §4.1, §4.4, §4.6, §4.11, §4.12, §4.16, §6, §8; [email-codes stories](../stories/email-codes/README.md) |
 
 ## 1. Context
 
@@ -536,6 +537,7 @@ own fields go to `extra` until they're added.
 | `token_version` | Number, default 0 |
 | `must_change_password` | Boolean: set when an admin creates the user or sets their password |
 | `last_login_at` | Date |
+| `email_code` | `{enc, issued_at, expires_at, attempts}` or null, **`select: false`**: the emailed code, AES-256-GCM encrypted (§4.16) |
 
 **`AuditEntry`** (`audit`). No `timestamps` (`at` is the time).
 
@@ -596,12 +598,16 @@ tenant check happens once per request.
 | Method & path | Who | What |
 |---|---|---|
 | `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns `{user}` (the dashboard calls `/auth/me` next). Rate-limited |
+| `POST /auth/forgot` | anyone | `{email}` → **always** 200 `{ok: true}`, answered before the lookup; mails a code (§4.16) to an active user of an active tenant. 5 per 15 min per IP + email (429) |
+| `POST /auth/reset` | anyone | `{email, code, new}` → 200 `{ok: true}`, **no cookie** (sign in next); missing fields 400 `invalid_body`, then `weak_password`, then 400 `invalid_code` (also for an unknown, disabled or disabled-tenant email). Clears `must_change_password` and the code, ends every session. 10 per 15 min per IP + email (429) |
 | `POST /auth/logout` | signed in | clears the cookie |
 | `GET /auth/me` | signed in (also while a password change is required) | `{user, permissions, all_machines, tenant, display_tz, session_expires_at}` (SRV-28): `permissions` is the effective set from `auth/rbac.js` `effectivePermissions()` (the role's set, minus `products:edit` for a user limited to some machines), sorted; `tenant` is `{id, name, logo_text}`, null for platform; `session_expires_at` is ISO UTC without milliseconds |
-| `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end); answers like `/auth/me`, with the new session's expiry |
-| `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant |
+| `POST /auth/password` | signed in | `{current, new, code}`; `code` (the emailed one, §4.16) is **required while `must_change_password`** (400 `invalid_code`; checked after `current`) and ignored otherwise; bumps `token_version` (other sessions end), clears the code; answers like `/auth/me`, with the new session's expiry |
+| `POST /auth/code` | signed in, **only while `must_change_password`** (else 409 `not_needed`) | mails yourself your code (the live one, or a new one) → `{ok, expires_at}`; 502 `mail_failed`; 5 per 15 min per IP + user (429) |
+| `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant. Create mails a welcome code (§4.16); the response adds `code_mail: 'sent' \| 'failed'` (the user is created either way) |
 | `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions). **No deletion**: a disabled user can be re-enabled |
-| `POST /users/:id/password` | same | set a new temporary password (ends sessions) |
+| `POST /users/:id/password` | same | set a new temporary password (ends sessions); mails the user their code; the response adds `code_mail: 'sent' \| 'failed'` |
+| `POST /users/:id/code` | same | mails the user their code again (the live one, or a new one) → `{ok, expires_at}`; yourself 403 `forbidden_self`; a disabled user 409 `user_disabled`; 502 `mail_failed` |
 
 **User rules** (enforced on every create/update):
 - A `tenant_admin` manages the users of **their own tenant**, including other
@@ -622,7 +628,9 @@ system. It sets `must_change_password`; until the user changes it
 (`POST /auth/password`), every other `/api/v1` call returns **403**
 `password_change_required`, and the dashboard shows only the change-password
 form. An admin's `POST /users/:id/password` works the same way (a reset).
-There's no email in v1 (§8).
+Since S11 both also **mail the user a code** (§4.16), which
+`POST /auth/password` needs along with the temporary password; the mail
+never contains the temporary password.
 
 The first `platform_admin` comes from `npm run create-admin` (asks for the
 email and password on the terminal). There's no self sign-up.
@@ -735,6 +743,10 @@ There are no alerts in v1 (§8), but lists sort by status.
   it).
 - **Login rate limit:** `LOGIN_RATE_LIMIT` (10) attempts per 15 minutes per
   IP + email. The error doesn't say whether the email exists.
+- **Code limits** (§4.16, 15 minutes): forgot password 5 per IP + email;
+  reset 10 per IP + email; "email me a code" 5 per IP + user. Each code
+  also allows only 5 wrong tries. Forgot password answers the same,
+  before any lookup, whether the email exists or not.
 - `JWT_SECRET` is **required** when `NODE_ENV=production`. In dev a random
   one is made per process, and sessions end on restart.
 - `helmet` headers. The API keeps helmet's default CSP. `/dashboard` has
@@ -908,8 +920,10 @@ are
 - A request log line is method, path (no query), status and time. **Never**
   headers, cookies, bodies, machine keys, passwords, or image URLs with
   query strings.
-- Secrets exist only in env vars: `JWT_SECRET` and the AWS credentials.
-  Machine keys and passwords exist only as hashes. A test greps the logs of
+- Secrets exist only in env vars: `JWT_SECRET`, `CODE_ENCRYPTION_KEY`,
+  `SMTP_PASS` and the AWS credentials. Machine keys and passwords exist only
+  as hashes; emailed codes only encrypted (§4.16). **Never** log a code, a
+  mail's body or recipient, or the SMTP credentials. A test greps the logs of
   a full test run for the issued keys and passwords (same spirit as the
   kiosk's credential-leak check).
 
@@ -934,6 +948,18 @@ Staging (2026-10-12):
   `<meta name="fb-env">` and shown bottom left on the sign-in page. Letters,
   digits, space `. _ -`, at most 24 characters; anything else stops the
   server at boot. Unset in production.
+
+S11 adds (email codes, §4.16):
+- `CODE_ENCRYPTION_KEY`: 32 bytes as base64 (`openssl rand -base64 32`).
+  **Required** in production; dev makes a random one per process (codes
+  die on restart, like dev sessions).
+- `MAIL_TRANSPORT`: `smtp` (required in production) | `file` (dev default:
+  each message as an `.eml` in `MAIL_DIR`, default `server/.mail/`,
+  gitignored) | `memory` (tests and e2e).
+- `SMTP_HOST` (`smtp.gmail.com`), `SMTP_PORT` (465, TLS), `SMTP_USER`,
+  `SMTP_PASS` (a Google app password), `MAIL_FROM` (the Gmail address or a
+  verified alias). `smtp` without user, password or sender stops the
+  server at boot.
 
 Ports in use locally:
 - 8787: the mock;
@@ -1088,6 +1114,37 @@ are the detail behind this section.
 Out of scope: attachments, categories, priority, assignment, SLAs,
 notifications (no email in v1, §8), and links to a machine or order.
 
+### 4.16 Email codes (S11)
+
+Story set: [stories/email-codes/](../stories/email-codes/README.md)
+(decisions there). A dashboard user needs a code from their email to set
+a password: replacing a temporary password, and in forgot password.
+
+- **The code:** 6 symbols from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no
+  `O`, `I`, `L`, `0`, `1`), compared after removing spaces and upper-casing.
+  **One code per user**, shared by every flow.
+- **Valid 30 minutes** from issue. Asking again while it's live sends the
+  **same code** with the same expiry; once it has expired, been used or
+  been voided, the next request makes a new one that replaces it.
+- **Cleared** in the same save as the password it set. **5 wrong attempts
+  void it.** A missing, expired, voided or wrong code is always 400
+  `invalid_code`.
+- **Stored encrypted** (`User.email_code`, `select: false`): AES-256-GCM, a
+  fresh 12-byte IV per code, key `CODE_ENCRYPTION_KEY`. Never in a
+  response, a log or an audit entry.
+- `services/codes.js`: `issueCode()` (conditional on the code it read, so
+  parallel calls end with one code), `checkCode()` (an atomic `$inc` of
+  `attempts`; the fifth clears the code), `clearCode()`.
+- **Mail** (`services/mail.js`): `createMailer(settings.mail)` with the
+  `smtp` (nodemailer; a Gmail account with an app password in v1), `file`
+  or `memory` transport; `createApp({settings, mailer})` takes one for
+  tests. `codeMail()` builds the message: subject `Your FuelBot code:
+  <code>`, text and HTML parts with the code, "valid for 30 minutes (until
+  HH:MM)" in `DISPLAY_TZ`, what it's for, and the dashboard URL. **Never the
+  temporary password.** A failed send throws `MailError` (the transport's
+  error code only).
+- Routes: SRV-56 and SRV-57 (§4.4).
+
 ## 5. Target folder structure
 
 ```
@@ -1143,6 +1200,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../docs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
 | S10 | Complaints (**done 2026-11-09**) | §4.15; stories SRV-50 to SRV-54 in [stories/complaints/](../stories/complaints/README.md): model, permissions and API (50–51), the dashboard's list, raise and complaint pages (52–53), end-to-end and SIGNOFF (54). No app change | tenant users reporting problems to FuelBot |
+| S11 | Email codes (**built 2026-11-09**; sign-off waits on one real Gmail send) | §4.16; stories SRV-55 to SRV-60 in [stories/email-codes/](../stories/email-codes/README.md): codes and the mailer (55), codes on create / admin reset / first sign-in (56), the forgot-password API (57), the dashboard's forgot and reset pages (58) and first-sign-in code and Users page (59), end-to-end and SIGNOFF (60). No app change | users choosing and recovering their own passwords |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done
@@ -1211,8 +1269,10 @@ chained with `&&` after the checks.
   the deploy milestone.
 - Ad video management (`idle_video_url` is editable as a plain field only).
 - Multi-currency (INR only) and localisation.
-- **Email** (invites, password reset by email). Admins set temporary
-  passwords (§4.4).
+- ~~**Email** (invites, password reset by email)~~: since S11 (2026-11-09)
+  codes are emailed for first sign-in and forgot password (§4.16).
+  Admins still set temporary passwords; invite links, sign-in links and
+  other mail (alerts, reports) stay out.
 - A **read-only FuelBot staff role** (`platform_viewer`): planned for later.
   The role table makes it one new row (§4.7).
 

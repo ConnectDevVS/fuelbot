@@ -1,6 +1,8 @@
 // Shared test fixtures (SRV-31). Import { test, expect } from here, never from @playwright/test.
 //   signInAs('owner')   API sign-in through page.request (the cookie lands in the page's context)
 //   shot('home')        .screenshots/<project>-home.png (look at them)
+//   lastCode(request, email), mailFails(request, true), expireCode(request, email): the
+//                       e2e server's memory mailer (emailed codes, SRV-59)
 //   guard               automatic: fails the test on any CSP violation, page error, or
 //                       horizontal page overflow. Console "Failed to load resource" lines
 //                       (expected 401/403s) are ignored. guard.reset() clears what was caught.
@@ -78,6 +80,29 @@ export async function resetData(request, { withoutSales } = {}) {
   const query = withoutSales ? `?without_sales=${encodeURIComponent(withoutSales)}` : '';
   const res = await request.post(`http://127.0.0.1:8795/__e2e/reset${query}`);
   expect(res.status()).toBe(200);
+}
+
+/** The newest code the e2e server's mailer sent to email (null if none). */
+export async function lastCode(request, email) {
+  const res = await request.get(`http://127.0.0.1:8795/__e2e/mail?to=${encodeURIComponent(email)}`);
+  expect(res.status()).toBe(200);
+  return (await res.json()).code;
+}
+
+/** How many mails went to email since the last reset. */
+export async function mailCount(request, email) {
+  const res = await request.get(`http://127.0.0.1:8795/__e2e/mail?to=${encodeURIComponent(email)}`);
+  return (await res.json()).count;
+}
+
+/** Makes every mail send fail (true) or work again (false). resetData() sets it back to working. */
+export async function mailFails(request, fail) {
+  expect((await request.post(`http://127.0.0.1:8795/__e2e/mail?fail=${fail ? 1 : 0}`)).status()).toBe(200);
+}
+
+/** Expires the user's emailed code now. */
+export async function expireCode(request, email) {
+  expect((await request.post(`http://127.0.0.1:8795/__e2e/expire?email=${encodeURIComponent(email)}`)).status()).toBe(200);
 }
 
 /** The hrefs (without /dashboard/) of every nav destination: the sidebar, or on a phone the tab bar + More sheet. */

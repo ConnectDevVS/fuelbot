@@ -6,8 +6,9 @@ covers the Godot kiosk, which S7 never touches.
 
 - **Spec:** [devdocs/plans/dashboard-plan.md](devdocs/plans/dashboard-plan.md)
   ("DP"). Stories: [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md)
-  (S7) and [server/devdocs/stories/complaints/](../server/devdocs/stories/complaints/README.md)
-  (S10), one commit per story, `SRV-NN: <title>`. If the code shows the plan is
+  (S7), [server/devdocs/stories/complaints/](../server/devdocs/stories/complaints/README.md)
+  (S10) and [server/devdocs/stories/email-codes/](../server/devdocs/stories/email-codes/README.md)
+  (S11), one commit per story, `SRV-NN: <title>`. If the code shows the plan is
   wrong, fix the plan in the same commit.
 - The API is the server's (`/api/v1`, [server plan §4](../server/devdocs/plans/server-plan.md)).
   Check shapes against the real server, not prose.
@@ -29,7 +30,11 @@ covers the Godot kiosk, which S7 never touches.
   and horizontal overflow; `signInAs(key)` (keys of `USERS` in
   `e2e/seed.mjs`), `shot(name)`, `resetData()` after writes
   (`resetData(request, { withoutSales: 'globex' })` for an empty tenant;
-  reset again after, in a `finally`). API-only
+  reset again after, in a `finally`). Emailed codes: the e2e server runs
+  the memory mailer; `lastCode(request, email)`, `mailCount()`,
+  `mailFails(request, true)`, `expireCode()`. **The server's rate limiters
+  (sign-in, forgot password) outlive `resetData()`**: a test that uses
+  forgot password creates a user with an address of its own. API-only
   specs run on the desktop project only. `E2E_CHANNEL=chromium` after
   `npx playwright install chromium` (ask before downloading).
 - **Gate for a story:** `cd server && npm test && cd ../webdashboard && npm run lint && npm test && npm run build && npm run e2e`,
