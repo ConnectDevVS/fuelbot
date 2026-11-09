@@ -13,6 +13,8 @@ import { t } from '../strings.js';
 const Layout = lazy(() => import('./Layout.jsx'));
 const SignInPage = lazy(() => import('../auth/SignInPage.jsx'));
 const ChangePasswordPage = lazy(() => import('../auth/ChangePasswordPage.jsx'));
+const ForgotPasswordPage = lazy(() => import('../auth/ForgotPasswordPage.jsx'));
+const ResetPasswordPage = lazy(() => import('../auth/ResetPasswordPage.jsx'));
 const ComingSoon = lazy(() => import('../pages/ComingSoon.jsx'));
 const Gallery = lazy(() => import('../pages/Gallery.jsx'));
 
@@ -54,6 +56,9 @@ function pageElement(page) {
 
 export const routes = [
   { path: '/sign-in', element: <SignInPage />, errorElement: <ErrorBoundary /> },
+  // Forgot password (S11): public like sign-in; the reset page reads the email from router state.
+  { path: '/forgot-password', element: <ForgotPasswordPage />, errorElement: <ErrorBoundary /> },
+  { path: '/reset-password', element: <ResetPasswordPage />, errorElement: <ErrorBoundary /> },
   {
     path: '/change-password',
     element: <RequireAuth allowPasswordChange><ChangePasswordPage /></RequireAuth>,

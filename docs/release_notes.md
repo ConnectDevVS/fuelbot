@@ -1,5 +1,25 @@
 # FuelBot release notes
 
+## Unreleased: email codes (branch `s11-email-codes`)
+
+Server and dashboard only; no kiosk change. **New required settings** on
+every server: `CODE_ENCRYPTION_KEY`, `MAIL_TRANSPORT=smtp`, `SMTP_USER`,
+`SMTP_PASS` (a Gmail app password) and `MAIL_FROM`. Production won't start
+without them; see `docs/deployment_guide.md` §4.3.
+
+- **A code by email to choose a password.** Adding a user, or resetting
+  their password, emails them a 6-character code. On their first sign-in
+  they enter the temporary password from their admin *and* the code. A code
+  is valid for 30 minutes; "Email me a code" on that page sends it again
+  (the same code while it's valid, a new one after).
+- **Forgot password** on the sign-in page: enter your email, get a code,
+  then type a new password twice and the code. Back to sign-in after 3
+  seconds. The page never says whether an email has an account.
+- **Users page:** "Send code" in each user's menu; a warning with "Send
+  code" when the mail didn't go out (the user is created anyway).
+- 5 wrong tries void a code. Codes are stored encrypted and never logged
+  or shown to admins. Existing users get no email until they need one.
+
 ## Unreleased: settings and Wi-Fi (branch `plan/settings-wifi`)
 
 Kiosk only; no server or dashboard change.

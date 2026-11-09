@@ -1,5 +1,6 @@
-// SRV-32: sign in, forced password change, session end, sign out, expiry banner.
-import { expect, PASSWORD, resetData, signOutViaUi, test, USERS } from './fixtures.js';
+// SRV-32: sign in, forced password change (with the emailed code since SRV-59), session end,
+// sign out, expiry banner.
+import { expect, lastCode, PASSWORD, resetData, signOutViaUi, test, USERS } from './fixtures.js';
 
 const NEW_PASSWORD = 'my own password 456';
 
@@ -52,7 +53,17 @@ test.describe('changes a password', () => {
     await page.goto('t/powerfuel/home');
     await expect(page).toHaveURL(/\/dashboard\/change-password$/);
 
+    // The seeded user has no code yet: ask for one.
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    await expect(page.getByRole('status').filter({ hasText: `Code sent to ${USERS.fresh.email}` })).toBeVisible();
+    const wait = page.getByRole('button', { name: /Send again in \d+ s/ });
+    await expect(wait).toBeDisabled();
+    await page.mouse.move(1, 1);
+    await expect(wait).toHaveCSS('color', 'rgb(75, 81, 89)');   // --fb-muted, after antd's transition
+    await shot('change-password-code-sent');
     await page.getByLabel('Temporary password').fill(PASSWORD);
+    await page.getByLabel('Code from your email').fill((await lastCode(page.request, USERS.fresh.email)).toLowerCase());
+    await expect(page.getByLabel('Code from your email')).toHaveValue(/^[A-Z0-9]{6}$/);
     await page.getByLabel('New password', { exact: true }).fill(NEW_PASSWORD);
     await page.getByLabel('Repeat new password').fill('something else entirely');
     await page.getByRole('button', { name: 'Change password' }).click();
@@ -72,13 +83,17 @@ test.describe('changes a password', () => {
     page.on('framenavigated', (f) => urls.push(f.url()));
     await page.goto('sign-in');
     await signInWithForm(page, USERS.fresh.email);
+    await page.getByRole('button', { name: 'Email me a code' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Code sent' })).toBeVisible();
+    const code = await lastCode(page.request, USERS.fresh.email);
     await page.getByLabel('Temporary password').fill(PASSWORD);
+    await page.getByLabel('Code from your email').fill(code);
     await page.getByLabel('New password', { exact: true }).fill(NEW_PASSWORD);
     await page.getByLabel('Repeat new password').fill(NEW_PASSWORD);
     await page.getByRole('button', { name: 'Change password' }).click();
     await expect(page).toHaveURL(/\/dashboard\/t\/powerfuel\/home$/);
     const stored = await page.evaluate(() => JSON.stringify([{ ...localStorage }, { ...sessionStorage }]));
-    for (const secret of [PASSWORD, NEW_PASSWORD, encodeURIComponent(PASSWORD), encodeURIComponent(NEW_PASSWORD)]) {
+    for (const secret of [PASSWORD, NEW_PASSWORD, encodeURIComponent(PASSWORD), encodeURIComponent(NEW_PASSWORD), code]) {
       expect(stored).not.toContain(secret);
       for (const url of urls) expect(url).not.toContain(secret);
     }

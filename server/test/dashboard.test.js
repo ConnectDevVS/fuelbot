@@ -120,7 +120,10 @@ describe('/dashboard', () => {
   });
 
   it('upgrade-insecure-requests only in production', async () => {
-    const prod = await bareServer({ DASHBOARD_DIR: dir, NODE_ENV: 'production' });
+    const prod = await bareServer({
+      DASHBOARD_DIR: dir, NODE_ENV: 'production', CODE_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+      SMTP_USER: 'u@example.com', SMTP_PASS: 'p', MAIL_FROM: 'u@example.com',
+    });
     try {
       const res = await request(prod.app).get('/dashboard/');
       assert.ok(res.headers['content-security-policy'].includes('upgrade-insecure-requests'));

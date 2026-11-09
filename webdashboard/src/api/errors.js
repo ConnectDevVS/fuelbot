@@ -11,6 +11,7 @@ export const CODES = [
   'product_in_use', 'product_exists', 'tenant_exists', 'source_not_configured', 'not_found', 'network_error',
   'not_signed_in', 'password_change_required', 'csrf_header_required',
   'status_changed', 'status_unchanged', 'complaint_full', 'invalid_status',
+  'invalid_code', 'mail_failed', 'not_needed', 'user_disabled',
 ];
 
 // Codes whose message says something went wrong on our side (a bug, never expected).

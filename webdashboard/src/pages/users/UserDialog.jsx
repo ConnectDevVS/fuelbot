@@ -18,7 +18,8 @@ export const MACHINE_ROLES = ['operator', 'viewer'];
 /**
  * mode: 'create' | 'edit' | 'reset'. user (edit/reset). tid: the page's tenant (null on staff's
  * /users). staff: may create platform_admin and pick tenants. tenants: [{id, name}] (staff).
- * self: the user is the signed-in one. onClose(saved user | undefined).
+ * self: the user is the signed-in one. onClose(saved user | undefined, codeMail): codeMail is the
+ * server's 'sent' | 'failed' for create and reset (they mail the user a code), else undefined.
  */
 export function UserDialog({ mode, user, tid, staff, tenants = [], self = false, onClose }) {
   const [form] = Form.useForm();
@@ -38,25 +39,25 @@ export function UserDialog({ mode, user, tid, staff, tenants = [], self = false,
     setBusy(true);
     setProblem(null);
     try {
-      let saved;
+      let res;
       if (mode === 'create') {
         const tenantRole = TENANT_ROLES.includes(v.role);
-        saved = (await api('POST', '/users', { body: {
+        res = await api('POST', '/users', { body: {
           email: v.email.trim(), name: (v.name ?? '').trim(), role: v.role, password: v.password,
           ...(tenantRole ? { tenant_id: tid ?? v.tenant_id } : {}),
           ...(MACHINE_ROLES.includes(v.role) ? { machines: v.machines ?? [] } : {}),
-        } })).user;
+        } });
       } else if (mode === 'edit') {
-        saved = (await api('PATCH', `/users/${encodeURIComponent(user.id)}`, { body: {
+        res = await api('PATCH', `/users/${encodeURIComponent(user.id)}`, { body: {
           name: (v.name ?? '').trim(),
           ...(self ? {} : { role: v.role }),
           ...(!self && MACHINE_ROLES.includes(v.role) ? { machines: v.machines ?? [] } : {}),
-        } })).user;
+        } });
       } else {
-        saved = (await api('POST', `/users/${encodeURIComponent(user.id)}/password`, { body: { password: v.password } })).user;
+        res = await api('POST', `/users/${encodeURIComponent(user.id)}/password`, { body: { password: v.password } });
       }
       form.resetFields();   // the temporary password leaves the form with the dialog
-      onClose(saved);
+      onClose(res.user, res.code_mail);
     } catch (err) {
       setProblem(applyServerError(err, form));
     } finally {

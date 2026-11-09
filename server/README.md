@@ -50,6 +50,13 @@ That's the first `platform_admin` (FuelBot staff). Everyone else is created
 in the admin API (`POST /api/v1/users`) with a temporary password they
 change at first sign-in. Sessions last 48 hours.
 
+Setting a password needs a 6-character code from the user's email (plan
+§4.16): creating a user or resetting their password mails one, and the
+change-password step asks for it with the temporary password. Forgot
+password (`POST /api/v1/auth/forgot`, then `/reset`) mails one too. In dev, mail goes to `.mail/` as `.eml` files (open one to read the
+code); `MAIL_TRANSPORT=smtp` with the `SMTP_*` settings in `.env.example`
+sends real mail through Gmail.
+
 ## Dashboard
 
 The web dashboard is its own project in [`../webdashboard`](../webdashboard).

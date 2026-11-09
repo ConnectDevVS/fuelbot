@@ -1,10 +1,12 @@
 // Users (dashboard plan §5.12; SRV-46): /t/:tid/users for a tenant admin (their company) and staff in a
 // tenant; /users for staff across tenants, with a tenant filter. 50 at a time with Load more. Per row:
-// Edit, Reset password, Disable / Enable (after a confirm). Your own row: edit your name only.
+// Edit, Reset password, Send code (the emailed code again, server plan §4.16), Disable / Enable
+// (after a confirm). Your own row: edit your name only. Create and reset mail a code; when that
+// mail fails, a warning offers Send code.
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Alert, Button, Dropdown, Select, Tag } from 'antd';
+import { Alert, App, Button, Dropdown, Select, Tag } from 'antd';
 import { MoreOutlined, PlusOutlined } from '@ant-design/icons';
 import { api } from '../../api/client.js';
 import { messageFor } from '../../api/errors.js';
@@ -16,7 +18,7 @@ import { DateTime } from '../../ui/DateTime.jsx';
 import { useConfirm, useToast } from '../../ui/dialogs.js';
 import { EmptyState, ErrorPanel, PageSkeleton } from '../../ui/States.jsx';
 import { machineName, useMachines } from '../../lib/names.js';
-import { formatDayHeading } from '../../lib/time.js';
+import { formatClock, formatDayHeading } from '../../lib/time.js';
 import { UserDialog } from './UserDialog.jsx';
 import { t } from '../../strings.js';
 import styles from './users.module.css';
@@ -34,6 +36,7 @@ export default function UsersPage() {
   const { data: me } = useMe();
   const confirm = useConfirm();
   const toast = useToast();
+  const { modal } = App.useApp();
   const [tenantFilter, setTenantFilter] = useState(null);
   const tenant = tid ?? tenantFilter;
   const query = useInfiniteQuery({
@@ -73,6 +76,30 @@ export default function UsersPage() {
     }
   };
 
+  /** Mails u their code; true when sent. Errors show in the page's alert, never toast-only. */
+  const sendCode = async (u) => {
+    setProblem(null);
+    try {
+      const res = await api('POST', `/users/${encodeURIComponent(u.id)}/code`);
+      toast.success(t('users.codeSent', { email: u.email, time: formatClock(res.expires_at, tz) }));
+      return true;
+    } catch (err) {
+      setProblem(messageFor(err));
+      return false;
+    }
+  };
+
+  const mailFailed = (u) => {
+    modal.warning({
+      title: t('users.mailFailed.title'),
+      content: t('users.mailFailed.body', { name: u.name || u.email }),
+      okText: t('users.mailFailed.retry'),
+      okCancel: true,
+      cancelText: t('users.mailFailed.close'),
+      onOk: () => sendCode(u),
+    });
+  };
+
   const status = (u) => {
     if (u.disabled) return <Tag>{t('users.disabled')}</Tag>;
     if (u.must_change_password) return <Tag color="warning">{t('users.mustChange')}</Tag>;
@@ -95,6 +122,7 @@ export default function UsersPage() {
         { key: 'edit', label: t('users.edit') },
         ...(isSelf(u) ? [] : [
           { key: 'reset', label: t('users.reset') },
+          ...(u.disabled ? [] : [{ key: 'code', label: t('users.sendCode') }]),
           u.disabled ? { key: 'enable', label: t('users.enable') } : { key: 'disable', label: t('users.disable'), danger: true },
         ]),
       ];
@@ -102,6 +130,7 @@ export default function UsersPage() {
         <Dropdown trigger={['click']} menu={{ items, onClick: ({ key, domEvent }) => {
           domEvent.stopPropagation();
           if (key === 'edit' || key === 'reset') setDialog({ mode: key, user: u });
+          else if (key === 'code') sendCode(u);
           else setDisabled(u, key === 'disable');
         } }}>
           <Button type="text" icon={<MoreOutlined />} aria-label={t('users.actionsFor', { name: u.name || u.email })}
@@ -111,12 +140,13 @@ export default function UsersPage() {
     } },
   ];
 
-  const closeDialog = (saved) => {
+  const closeDialog = (saved, codeMail) => {
     const mode = dialog?.mode;
     setDialog(null);
     if (!saved) return;
     const name = saved.name || saved.email;
-    toast.success(t(mode === 'create' ? 'users.created' : mode === 'reset' ? 'users.resetDone' : 'users.saved', { name }));
+    if (codeMail === 'failed') mailFailed(saved);
+    else toast.success(t(mode === 'create' ? 'users.created' : mode === 'reset' ? 'users.resetDone' : 'users.saved', { name }));
     query.refetch();
   };
 

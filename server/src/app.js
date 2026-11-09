@@ -7,12 +7,16 @@ import { HttpError } from './errors.js';
 import { kioskRouter } from './routes/kiosk.js';
 import { apiRouter } from './routes/api.js';
 import { dashboardRouter } from './dashboard.js';
+import { createMailer } from './services/mail.js';
 
-export function createApp({ settings }) {
+/** mailer: defaults to the one settings.mail describes (tests and e2e get the memory one). */
+export function createApp({ settings, mailer = createMailer(settings.mail) }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 'loopback');
   app.locals.settings = settings;
+  app.locals.mailer = mailer;
+  app.locals.background = new Set();   // work finished after the response (forgot password); tests await it
 
   if (settings.logRequests) {
     // Method, path (no query: presigned or filter values), status, time. Never headers or bodies.
