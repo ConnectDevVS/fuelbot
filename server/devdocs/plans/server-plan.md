@@ -85,6 +85,7 @@ the index.
 | 2026-09-29 | **Disabled machines stay in Refill soon** (product owner): no `disabled` filter on `/stock` or in the dashboard | A disabled machine with a menu still has hoppers to look after | §4.13; dashboard plan §0.1 row 13, §5.10 |
 | 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../docs/stories/ota/README.md) |
 | 2026-11-09 | **Complaints (S10)** (product owner): `tenant_admin`, `operator` and `viewer` raise complaints (title + description, no machine) from the dashboard; operators and viewers see their own, a `tenant_admin` the whole tenant's, staff everyone's; all of them comment. Statuses `open` (default), `with_service`, `closed`: staff change them in any direction, the creator or a `tenant_admin` reopens a closed one, and **every status change needs a comment**. `platform_admin` doesn't raise complaints, so `complaints:raise` and `complaints:reopen` are the first tenant-only permissions (§4.7) | A support channel in the dashboard, with every answer on record | §4.7, §4.15, §6; [complaints stories](../stories/complaints/README.md) |
+| 2026-11-09 | **Email codes (S11)** (product owner): a 6-character code by email, **valid 30 minutes**, resent unchanged while valid and replaced after; cleared once used; 5 wrong tries void it; stored encrypted. Creating a user (admins still set a temporary password) and an admin reset mail one; replacing a temporary password needs it ("Email me a code" on that page). New **forgot password**: email → code → new password, repeat, code → sign-in after 3 s. Existing users get no mail at rollout. Sent from a personal Gmail account (SMTP, app password). **Reverses** "no email in v1" (2026-09-26) and §8's "Email (invites, password reset by email)" | A temporary password alone can't take over an account; users recover a forgotten password without an admin | §4.1, §4.4, §4.6, §4.11, §4.12, §4.16, §6, §8; [email-codes stories](../stories/email-codes/README.md) |
 
 ## 1. Context
 
@@ -1199,6 +1200,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../docs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
 | S10 | Complaints (**done 2026-11-09**) | §4.15; stories SRV-50 to SRV-54 in [stories/complaints/](../stories/complaints/README.md): model, permissions and API (50–51), the dashboard's list, raise and complaint pages (52–53), end-to-end and SIGNOFF (54). No app change | tenant users reporting problems to FuelBot |
+| S11 | Email codes (**built 2026-11-09**; sign-off waits on one real Gmail send) | §4.16; stories SRV-55 to SRV-60 in [stories/email-codes/](../stories/email-codes/README.md): codes and the mailer (55), codes on create / admin reset / first sign-in (56), the forgot-password API (57), the dashboard's forgot and reset pages (58) and first-sign-in code and Users page (59), end-to-end and SIGNOFF (60). No app change | users choosing and recovering their own passwords |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done
@@ -1267,8 +1269,10 @@ chained with `&&` after the checks.
   the deploy milestone.
 - Ad video management (`idle_video_url` is editable as a plain field only).
 - Multi-currency (INR only) and localisation.
-- **Email** (invites, password reset by email). Admins set temporary
-  passwords (§4.4).
+- ~~**Email** (invites, password reset by email)~~: since S11 (2026-11-09)
+  codes are emailed for first sign-in and forgot password (§4.16).
+  Admins still set temporary passwords; invite links, sign-in links and
+  other mail (alerts, reports) stay out.
 - A **read-only FuelBot staff role** (`platform_viewer`): planned for later.
   The role table makes it one new row (§4.7).
 

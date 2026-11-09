@@ -74,6 +74,11 @@ changing it; this file covers only what spans parts.
   (`webdashboard/`, S7) is done too (its SIGNOFF, 2026-09-30); its
   real-app run changed prices, maintenance and a new machine's menu on
   the app from the dashboard.
+- **Email codes (S11, 2026-11-09):** first sign-in and forgot password
+  need a code mailed through Gmail
+  ([server/devdocs/stories/email-codes/](server/devdocs/stories/email-codes/README.md)).
+  Built; sign-off waits on one real send through the product owner's
+  Gmail account (app password in `server/.env`).
 - **Flavor images:** the real S3 bucket and the server's upload endpoint
   (server S5, deferred) are pending. The content team follows
   `docs/image-spec.md`.
