@@ -39,8 +39,12 @@ the Godot kiosk app. Read it only when a change touches the app.
 - **Ingest never costs data:** the app drops records on a 4xx other than
   408/429. Return 400 only for bodies that can never be valid; duplicates are
   200. Never return 401/403 on ingest until the app retries them (plan §3.5).
-- **Never log** headers, cookies, bodies, machine keys, passwords or URLs with
-  query strings. Keys and passwords are stored only as hashes.
+- **Never log** headers, cookies, bodies, machine keys, passwords, emailed
+  codes, mail bodies or recipients, or URLs with query strings. Keys and
+  passwords are stored only as hashes; codes only encrypted
+  (`services/codes.js`).
+- **Tests never send real mail:** `startServer()` uses the memory mailer
+  (`ctx.mail.sent`, `ctx.mail.lastCodeFor(email)`, `ctx.mail.fail = true`).
 - **`MACHINE_AUTH` is `required` by default.** Server tests run with `off`
   (`test/helpers.js`) unless they're about keys; `keys.test.js` covers the
   modes by switching `ctx.settings.machineAuth`.

@@ -24,6 +24,7 @@ export async function startServer(env = {}, { port = 0 } = {}) {
     MACHINE_AUTH: 'off',   // key tests set their own mode
     MONGO_URL: mongo.getUri('fuelbot_test'),
     LOCAL_STORAGE_DIR: uploads,
+    MAIL_TRANSPORT: 'memory',
     ...env,
   });
   await connectDb(settings.mongoUrl);
@@ -39,6 +40,7 @@ export async function startServer(env = {}, { port = 0 } = {}) {
     expressApp: app,
     settings,
     uploads,
+    mail: mailbox(app.locals.mailer),
     async reset() {
       await Promise.all(Object.values(mongoose.models).map((model) => model.deleteMany({})));
     },
@@ -50,6 +52,17 @@ export async function startServer(env = {}, { port = 0 } = {}) {
       fs.rmSync(uploads, { recursive: true, force: true });
     },
   };
+}
+
+/** The memory mailer, plus the newest code sent to an address (from the subject). */
+function mailbox(mailer) {
+  return Object.assign(mailer, {
+    to: (email) => mailer.sent.filter((m) => m.to === email),
+    lastCodeFor(email) {
+      const subject = mailer.sent.findLast((m) => m.to === email)?.subject ?? '';
+      return /Your FuelBot code: ([A-Z0-9]{6})$/.exec(subject)?.[1] ?? null;
+    },
+  });
 }
 
 const isIdList = (v) => Array.isArray(v) && v.length > 0

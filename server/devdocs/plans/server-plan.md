@@ -536,6 +536,7 @@ own fields go to `extra` until they're added.
 | `token_version` | Number, default 0 |
 | `must_change_password` | Boolean: set when an admin creates the user or sets their password |
 | `last_login_at` | Date |
+| `email_code` | `{enc, issued_at, expires_at, attempts}` or null, **`select: false`**: the emailed code, AES-256-GCM encrypted (§4.16) |
 
 **`AuditEntry`** (`audit`). No `timestamps` (`at` is the time).
 
@@ -908,8 +909,10 @@ are
 - A request log line is method, path (no query), status and time. **Never**
   headers, cookies, bodies, machine keys, passwords, or image URLs with
   query strings.
-- Secrets exist only in env vars: `JWT_SECRET` and the AWS credentials.
-  Machine keys and passwords exist only as hashes. A test greps the logs of
+- Secrets exist only in env vars: `JWT_SECRET`, `CODE_ENCRYPTION_KEY`,
+  `SMTP_PASS` and the AWS credentials. Machine keys and passwords exist only
+  as hashes; emailed codes only encrypted (§4.16). **Never** log a code, a
+  mail's body or recipient, or the SMTP credentials. A test greps the logs of
   a full test run for the issued keys and passwords (same spirit as the
   kiosk's credential-leak check).
 
@@ -934,6 +937,18 @@ Staging (2026-10-12):
   `<meta name="fb-env">` and shown bottom left on the sign-in page. Letters,
   digits, space `. _ -`, at most 24 characters; anything else stops the
   server at boot. Unset in production.
+
+S11 adds (email codes, §4.16):
+- `CODE_ENCRYPTION_KEY`: 32 bytes as base64 (`openssl rand -base64 32`).
+  **Required** in production; dev makes a random one per process (codes
+  die on restart, like dev sessions).
+- `MAIL_TRANSPORT`: `smtp` (required in production) | `file` (dev default:
+  each message as an `.eml` in `MAIL_DIR`, default `server/.mail/`,
+  gitignored) | `memory` (tests and e2e).
+- `SMTP_HOST` (`smtp.gmail.com`), `SMTP_PORT` (465, TLS), `SMTP_USER`,
+  `SMTP_PASS` (a Google app password), `MAIL_FROM` (the Gmail address or a
+  verified alias). `smtp` without user, password or sender stops the
+  server at boot.
 
 Ports in use locally:
 - 8787: the mock;
@@ -1087,6 +1102,37 @@ are the detail behind this section.
 
 Out of scope: attachments, categories, priority, assignment, SLAs,
 notifications (no email in v1, §8), and links to a machine or order.
+
+### 4.16 Email codes (S11)
+
+Story set: [stories/email-codes/](../stories/email-codes/README.md)
+(decisions there). A dashboard user needs a code from their email to set
+a password: replacing a temporary password, and in forgot password.
+
+- **The code:** 6 symbols from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no
+  `O`, `I`, `L`, `0`, `1`), compared after removing spaces and upper-casing.
+  **One code per user**, shared by every flow.
+- **Valid 30 minutes** from issue. Asking again while it's live sends the
+  **same code** with the same expiry; once it has expired, been used or
+  been voided, the next request makes a new one that replaces it.
+- **Cleared** in the same save as the password it set. **5 wrong attempts
+  void it.** A missing, expired, voided or wrong code is always 400
+  `invalid_code`.
+- **Stored encrypted** (`User.email_code`, `select: false`): AES-256-GCM, a
+  fresh 12-byte IV per code, key `CODE_ENCRYPTION_KEY`. Never in a
+  response, a log or an audit entry.
+- `services/codes.js`: `issueCode()` (conditional on the code it read, so
+  parallel calls end with one code), `checkCode()` (an atomic `$inc` of
+  `attempts`; the fifth clears the code), `clearCode()`.
+- **Mail** (`services/mail.js`): `createMailer(settings.mail)` with the
+  `smtp` (nodemailer; a Gmail account with an app password in v1), `file`
+  or `memory` transport; `createApp({settings, mailer})` takes one for
+  tests. `codeMail()` builds the message: subject `Your FuelBot code:
+  <code>`, text and HTML parts with the code, "valid for 30 minutes (until
+  HH:MM)" in `DISPLAY_TZ`, what it's for, and the dashboard URL. **Never the
+  temporary password.** A failed send throws `MailError` (the transport's
+  error code only).
+- Routes: SRV-56 and SRV-57 (§4.4).
 
 ## 5. Target folder structure
 

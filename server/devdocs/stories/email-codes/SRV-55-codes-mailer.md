@@ -63,22 +63,28 @@ rely on one tested piece.
 
 ## Acceptance criteria
 
-- [ ] `codes.test.js` › "codes use the alphabet and are 6 long" (1000
-      draws).
-- [ ] › "a live code is reused with its expiry": two `issueCode` calls
+- [x] `codes.test.js` › "codes use the alphabet and are 6 long" (1000
+      draws); "the code is not loaded with the user unless asked for".
+- [x] › "a live code is reused with its expiry": two `issueCode` calls
       → same code, same `expires_at`, `reused: true` the second time.
-- [ ] › "an expired code is replaced" (clock moved 31 min).
-- [ ] › "parallel issues give one code" (`Promise.all` of 5).
-- [ ] › "the stored code is encrypted": the raw document holds no code
+- [x] › "an expired code is replaced" (clock moved 31 min).
+- [x] › "parallel issues give one code" (`Promise.all` of 5).
+- [x] › "the stored code is encrypted": the raw document holds no code
       text; a different key can't decrypt it.
-- [ ] › "check accepts lower case and spaces"; "rejects expired";
-      "rejects with no code".
-- [ ] › "five wrong attempts void the code": the fifth wrong clears it;
-      the right code afterwards → `invalid_code`.
-- [ ] `settings.test.js` › the boot checks above, one case each.
-- [ ] `mail.test.js` › "file transport writes an .eml"; "memory
-      transport collects"; "the code mail has both parts, the code, the
+- [x] › "check accepts lower case and spaces"; "check rejects an expired
+      code and a missing one".
+- [x] › "five wrong attempts void the code": the fifth wrong clears it;
+      the right code afterwards → `invalid_code`; "parallel wrong attempts
+      never allow more than five"; "clearCode removes it".
+- [x] `settings.test.js` › "production needs CODE_ENCRYPTION_KEY";
+      "CODE_ENCRYPTION_KEY must be 32 bytes of base64"; "dev gets a random
+      key and the file transport"; "production sends by smtp only"; "smtp
+      needs a user, an app password and a sender"; "an unknown transport
+      throws".
+- [x] `mail.test.js` › "file transport writes an .eml"; "memory
+      transport collects, and fails when told to"; "the code mail has both parts, the code, the
       expiry in the display zone and the dashboard URL"; "send failure
       throws MailError without the address or body".
-- [ ] `logging.test.js` (or the existing log-scrub test) › "no code in
-      request logs".
+- [x] Nothing is logged: the `mail.test.js` cases capture `console.*`
+      while sending and failing and expect it empty. (Request logs carry
+      no bodies already; there's no separate log-scrub test to extend.)
