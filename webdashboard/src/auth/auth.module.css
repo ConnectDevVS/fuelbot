@@ -49,6 +49,38 @@
   text-align: center;
 }
 
+/* The emailed code: read off a phone, typed letter by letter. */
+.code input,
+input.code {
+  font-family: var(--fb-font-mono);
+  font-size: 20px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+/* "Email me a code" / "Resend code" under the code field. */
+.codeHelp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.codeHelp :global(.ant-btn) {
+  padding-inline: 0;
+  height: auto;
+}
+
+/* Waiting to resend: plainly not clickable (the link colour stays otherwise). */
+.codeHelp :global(.ant-btn:disabled) {
+  color: var(--fb-muted);
+}
+
+/* With an error antd drops the item's bottom margin; keep the link off the next label. */
+:global(.ant-form-item-has-error) .codeHelp {
+  padding-bottom: 20px;
+}
+
 /* ENV_LABEL ("staging"): a small fixed tag, bottom left, so a non-production deployment is obvious. */
 .envTag {
   position: fixed;

@@ -44,6 +44,9 @@ Admins still set temporary passwords.
 | 59 | [Dashboard: code at first sign-in, Users page](SRV-59-dashboard-first-signin.md) | 56 | code field and "Email me a code" on the forced change page; mail result after create/reset; "Send code" row action |
 | 60 | [End-to-end, real Gmail check and sign-off](SRV-60-e2e-signoff.md) | all | e2e walk-throughs at three widths, one real mail through Gmail, deployment guide, SIGNOFF.md, SP §0/§6/§8 |
 
+**As built:** SRV-59 ran before SRV-58, so the forced-change e2e that
+SRV-56 changed passes again before the next dashboard commit.
+
 ## Definition of Done (every story)
 
 - **Server stories (55–57):** `cd server && npm test` passes, with a row

@@ -1,18 +1,21 @@
 // Change password (dashboard plan §5.1): forced (a temporary password: shown alone, no navigation,
-// sign out available) or voluntary (from the account menu). Passwords stay in the form only.
+// sign out available; also asks for the emailed code, with "Email me a code") or voluntary (from
+// the account menu). Passwords and the code stay in the form only.
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, App, Button, Form, Input } from 'antd';
 import styles from './auth.module.css';
 import { Brand } from './Brand.jsx';
-import { changePassword, signOut, useMe } from './session.js';
+import { changePassword, requestOwnCode, signOut, useDisplayTz, useMe } from './session.js';
+import { CodeInput, CODE_LENGTH, useCooldown } from './CodeField.jsx';
 import { landingPath } from './redirect.js';
 import { messageFor } from '../api/errors.js';
 import { ApiError } from '../api/client.js';
+import { formatClock } from '../lib/time.js';
 import { t } from '../strings.js';
 
-const FIELD_OF = { wrong_password: 'current', same_password: 'new', weak_password: 'new' };
+const FIELD_OF = { wrong_password: 'current', same_password: 'new', weak_password: 'new', invalid_code: 'code' };
 const MIN = 10;
 
 export default function ChangePasswordPage() {
@@ -24,12 +27,31 @@ export default function ChangePasswordPage() {
   const { message } = App.useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [sent, setSent] = useState(null);   // the "code sent" line
+  const [sending, setSending] = useState(false);
+  const cooldown = useCooldown();
+  const tz = useDisplayTz();
+
+  async function emailMeACode() {
+    setSending(true);
+    setError(null);
+    setSent(null);
+    try {
+      const res = await requestOwnCode();
+      setSent(t('code.sent', { email: me.user.email, time: formatClock(res.expires_at, tz) }));
+      cooldown.start();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function submit(values) {
     setBusy(true);
     setError(null);
     try {
-      const next = await changePassword(queryClient, values.current, values.new);
+      const next = await changePassword(queryClient, values.current, values.new, forced ? values.code : undefined);
       form.resetFields();
       if (!forced) message.success(t('password.changed'));
       navigate(landingPath(next), { replace: true });
@@ -58,6 +80,19 @@ export default function ChangePasswordPage() {
             rules={[{ required: true, message: t('signin.required.password') }]}>
             <Input.Password autoComplete="current-password" size="large" autoFocus />
           </Form.Item>
+          {forced && (
+            <Form.Item name="code" label={t('code.label')} rules={[{ required: true, len: CODE_LENGTH, message: t('code.required') }]}
+              extra={(
+                <span className={styles.codeHelp}>
+                  <span role="status">{sent ?? t('code.forced.help')}</span>
+                  <Button type="link" onClick={emailMeACode} loading={sending} disabled={cooldown.left > 0}>
+                    {cooldown.left > 0 ? t('code.wait', { seconds: cooldown.left }) : t(sent ? 'code.resend' : 'code.emailMe')}
+                  </Button>
+                </span>
+              )}>
+              <CodeInput />
+            </Form.Item>
+          )}
           <Form.Item name="new" label={t('password.new')} extra={t('password.rule')}
             rules={[{ required: true, min: MIN, message: t('password.rule') }]}>
             <Input.Password autoComplete="new-password" size="large" />

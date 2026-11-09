@@ -7,7 +7,8 @@ const DP7 = ['invalid_credentials', 'too_many_attempts', 'tenant_disabled', 'wro
   'weak_password', 'invalid_email', 'email_taken', 'invalid_role', 'role_scope_change', 'unknown_tenant',
   'unknown_machine', 'machines_not_allowed', 'forbidden_self', 'last_tenant_admin', 'last_platform_admin',
   'invalid_body', 'invalid_config', 'version_conflict', 'if_match_required', 'forbidden_field', 'forbidden',
-  'product_in_use', 'product_exists', 'tenant_exists', 'source_not_configured', 'not_found', 'network_error'];
+  'product_in_use', 'product_exists', 'tenant_exists', 'source_not_configured', 'not_found', 'network_error',
+  'invalid_code', 'mail_failed', 'not_needed', 'user_disabled'];
 
 const err = (code, details, status = 400) => new ApiError(status, code, details);
 
