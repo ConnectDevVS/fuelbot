@@ -55,10 +55,13 @@ When a USB stick is plugged in, the updater looks for a `fuelbot/` folder:
   until the new one connects. Not signed (it isn't code; server traffic is
   HTTPS and releases are signed, so a bad file can only take the machine
   offline). The password is never logged.
-- **`fuelbot/identity.txt`** — `tenant=`, `machine=`, `key=` lines,
-  written to the app's `user://` files only when they're **missing** (a
-  spare card); an existing identity is never overwritten. The key is never
-  logged.
+- **`fuelbot/identity.txt`** — `tenant=`, `machine=`, `key=` and `pin=`
+  lines, written to the app's `user://` files only when they're **missing**
+  (a spare card); an existing identity is never overwritten, field by field
+  (a machine without a PIN gets one without touching the rest). The key and
+  the PIN are never logged. `pin=` goes through
+  `kiosk/tools/set_settings_pin.sh --stdin`, which stores only its hash
+  (`settings_pin.txt`, settings set SET-02).
 - **The person on site sees the result.** The updater writes
   `user://notice.json` (`{"code": "USB_DONE" | "USB_FAILED", "detail": …,
   "until": <UTC time 60 s ahead>}`); the app (`RuntimeState`, OTA-02) sets
@@ -77,4 +80,5 @@ When a USB stick is plugged in, the updater looks for a `fuelbot/` folder:
       as `USB_FAILED`.
 - [ ] `wifi.txt` adds the network and keeps the old one until the new one
       connects (fake `nmcli`); the password never appears in output.
-- [ ] `identity.txt` fills a missing identity and never overwrites one.
+- [ ] `identity.txt` fills a missing identity and never overwrites one;
+      `pin=` becomes `settings_pin.txt` (hashed) and never appears in output.

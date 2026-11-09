@@ -14,7 +14,7 @@ Depends on: OTA-04, OTA-07, and Milestone 8's image work (built together).
 deploy/systemd/fuelbot-bridge.service, fuelbot-app.service      # run from /opt/fuelbot/current
 deploy/systemd/fuelbot-updater.service, fuelbot-updater.timer   # (from OTA-04)
 deploy/provision.sh            # one Pi: install units, key, first release, identity
-deploy/README.md               # building a machine, step by step
+deploy/README.md               # building a machine, step by step (started by the settings set: Wi-Fi on a Pi)
 docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
 ```
 
@@ -41,19 +41,25 @@ docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
   sync (it must run offline), and the first config fetch may fail until the
   clock is right (it retries).
 - **No remote access:** SSH off; Raspberry Pi Connect off (decision 6).
+- **Wi-Fi country set to IN** (`raspi-config nonint do_wifi_country IN`):
+  Bookworm keeps Wi-Fi blocked until it's set, and the settings screen
+  (settings set) can't scan or connect without it.
 - **Per-machine uniqueness:** the image is generalised before copying (SSH
   host keys and `/etc/machine-id` regenerated on first boot).
 - **Secrets:** none in the image except the release *public* key; the
-  identity (tenant, machine, key) is written per machine by `provision.sh`
+  identity (tenant, machine, key, settings PIN) is written per machine by `provision.sh`
   or the USB stick.
 
 ### `provision.sh`
 
 1. Installs the units, the updater, `release_pub.pem`, the udev rules
-   (`/dev/arduino`, the USB stick).
+   (`/dev/arduino`, the USB stick) and the polkit rule
+   (`deploy/polkit/50-fuelbot-wifi.rules`, settings set SET-01).
 2. Installs the first release from a bundle file (the same code path as
    the updater: verify, unpack, `current`).
-3. Writes the machine's identity (prompting; the key is never echoed).
+3. Writes the machine's identity (prompting; the key is never echoed),
+   including the settings PIN via `kiosk/tools/set_settings_pin.sh`
+   (asked twice, stored hashed; settings set SET-02).
 4. Starts everything and waits for the health check; prints the versions.
 
 ## Acceptance criteria
@@ -66,3 +72,6 @@ docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
       ids; no private key or identity is in the image.
 - [ ] The Milestone 8 checks (textures, video frame rate, `/dev/arduino`)
       pass on the same image.
+- [ ] The settings set's Pi checks (deploy/README.md "Wi-Fi settings on a
+      Raspberry Pi") pass on the same image: Wi-Fi country set, the polkit
+      rule installed, the PIN asked for by `provision.sh`.

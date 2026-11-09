@@ -2,7 +2,8 @@ extends SceneTree
 ## Provisions user:// for development.
 ## godot --headless --path . --script res://tools/dev_setup.gd -- \
 ##     [--tenant=powerfuel] [--machine=DEV00001] [--machine-key=<key>] [--api=http://127.0.0.1:8787/fuelbot] [--poll=10]
-##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--clear] [--print-dir]
+##     [--payments=mock|razorpay-test] [--razorpay-api=<origin>] [--bridge-check=off|on] [--wifi=fake|real]
+##     [--clear] [--print-dir]
 ##
 ## --payments=mock (default): mock keys in a SEPARATE file (razorpay_credentials.mock.cfg)
 ##   + razorpay_base_url -> mock server (the --api origin, or --razorpay-api when the config API
@@ -11,6 +12,10 @@ extends SceneTree
 ##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
 ## --bridge-check=off (default): no dead-bridge watchdog, so the app runs without a bridge.
 ##   on: out of service after 30 s without a bridge heartbeat (run a real or fake bridge).
+## --wifi=fake (default): Wi-Fi settings run tools/fake_nmcli.py with sample networks in
+##   user://fake_nmcli.json (settings SET-01). real: the system's nmcli (a Pi).
+## The settings PIN (part of the identity, settings set SET-02) is DEV_SETTINGS_PIN, written
+## only when missing. Real machines get theirs from tools/set_settings_pin.sh.
 
 const TENANT_PATH := "user://tenant_id.txt"
 const MACHINE_PATH := "user://machine_id.txt"
@@ -23,6 +28,10 @@ const CREDS_PATH := "user://razorpay_credentials.cfg"
 const MOCK_CREDS_PATH := "user://razorpay_credentials.mock.cfg"
 const QR_PATH := "user://qr_current.png"
 const IMAGE_CACHE_DIR := "user://image_cache"
+const SETTINGS_PIN_PATH := "user://settings_pin.txt"
+const SETTINGS_PIN_LOCK_PATH := "user://settings_pin_lock.json"
+const DEV_SETTINGS_PIN := "123456"
+const FAKE_NMCLI_STATE_PATH := "user://fake_nmcli.json"
 
 
 func _initialize() -> void:
@@ -34,6 +43,7 @@ func _initialize() -> void:
 	var payments := "mock"
 	var razorpay_api := ""
 	var bridge_check := "off"
+	var wifi := "fake"
 	var clear := false
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--tenant="):
@@ -54,6 +64,8 @@ func _initialize() -> void:
 			razorpay_api = arg.trim_prefix("--razorpay-api=")
 		elif arg.begins_with("--bridge-check="):
 			bridge_check = arg.trim_prefix("--bridge-check=")
+		elif arg.begins_with("--wifi="):
+			wifi = arg.trim_prefix("--wifi=")
 		elif arg == "--clear":
 			clear = true
 		elif arg == "--print-dir":
@@ -62,7 +74,8 @@ func _initialize() -> void:
 			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
-		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
+		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH,
+				SETTINGS_PIN_PATH, SETTINGS_PIN_LOCK_PATH, FAKE_NMCLI_STATE_PATH]:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
@@ -78,6 +91,11 @@ func _initialize() -> void:
 		quit(2)
 		return
 
+	if wifi not in ["fake", "real"]:
+		printerr("unknown --wifi=%s (use fake or real)" % wifi)
+		quit(2)
+		return
+
 	if bridge_check not in ["off", "on"]:
 		printerr("unknown --bridge-check=%s (use off or on)" % bridge_check)
 		quit(2)
@@ -88,6 +106,9 @@ func _initialize() -> void:
 		"timing": {"maintenance_poll_interval_sec": poll},
 		"bridge": {"require_heartbeat": bridge_check == "on"},
 	}
+	if wifi == "fake":   # the fake creates its sample state on first use
+		override["wifi"] = {"nmcli_path": ProjectSettings.globalize_path("res://tools/fake_nmcli.py"),
+			"fake_state_path": FAKE_NMCLI_STATE_PATH}
 	if payments == "mock":
 		override.api["razorpay_base_url"] = razorpay_api if razorpay_api != "" else _origin(api)
 		override["payments"] = {"credentials_path": MOCK_CREDS_PATH}
@@ -106,8 +127,13 @@ func _initialize() -> void:
 	_write(MACHINE_PATH, machine)
 	_write(MACHINE_KEY_PATH, machine_key)
 	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
-	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s" % [
-		tenant, machine, api, poll, payments, bridge_check])
+	if not FileAccess.file_exists(SETTINGS_PIN_PATH):
+		# The PinStore record format, built here: PinStore needs the ConfigManager autoload,
+		# which a --script run can't compile against.
+		var salt := Crypto.new().generate_random_bytes(16).hex_encode()
+		_write(SETTINGS_PIN_PATH, "%s:%s" % [salt, (salt + DEV_SETTINGS_PIN).sha256_text()])
+	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s wifi=%s" % [
+		tenant, machine, api, poll, payments, bridge_check, wifi])
 	quit(0)
 
 

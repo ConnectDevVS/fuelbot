@@ -8,6 +8,7 @@ const TEST_API := "http://127.0.0.1:8788/fuelbot"   # run_tests.sh's mock
 const TEST_QUEUE := "user://test_runner/telemetry_queue.json"
 const TEST_SALES_QUEUE := "user://test_runner/sales_queue.json"
 const TEST_IMAGE_CACHE := "user://test_runner/image_cache"
+const TEST_NO_NMCLI := "/nonexistent/nmcli"
 
 var _filter := ""
 
@@ -52,6 +53,10 @@ func _isolate_app() -> void:
 		DirAccess.remove_absolute(TEST_IMAGE_CACHE.path_join(file))
 	FlavorImages.cache_dir = TEST_IMAGE_CACHE
 	FlavorImages.reload_index()
+	# Wi-Fi (settings SET-01): never the system's nmcli or the dev fake's state. Tests that need
+	# Wi-Fi point a Wifi instance (or this autoload, restoring it) at tools/fake_nmcli.py.
+	Wifi.nmcli_path = TEST_NO_NMCLI
+	Wifi.fake_state_path = ""
 	ConfigManager.local_settings.get("bridge", {})["require_heartbeat"] = false
 	TelemetryReporter.require_heartbeat = false
 	TelemetryReporter.reset_watchdog()

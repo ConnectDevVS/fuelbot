@@ -1,0 +1,14 @@
+// The kiosk user may manage Wi-Fi through NetworkManager, nothing else (docs/stories/settings,
+// SET-01): scan, bring connections up and down, and add or delete system connections.
+// The app calls nmcli as this user and never runs as root.
+// Installed to /etc/polkit-1/rules.d/ by provision.sh (OTA-08). The user name follows
+// Milestone 8's kiosk user; change it here and in OTA-08 together.
+polkit.addRule(function (action, subject) {
+  if (subject.user === "fuelbot" && [
+        "org.freedesktop.NetworkManager.wifi.scan",
+        "org.freedesktop.NetworkManager.network-control",
+        "org.freedesktop.NetworkManager.settings.modify.system",
+      ].indexOf(action.id) >= 0) {
+    return polkit.Result.YES;
+  }
+});

@@ -144,3 +144,25 @@ func test_design_spacing_without_faults() -> void:
 	await wait_frames(3)
 	assert_false(_scene.is_compact(), "the design's spacing")
 	assert_true(_scene.size.y <= 1920.5, "fits (%s)" % _scene.size)
+
+
+## The network cell names the network (settings SET-04). Wifi is unavailable in test runs
+## (no nmcli), so the cell is as before until a status is set.
+func test_network_cell_names_the_network() -> void:
+	var online := ConfigManager.is_online
+	var status := Wifi.get_status()
+	ConfigManager.is_online = true
+	_remote("maintenance_on")
+	_open()
+	var word := ConfigManager.get_message("maintenance_network_online")
+	assert_eq(_scene.get_cell_value("diag_network"), word, "unchanged without nmcli")
+	Wifi._set_status({"kind": "wifi", "ssid": "GymStaff", "signal": 72, "available": true})
+	assert_eq(_scene.get_cell_value("diag_network"), word + " · GymStaff 72%", "wifi")
+	Wifi._set_status({"kind": "ethernet", "ssid": "", "signal": -1, "available": true})
+	assert_eq(_scene.get_cell_value("diag_network"), word + " · " + ConfigManager.get_message("maintenance_network_cable"), "cable")
+	ConfigManager.is_online = false
+	Wifi._set_status({"kind": "none", "ssid": "", "signal": -1, "available": true})
+	assert_eq(_scene.get_cell_value("diag_network"), ConfigManager.get_message("maintenance_network_offline")
+		+ " · " + ConfigManager.get_message("maintenance_network_none"), "no network")
+	Wifi._status = status
+	ConfigManager.is_online = online

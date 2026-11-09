@@ -88,6 +88,7 @@ they touch have been edited in place; this list is the index. Newest last.
 | 2026-10-09 | **The Raspberry Pi stays the platform; no Android tablet** (product owner) | The Play Store can't promise an update never lands mid-order, and Android would mean rewriting the bridge (USB serial in a Godot plugin) | ota README decision 1 |
 | 2026-10-09 | **OTA scope** (product owner): firmware is **not** flashed over the air yet (it reports `STATUS:BOOT v<n>`); release files on the API server's storage (S3 left out); **no remote access** for now (a USB rescue stick instead); **no read-only system disk** (OS updates are deliberate, staged system steps); only platform admins publish; one version per release (`application/config/version`); Ed25519 signing key offline | Smallest safe first version; each can be added later through the updater | ota README decisions 4–11 |
 | 2026-10-09 | **The app writes only under `user://`** (enforced by `run_tests.sh` from OTA-02); the updater talks to the app through `user://runtime_state.json` and `user://update_request.json`; the "Updating" screen is the maintenance screen with a local fault `UPDATING` | Release folders are replaced on update; idle stays the only enforcement point | ota README decisions 14–15 |
+| 2026-11-09 | **Settings behind a PIN, for the gym's Wi-Fi** (product owner): a 5 s hold in the top-left corner of idle or maintenance opens a PIN pad; settings is a grid with one "Network" tile → the Wi-Fi list (connected on top) → the password page (our own on-screen keyboard); success 2 s / error 3 s, then the list. The PIN is part of the machine identity (`user://settings_pin.txt`, hashed; `provision.sh`, USB `identity.txt`); 5 wrong tries lock it 5 min. The app drives NetworkManager through `nmcli` as the kiosk user (a polkit rule), never as root; the password goes in a temporary `passwd-file`, never on a command line or in a log; a failed connect restores the old network | Technicians connect a machine at a gym without a laptop; a setup hotspot would open a way into the machine | settings README, SIGNOFF |
 | 2026-10-15 | **Repo layout: one folder per part.** The Godot project moved into `kiosk/` (its own `CLAUDE.md`/`README.md`; `mockserver/` stays inside it because tests read it via `res://`), dev docs into `docs/` (`designs/` → `docs/designs/`), and the bridge/firmware fakes and checks into `hardware/tools/`. `server/` and `webdashboard/` keep their own `devdocs/`. Godot `user://` is unchanged (it follows `config/name`) | The root mixed the Godot project with the server, dashboard, hardware and docs | §4, CLAUDE.md |
 
 ## 1. Context
@@ -1005,8 +1006,9 @@ composition of the remote flag with the new local hardware-fault flag.
 **`scenes/maintenance/` (`Maintenance.tscn`/`maintenance.gd`)**: an
 unbranded out-of-service screen (design page 6) with a technician
 diagnostics panel (machine ID, site, flagged by/at, app version, network,
-last heartbeat, payments disabled) and the active `faults` list. No buttons,
-no interaction. It **re-checks `is_in_maintenance()` on entry** and returns
+last heartbeat, payments disabled) and the active `faults` list. No buttons;
+its only input is the hidden 5 s corner hold that opens the settings PIN pad
+(settings set, 2026-11-09; the network cell also names the network). It **re-checks `is_in_maintenance()` on entry** and returns
 to idle if the flag already cleared (a race found in testing). Shows `maintenance.message` from the
 config if non-empty and remotely triggered, else
 `ConfigManager.get_message("maintenance_default")` (locally triggered, or
@@ -1310,8 +1312,10 @@ fuelbot/ (repo root)
 │   │   ├── Bridge.gd            ✓ UDP to the hardware bridge: ORDER/CANCEL out, results in on 4245
 │   │   ├── SalesReporter.gd     ✓ one sale per paid order via core/report_queue.gd
 │   │   ├── FlavorImages.gd      ✓ S3 flavor images: download, check, trim, cache (user://image_cache/)
+│   │   ├── Wifi.gd              ✓ NetworkManager via nmcli: status, scan, connect (settings set)
 │   │   └── TelemetryReporter.gd ✓ 4246 events → enrich → ReportQueue; machine faults → maintenance
 │   ├── core/report_queue.gd     ✓ durable outbound JSON queue (class_name ReportQueue)
+│   ├── core/pin_store.gd        ✓ the settings PIN (identity file, lockout)
 │   ├── scenes/
 │   │   ├── idle/{Idle.tscn, idle.gd}                          ✓
 │   │   ├── flavor_select/{FlavorSelect.tscn, flavor_select.gd} ✓
@@ -1319,8 +1323,10 @@ fuelbot/ (repo root)
 │   │   ├── payment/{Payment.tscn, payment.gd}                  ✓
 │   │   ├── dispensing/{Dispensing.tscn, dispensing.gd}         ✓ blending → done/failed (one screen, PDF p5)
 │   │   ├── maintenance/{Maintenance.tscn, maintenance.gd}      ✓
+│   │   ├── settings_pin/{SettingsPin.tscn, settings_pin.gd}    ✓ PIN pad (hidden corner hold)
+│   │   ├── settings/{Settings.tscn, settings.gd}               ✓ grid → Wi-Fi list → password
 │   │   └── scene_paths.gd                                      ✓
-│   ├── ui/                      ✓ components/, theme/palette.gd, format.gd, gallery/
+│   ├── ui/                      ✓ components/ (incl. keyboard/, settings_hold.gd, net_icon.gd), theme/palette.gd, format.gd, gallery/
 │   ├── config/
 │   │   ├── default_config.json  ✓
 │   │   └── local_settings.json  ✓
@@ -1331,7 +1337,8 @@ fuelbot/ (repo root)
 │   │   └── video/               ✓ idle_ad_default.ogv
 │   ├── mockserver/              ✓ (.gdignore'd) replaces tools/mock_config_server.py: stdlib server + JSON scenarios; assets/flavors/ (make_flavor_images.py). Inside the project because tests read it via res://
 │   ├── tests/                   ✓ headless harness (TestRunner.tscn) + unit/test_*.gd
-│   └── tools/                   ✓ run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd, trim_flavor_images.gd
+│   └── tools/                   ✓ run_tests.sh, check_boot.sh, screenshot.sh, dev_run.sh, dev_setup.gd, build_theme.gd, trim_flavor_images.gd,
+│                                  set_settings_pin.sh, fake_nmcli.py (+ test_fake_nmcli.py)
 ├── hardware/                    ✓
 │   ├── firmware/VM_code.ino     ✓ + host_sim/ (simulator; tools/check_firmware.sh)
 │   ├── bridge/udprxtx.py        ✓ protocol v2, stdlib only (+ test_udprxtx.py)
@@ -1341,12 +1348,15 @@ fuelbot/ (repo root)
 │       ├── udp_monitor.py           ✓ prints app → bridge UDP
 │       ├── check_firmware.sh        ✓ host syntax check of the sketch + simulator build
 │       └── test_fakes.py            ✓ incl. automated Level 1
+├── deploy/                      ✓ README.md (Wi-Fi settings on a Pi; the machine build comes with OTA-08),
+│                                  polkit/50-fuelbot-wifi.rules (the rest comes with OTA-04/08)
 ├── server/                      ✓ backend (own CLAUDE.md, devdocs/)
 ├── webdashboard/                ✓ web dashboard (own CLAUDE.md, devdocs/)
 └── docs/
     ├── plans/greenfield-rewrite.md   # this document
     ├── designs/GMRFuelBot-OnDevice-SsampleScreens.pdf
     ├── image-spec.md                 # flavor image spec for the content team
+    ├── technician-guide.md           # connecting a machine to the gym's Wi-Fi
     ├── deployment_guide.md, release_notes.md
     └── stories/<set>/                # executable story sets + SIGNOFF.md
 ```

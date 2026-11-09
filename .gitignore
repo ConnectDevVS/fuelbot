@@ -21,6 +21,8 @@ mono_crash.*.json
 tenant_id.txt
 machine_id.txt
 machine_key.txt
+settings_pin.txt
+settings_pin_lock.json
 razorpay_credentials.cfg
 local_settings.override.json
 
