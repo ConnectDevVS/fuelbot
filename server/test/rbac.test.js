@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { can, denial, effectivePermissions, recordScope, ROLE_PERMISSIONS } from '../src/auth/rbac.js';
+import { can, complaintScope, denial, effectivePermissions, recordScope, ROLE_PERMISSIONS, TENANT_ONLY } from '../src/auth/rbac.js';
 
 const platform = { role: 'platform_admin' };
 const tAdmin = { role: 'tenant_admin', tenant_id: 'acme', machines: [] };
@@ -20,11 +20,31 @@ describe('rbac', () => {
     }
   });
 
-  it('platform_admin holds every tenant_admin permission (in any tenant)', () => {
+  it('platform_admin holds every tenant_admin permission except TENANT_ONLY (in any tenant)', () => {
     for (const p of ROLE_PERMISSIONS.tenant_admin) {
+      if (TENANT_ONLY.includes(p)) continue;
       assert.ok(ROLE_PERMISSIONS.platform_admin.has(p), p);
       assert.ok(can(platform, p, { tenantId: 'any-tenant' }), p);
     }
+  });
+
+  it('TENANT_ONLY is exactly raising and reopening complaints (plan §4.7, §4.15)', () => {
+    assert.deepEqual(TENANT_ONLY, ['complaints:raise', 'complaints:reopen']);
+    for (const p of TENANT_ONLY) {
+      assert.ok(!ROLE_PERMISSIONS.platform_admin.has(p), p);
+      for (const role of ['tenant_admin', 'operator', 'viewer']) assert.ok(ROLE_PERMISSIONS[role].has(p), `${role} ${p}`);
+    }
+    assert.ok(can(platform, 'complaints:status'));
+    assert.ok(can(platform, 'complaints:comment', { tenantId: 'acme' }));
+  });
+
+  it('complaints: every tenant role comments; only tenant_admin reads all; scope by creator', () => {
+    for (const user of [tAdmin, op, opOne, viewer]) assert.ok(can(user, 'complaints:comment', { tenantId: 'acme' }));
+    assert.ok(can(tAdmin, 'complaints:read_all'));
+    assert.ok(!can(op, 'complaints:read_all'));
+    assert.deepEqual(complaintScope(platform), {});
+    assert.deepEqual(complaintScope(tAdmin), { tenant_id: 'acme' });
+    assert.deepEqual(complaintScope({ ...viewer, _id: 'u1' }), { tenant_id: 'acme', 'created_by.user_id': 'u1' });
   });
 
   it('prices: tenant_admin and platform_admin only', () => {

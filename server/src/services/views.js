@@ -100,3 +100,52 @@ export function platformSaleView(s) {
   const { _id, __v, ...rest } = s;
   return { id: String(_id), ...tenantSaleView(s), ...rest };
 }
+
+// --- Complaints (plan §4.15) ------------------------------------------------------------------
+// Tenant users see a FuelBot author by name only (no staff email); nobody gets user ids.
+
+const authorName = (a) => a.name || a.email;
+
+function eventView(e, platform) {
+  const view = {
+    id: String(e._id),
+    at: e.at,
+    kind: e.kind,
+    text: e.text,
+    from: e.from ?? null,
+    to: e.to ?? null,
+    author: e.fuelbot && !platform
+      ? { name: e.name ?? '', fuelbot: true }
+      : { name: authorName(e), fuelbot: Boolean(e.fuelbot) },
+  };
+  if (platform) view.author.email = e.email;
+  return view;
+}
+
+/** A complaint in a list. tenantNames (platform): tenant id → name. */
+export function complaintListView(c, { platform, tenantNames } = {}) {
+  const view = {
+    number: c.number,
+    title: c.title,
+    status: c.status,
+    created_at: c.created_at ?? null,
+    last_activity_at: c.last_activity_at,
+    created_by: { name: authorName(c.created_by) },
+    comment_count: (c.events ?? []).filter((e) => e.kind === 'comment').length,
+  };
+  if (platform) {
+    view.tenant_id = c.tenant_id;
+    view.tenant_name = tenantNames?.get(c.tenant_id) ?? null;
+    view.created_by.email = c.created_by.email;
+  }
+  return view;
+}
+
+/** A complaint with its description and timeline (oldest first). */
+export function complaintView(c, { platform, tenantName } = {}) {
+  return {
+    ...complaintListView(c, { platform, tenantNames: new Map([[c.tenant_id, tenantName]]) }),
+    description: c.description,
+    events: (c.events ?? []).map((e) => eventView(e, platform)),
+  };
+}

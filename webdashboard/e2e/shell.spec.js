@@ -2,13 +2,13 @@
 import { expect, signOutViaUi, test, USERS } from './fixtures.js';
 
 const TENANT_ITEMS = ['Home', 'Sales', 'Stock', 'Machines', 'Products'];
-const PLATFORM_ITEMS = ['Tenants', 'Faults', 'Telemetry', 'Audit', 'Unregistered', 'All users', 'All sales'];
+const PLATFORM_ITEMS = ['Tenants', 'Faults', 'Telemetry', 'Audit', 'Unregistered', 'All users', 'All sales', 'All complaints'];
 const EXPECTED = {
-  staff: ['Fleet', ...TENANT_ITEMS, 'Users', 'Company', ...PLATFORM_ITEMS],
-  owner: [...TENANT_ITEMS, 'Users', 'Company'],
-  desk: TENANT_ITEMS,
-  ops: TENANT_ITEMS,
-  look: TENANT_ITEMS,
+  staff: ['Fleet', ...TENANT_ITEMS, 'Users', 'Company', 'Complaints', ...PLATFORM_ITEMS],
+  owner: [...TENANT_ITEMS, 'Users', 'Company', 'Complaints'],
+  desk: [...TENANT_ITEMS, 'Complaints'],
+  ops: [...TENANT_ITEMS, 'Complaints'],
+  look: [...TENANT_ITEMS, 'Complaints'],
 };
 
 /** Every nav destination the user can reach: sidebar links, or tab bar + More sheet on a phone. */
@@ -35,6 +35,18 @@ test('nav per role', async ({ page, signInAs, shot }, testInfo) => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/today/i);   // Home's title (DP §5.3)
     if (check) expect((await navItems(page)).sort(), key).toEqual([...expected].sort());
     if (key === 'staff' || key === 'owner') await shot(`shell-${key}`);
+    if (key === 'staff' && testInfo.project.name === 'phone') {
+      // The longest More sheet: taller than the screen, so its list scrolls and Close stays reachable.
+      await page.getByRole('button', { name: 'More' }).click();
+      const sheet = page.getByRole('dialog');
+      await expect(sheet.getByRole('button', { name: 'Close' })).toBeInViewport();
+      const top = async () => Math.round((await page.locator('.ant-drawer-content-wrapper').boundingBox()).y);
+      await expect.poll(top).toBeGreaterThanOrEqual(0);
+      await expect.poll(async () => { const a = await top(); await page.waitForTimeout(100); return a === await top(); }).toBe(true);
+      await shot('shell-more-sheet-staff', { fullPage: false });
+      await sheet.getByRole('button', { name: 'Close' }).click();
+      await expect(sheet).toBeHidden();
+    }
     if (key === 'owner' && testInfo.project.name === 'phone') {
       await page.getByRole('button', { name: 'More' }).click();
       const signOut = page.getByRole('dialog').getByRole('button', { name: 'Sign out' });

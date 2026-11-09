@@ -9,7 +9,7 @@ import { ApiError } from '../api/client.js';
 import { PageHeader, RefreshButton } from '../ui/PageHeader.jsx';
 import { DataTable, LoadMore } from '../ui/DataTable.jsx';
 import { EmptyState, ErrorPanel, NotAvailableState, NotFoundState, PageSkeleton } from '../ui/States.jsx';
-import { DispensedChip, StatusBadge, StockChip } from '../ui/Chips.jsx';
+import { ComplaintStatusChip, DispensedChip, StatusBadge, StockChip } from '../ui/Chips.jsx';
 import { KpiTile } from '../ui/KpiTile.jsx';
 import { Money } from '../ui/Money.jsx';
 import { DateTime, RelativeTime } from '../ui/DateTime.jsx';
@@ -91,6 +91,11 @@ function GalleryBody() {
           <DispensedChip sale={{ dispensed: true }} />
           <DispensedChip sale={{ dispensed: false }} />
           <DispensedChip sale={{ dispensed: false, dispensing_result: 'timeout', dispensing_reason: 'deadline' }} />
+        </div>
+      </Section>
+      <Section title="Complaints">
+        <div className={styles.row}>
+          {['open', 'with_service', 'closed'].map((s) => <ComplaintStatusChip key={s} status={s} />)}
         </div>
       </Section>
 

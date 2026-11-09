@@ -33,6 +33,9 @@ for (const who of ['staff', 'owner', 'ops', 'desk', 'look', 'boss']) {
     const tabs = (await page.getByRole('tab').allInnerTexts()).map((x) => x.trim().toLowerCase());
     expect(tabs.length).toBeGreaterThan(0);
     for (const tab of tabs) await visit(`t/${tid}/machines/${mid}/${tab}`);
+    // A complaint page (SRV-54): the newest one this role can open, in its tenant.
+    const complaints = await page.request.get(`/api/v1/tenants/${tid}/complaints?limit=1`).then((r) => r.json());
+    if (complaints.items?.[0]) await visit(`t/${tid}/complaints/${complaints.items[0].number}`);
     test.info().annotations.push({ type: 'pages', description: `${who}: ${visited.length} pages` });
     console.log(`[walk] ${who}: ${visited.length} pages`);
   });

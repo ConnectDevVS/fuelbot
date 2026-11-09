@@ -6,18 +6,27 @@ import { HttpError } from '../errors.js';
 // Platform-only data and controls (plan §4.7): no tenant role ever holds these.
 export const PLATFORM_ONLY = [
   'tenants:create', 'tenants:disable', 'telemetry:read', 'faults:read', 'maintenance:read',
-  'maintenance:write', 'audit:read', 'unregistered:read',
+  'maintenance:write', 'audit:read', 'unregistered:read', 'complaints:status',
 ];
+
+// Tenant-only (complaints, plan §4.15): staff answer complaints rather than raise them, and change
+// their status with complaints:status instead of reopening. The one exception to "platform_admin
+// holds every tenant_admin permission".
+export const TENANT_ONLY = ['complaints:raise', 'complaints:reopen'];
+
+// Every tenant role raises complaints and comments on the ones it can see (complaintScope).
+const COMPLAINTS = ['complaints:raise', 'complaints:comment', 'complaints:reopen'];
 
 const TENANT_ADMIN = [
   'tenant:read', 'tenant:edit', 'users:manage', 'machines:read', 'machines:manage', 'keys:manage',
   'catalog:read', 'products:create', 'products:edit', 'menu:edit', 'price:write', 'sales:read', 'stock:write',
+  ...COMPLAINTS, 'complaints:read_all',
 ];
-const OPERATOR = ['tenant:read', 'machines:read', 'catalog:read', 'products:edit', 'menu:edit', 'sales:read'];
-const VIEWER = ['tenant:read', 'machines:read', 'catalog:read', 'sales:read'];
+const OPERATOR = ['tenant:read', 'machines:read', 'catalog:read', 'products:edit', 'menu:edit', 'sales:read', ...COMPLAINTS];
+const VIEWER = ['tenant:read', 'machines:read', 'catalog:read', 'sales:read', ...COMPLAINTS];
 
 export const ROLE_PERMISSIONS = {
-  platform_admin: new Set([...PLATFORM_ONLY, ...TENANT_ADMIN]),
+  platform_admin: new Set([...PLATFORM_ONLY, ...TENANT_ADMIN.filter((p) => !TENANT_ONLY.includes(p))]),
   tenant_admin: new Set(TENANT_ADMIN),
   operator: new Set(OPERATOR),
   viewer: new Set(VIEWER),
@@ -85,6 +94,16 @@ export function guard(permission, { tenantParam } = {}) {
     assertCan(req.user, permission, tenantParam ? { tenantId: req.params[tenantParam] } : {});
     next();
   };
+}
+
+/**
+ * The complaints a user may see (plan §4.15): platform all; complaints:read_all (tenant_admin) their
+ * tenant's; everyone else only the ones they raised. Machine scope doesn't apply (no machine).
+ */
+export function complaintScope(user) {
+  if (isPlatform(user)) return {};
+  if (hasPermission(user, 'complaints:read_all')) return { tenant_id: user.tenant_id };
+  return { tenant_id: user.tenant_id, 'created_by.user_id': user._id };
 }
 
 /** A query filter for records (sales, telemetry…) limited to what the user may see. */

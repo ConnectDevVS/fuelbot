@@ -1,0 +1,104 @@
+/* One complaint (dashboard plan §5.20). Colours from tokens.css only. */
+.back {
+  display: inline-block;
+  margin: -8px 0 4px -16px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 20px;
+  color: var(--fb-muted);
+}
+
+.email {
+  color: var(--fb-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.timeline {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  padding: 14px 16px;
+  border: 1px solid var(--fb-border);
+  border-radius: 12px;
+  background: var(--fb-surface);
+}
+
+.statusEntry {
+  border-style: dashed;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+  color: var(--fb-muted);
+  font-size: 13px;
+}
+
+.author {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  color: var(--fb-text);
+}
+
+.fuelbot {
+  margin: 0;
+}
+
+.change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reply {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+
+/* The TextArea's counter sits at the end of the help line: keep the help clear of it. */
+.counted :global(.ant-form-item-extra) {
+  padding-right: 96px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.statusSelect {
+  min-width: 220px;
+}
+
+@media (max-width: 759px) {
+  .actions > * {
+    flex: 1 1 100%;
+  }
+}

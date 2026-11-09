@@ -5,7 +5,9 @@ machines: React + Vite + Ant Design (JavaScript), served by the backend at
 `/dashboard/`. It uses only the backend's admin API (`/api/v1`).
 
 - Spec: [devdocs/plans/dashboard-plan.md](devdocs/plans/dashboard-plan.md);
-  stories in [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md).
+  stories in [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md)
+  (S7) and, for Complaints (S10, server and dashboard together),
+  [server/devdocs/stories/complaints/](../server/devdocs/stories/complaints/README.md).
 - Rules for changing it: [CLAUDE.md](CLAUDE.md).
 
 ## Run it (development)
@@ -69,7 +71,8 @@ overflow (`e2e/fixtures.js`; checked on every screenshot too).
   (operator on DEV00001 only), `ops@powerfuel.test` (operator),
   `look@powerfuel.test` (viewer), `new@powerfuel.test` (must change
   password), `boss@globex.test` (Globex admin). See `e2e/seed.mjs` for the
-  machines, sales and stock states.
+  machines, sales, stock states and complaints (four at PowerFuel, one at
+  Globex).
 - A spec that writes calls `resetData()` (`POST /__e2e/reset`, test server
   only) and signs in again.
 - It uses the installed Google Chrome (`channel: 'chrome'`). Without it:
