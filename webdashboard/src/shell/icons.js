@@ -1,8 +1,8 @@
 // Nav icons (SVG React components from @ant-design/icons: no fonts, fine under the CSP).
 import {
-  ApartmentOutlined, AppstoreOutlined, AuditOutlined, BankOutlined, DashboardOutlined, HomeOutlined, InboxOutlined,
-  LineChartOutlined, MenuOutlined, QuestionCircleOutlined, RiseOutlined, ShopOutlined, TeamOutlined,
-  ThunderboltOutlined, UserOutlined, WarningOutlined,
+  ApartmentOutlined, AppstoreOutlined, AuditOutlined, BankOutlined, CommentOutlined, DashboardOutlined, HomeOutlined,
+  InboxOutlined, LineChartOutlined, MenuOutlined, MessageOutlined, QuestionCircleOutlined, RiseOutlined, ShopOutlined,
+  TeamOutlined, ThunderboltOutlined, UserOutlined, WarningOutlined,
 } from '@ant-design/icons';
 
 export const ICONS = {
@@ -20,6 +20,8 @@ export const ICONS = {
   audit: AuditOutlined,
   unregistered: QuestionCircleOutlined,
   salesAll: RiseOutlined,
+  complaints: MessageOutlined,
+  complaintsAll: CommentOutlined,
   more: MenuOutlined,
   account: UserOutlined,
 };

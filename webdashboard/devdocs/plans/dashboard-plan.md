@@ -1402,7 +1402,7 @@ roles get no tab, no page, no request and no keys (the leak scan proves it).
   text. A release paused by a rollback says which machine and why.
 - **Fleet** (staff): a version column (desktop only) and a "Behind" chip.
 
-### 5.20 Complaints (S10; planned 2026-11-09)
+### 5.20 Complaints (S10; planned 2026-11-09, list and Raise built in SRV-52)
 
 Tenant users raise complaints and follow them in a thread; staff answer
 and set the status. Server: SP §4.15. Stories and the full spec:
@@ -1416,8 +1416,10 @@ and set the status. Server: SP §4.15. Stories and the full spec:
   Closed), raised by (tenant_admin and staff), last activity, comments.
   Default filter *Open & with service*; newest activity first; cards on
   phone.
-- **Raise** (tenant roles): title + description in a dialog (a sheet on
-  phone), then the new complaint's page.
+- **Raise** (tenant roles): title + description in a sheet (from the
+  bottom on a phone), then the new complaint's page. Closing with text
+  typed asks first. The empty state names the filter ("No open
+  complaints.") and has no second Raise button.
 - **Complaint page:** the description, then the timeline (comments and
   status changes, oldest first; FuelBot authors tagged "FuelBot support"),
   a comment box. Staff: a status select that turns Post into "Post and set

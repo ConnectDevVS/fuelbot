@@ -9,6 +9,10 @@ const FORBIDDEN_KEYS = ['maintenance', 'faults', 'status', 'last_seen_ip', 'heal
   'machine_known', 'received_at', 'extra', 'body_tenant_id', 'body_machine_id', 'telemetry'];
 const FORBIDDEN_TEXT = [/HOMING_TIMEOUT/, /BRIDGE_DOWN/, /deadline/, /machine_fault/, /no_response/, /maintenance/i,
   /\b\d{1,3}(\.\d{1,3}){3}\b/, /\bTenants\b/, /\bFaults\b/, /\bTelemetry\b/, /\bAudit\b/, /\bUnregistered\b/, /\bAll users\b/, /\bAll sales\b/];
+// A complaint's status (open / with service / closed) is tenant data by design (plan §4.15); a
+// machine's `status` stays platform-only everywhere else.
+const TENANT_KEYS_BY_ROUTE = [[/^\/api\/v1\/tenants\/[^/]+\/complaints(\/|$)/, ['status']]];
+const allowed = (url, key) => TENANT_KEYS_BY_ROUTE.some(([re, keys]) => re.test(new URL(url).pathname) && keys.includes(key));
 const PLATFORM_ROUTES = /\/api\/v1\/(telemetry|faults|audit|unregistered)|\/api\/v1\/.*\/maintenance$/;
 
 /** Every key path in a JSON value. */
@@ -75,7 +79,7 @@ for (const who of ['owner', 'ops', 'desk', 'look', 'boss']) {
     const { bodies, texts, requests } = await walk(page);
     expect(bodies.length, 'responses were scanned').toBeGreaterThan(10);
 
-    const keyHits = bodies.flatMap(({ url, json }) => keysOf(json).filter(({ key }) => FORBIDDEN_KEYS.includes(key))
+    const keyHits = bodies.flatMap(({ url, json }) => keysOf(json).filter(({ key }) => FORBIDDEN_KEYS.includes(key) && !allowed(url, key))
       .map(({ path }) => `${new URL(url).pathname}${path}`));
     expect(keyHits, 'no platform-only keys in tenant responses').toEqual([]);
 

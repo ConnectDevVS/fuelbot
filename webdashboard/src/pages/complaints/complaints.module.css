@@ -1,0 +1,63 @@
+/* Complaints (dashboard plan §5.20). Colours from tokens.css only. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tenant {
+  width: 240px;
+}
+
+.title {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  align-items: baseline;
+}
+
+.number {
+  flex: none;
+  color: var(--fb-muted);
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 48ch;
+}
+
+.lead {
+  margin: 0 0 16px;
+  color: var(--fb-muted);
+}
+
+/* The TextArea's "64 / 4000" counter sits at the end of the help line: keep the help clear of it. */
+.counted :global(.ant-form-item-extra) {
+  padding-right: 96px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 759px) {
+  .tenant {
+    width: 100%;
+  }
+
+  .text {
+    white-space: normal;
+    overflow-wrap: break-word;
+    max-width: none;
+  }
+
+  .footer > * {
+    flex: 1;
+  }
+}

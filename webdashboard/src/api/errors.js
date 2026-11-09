@@ -10,10 +10,11 @@ export const CODES = [
   'invalid_body', 'invalid_config', 'version_conflict', 'if_match_required', 'forbidden_field', 'forbidden',
   'product_in_use', 'product_exists', 'tenant_exists', 'source_not_configured', 'not_found', 'network_error',
   'not_signed_in', 'password_change_required', 'csrf_header_required',
+  'status_changed', 'status_unchanged', 'complaint_full', 'invalid_status',
 ];
 
 // Codes whose message says something went wrong on our side (a bug, never expected).
-const BUGS = new Set(['if_match_required', 'csrf_header_required']);
+const BUGS = new Set(['if_match_required', 'csrf_header_required', 'invalid_status']);
 
 // Top-level codes that belong to one field (DP §7): the users API's, and a taken product id.
 const USER_FIELDS = {

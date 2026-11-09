@@ -18,6 +18,7 @@ const Gallery = lazy(() => import('../pages/Gallery.jsx'));
 
 const SalesPage = lazy(() => import('../pages/sales/SalesPage.jsx'));
 const UsersPage = lazy(() => import('../pages/users/UsersPage.jsx'));
+const ComplaintsPage = lazy(() => import('../pages/complaints/ComplaintsPage.jsx'));
 
 // Built pages, by page id (lazy). Anything not here is a ComingSoon placeholder.
 export const COMPONENTS = {
@@ -39,6 +40,8 @@ export const COMPONENTS = {
   unregistered: lazy(() => import('../pages/platform/UnregisteredPage.jsx')),
   'machine-new': lazy(() => import('../pages/machines/RegisterMachinePage.jsx')),
   'sales-all': SalesPage,
+  complaints: ComplaintsPage,
+  'complaints-all': ComplaintsPage,
 };
 
 function pageElement(page) {

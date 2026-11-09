@@ -6,7 +6,9 @@
 //             (disabled), E2E00005 (globex)
 //   stock     DEV00001: h1 empty, h2 low, h3 ok, h4 not estimated, h5 unknown; E2E00002 h1 refill needed
 //   users     USERS below, password PASSWORD
-import { Machine, Product, Sale, StockEvent, Tenant, TelemetryEvent, User }
+//   complaints powerfuel #1 desk (with service, a staff answer), #2 ops (open), #3 look (closed),
+//             #4 owner (open); globex #1 boss (open). Newest activity: #4, #1, #2, #3
+import { Complaint, Machine, Product, Sale, StockEvent, Tenant, TelemetryEvent, User }
   from '../../server/src/models/index.js';
 import { importConfig } from '../../server/src/services/catalog.js';
 import { createMachine } from '../../server/src/services/machines.js';
@@ -171,6 +173,32 @@ export async function seed(now = Date.now()) {
   }
   await sale({ order_id: 'E2E-UNREG-1', tenant_id: 'powerfuel', machine_id: 'ZZTYPO01', hopper: 1, machine_known: false,
     ts: new Date(now - 2 * HOUR), dispensing_result: 'success' }, products.get('guava'), { stages: false });
+
+  // Complaints (plan §4.15). The text stays clear of what the leak scan looks for (fault codes,
+  // "maintenance", IPs, platform page names).
+  const by = (key) => ({ user_id: users[key]._id, name: USERS[key].name, email: USERS[key].email });
+  const event = (key, at, fields) => ({ at: new Date(at), ...by(key), fuelbot: key === 'staff', ...fields });
+  const complaint = (tenant, number, key, title, description, created, fields = {}) => Complaint.create({
+    tenant_id: tenant, number, title, description, created_by: by(key), status: 'open',
+    last_activity_at: new Date(created), ...fields,
+  });
+  await complaint('powerfuel', 1, 'desk', 'Bay 02 screen froze after paying',
+    'The screen stopped on "Payment received" at about 7 pm. The customer got no shake.', now - 3 * DAY, {
+      status: 'with_service', last_activity_at: new Date(now - 2 * HOUR), events: [
+        event('staff', now - 2 * DAY, { kind: 'status', from: 'open', to: 'with_service', text: 'A technician visits Bay 02 tomorrow morning.' }),
+        event('desk', now - 2 * HOUR, { kind: 'comment', text: 'Thanks. It happened once more today.' }),
+      ] });
+  await complaint('powerfuel', 2, 'ops', 'Wrong flavour dispensed', 'Ordered chocolate, got guava. Bay 3, around noon.',
+    now - 26 * HOUR, { last_activity_at: new Date(now - 26 * HOUR) });
+  await complaint('powerfuel', 3, 'look', 'Receipt QR did not scan', 'Two customers could not scan the payment QR on Bay 02.',
+    now - 9 * DAY, {
+      status: 'closed', last_activity_at: new Date(now - 7 * DAY), events: [
+        event('staff', now - 7 * DAY, { kind: 'status', from: 'open', to: 'closed', text: 'Fixed in the payment settings.' }),
+      ] });
+  await complaint('powerfuel', 4, 'owner', 'More cups at Bay 3', 'Bay 3 runs out of cups by the evening.', now - 40 * MIN);
+  await complaint('globex', 1, 'boss', 'Card payments request', 'Our members ask for card payments as well as UPI.', now - 5 * HOUR);
+  await Tenant.updateOne({ _id: 'powerfuel' }, { complaint_seq: 4 });
+  await Tenant.updateOne({ _id: 'globex' }, { complaint_seq: 1 });
 
   // Health: a bridge outage on Bay 3 two days ago (closed), and an open HOMING_TIMEOUT on Bay 02.
   await healthEvent({ event_id: 'e2e-bridge-down', event_type: 'bridge_down', tenant_id: 'powerfuel',

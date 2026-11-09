@@ -11,6 +11,7 @@ export const PAGES = [
   { id: 'unregistered', path: '/unregistered', needs: 'unregistered:read', title: 'page.unregistered', story: 'SRV-48', nav: { group: 'platform', icon: 'unregistered' } },
   { id: 'users-all', path: '/users', needs: ['telemetry:read', 'users:manage'], title: 'page.usersAll', story: 'SRV-46', nav: { group: 'platform', icon: 'users' } },
   { id: 'sales-all', path: '/sales', needs: 'telemetry:read', title: 'page.salesAll', story: 'SRV-39', nav: { group: 'platform', icon: 'salesAll' } },
+  { id: 'complaints-all', path: '/complaints', needs: 'complaints:status', title: 'page.complaintsAll', story: 'SRV-52', nav: { group: 'platform', icon: 'complaintsAll' } },
   { id: 'order', path: '/orders/:orderId', needs: 'sales:read', title: 'page.order', story: 'SRV-40', nav: null },
 
   // Tenant pages (/t/:tid/…).
@@ -25,6 +26,8 @@ export const PAGES = [
   { id: 'company', path: '/t/:tid/company', needs: 'tenant:read', title: 'page.company', story: 'SRV-46',
     // The page reads for every member (tenant:read); the nav shows it to editors only (DP §3.1).
     nav: { group: 'tenant', icon: 'company', needs: 'tenant:edit' } },
+  { id: 'complaints', path: '/t/:tid/complaints', needs: 'complaints:comment', title: 'page.complaints', story: 'SRV-52', nav: { group: 'tenant', icon: 'complaints' } },
+  { id: 'complaint', path: '/t/:tid/complaints/:number', needs: 'complaints:comment', title: 'page.complaint', story: 'SRV-53', nav: null },
 ];
 
 export const PAGE_BY_ID = Object.fromEntries(PAGES.map((p) => [p.id, p]));

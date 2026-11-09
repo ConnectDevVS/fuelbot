@@ -21,7 +21,8 @@ export function MoreSheet({ open, onClose, items, platformIds }) {
     );
   };
   return (
-    <Drawer open={open} onClose={onClose} placement="bottom" size="auto" title={t('nav.more')} className={styles.sheet}>
+    <Drawer open={open} onClose={onClose} placement="bottom" size="auto" title={t('nav.more')} className={styles.sheet}
+      rootClassName={styles.sheetRoot}>
       <nav aria-label={t('nav.more')} className={styles.sheetList}>
         {main.map(link)}
         {platform.length > 0 && <div className={`overline ${styles.sheetGroup}`}>{t('nav.platform')}</div>}

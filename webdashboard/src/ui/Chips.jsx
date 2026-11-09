@@ -92,3 +92,15 @@ export function DispensedChip({ sale }) {
     </span>
   );
 }
+
+const COMPLAINT = {
+  open: { color: 'warning', icon: <ExclamationCircleOutlined /> },
+  with_service: { color: 'default', icon: <ToolOutlined /> },
+  closed: { color: 'success', icon: <CheckCircleOutlined /> },
+};
+
+/** A complaint's status (plan §4.15): Open / With service / Closed. Tenant data: everyone sees it. */
+export function ComplaintStatusChip({ status }) {
+  const s = COMPLAINT[status] ?? COMPLAINT.open;
+  return <Chip {...s}>{t(`complaint.status.${COMPLAINT[status] ? status : 'open'}`)}</Chip>;
+}
