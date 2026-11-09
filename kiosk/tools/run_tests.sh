@@ -23,6 +23,11 @@ if grep -nE '(print|push_warning|push_error|printerr).*[^_a-zA-Z0-9.](pin|_typed
 	echo "run_tests: the settings PIN may be logged (see above)" >&2
 	exit 1
 fi
+# The on-screen keyboard holds Wi-Fi passwords (SET-03): never log its text.
+if grep -nE '(print|push_warning|push_error|printerr).*_text([^_a-zA-Z0-9]|$)' ui/components/keyboard/keyboard.gd; then
+	echo "run_tests: the keyboard may log what was typed (see above)" >&2
+	exit 1
+fi
 
 # --- mock server (IDLE-04) ---
 MOCK_PORT=8788

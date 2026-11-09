@@ -9,6 +9,7 @@ const AllergenBannerScene := preload("res://ui/components/allergen_banner/Allerg
 const NutritionTileScene := preload("res://ui/components/nutrition_tile/NutritionTile.tscn")
 const StepIndicatorScene := preload("res://ui/components/step_indicator/StepIndicator.tscn")
 const StatusBadgeScene := preload("res://ui/components/status_badge/StatusBadge.tscn")
+const KeyboardScene := preload("res://ui/components/keyboard/Keyboard.tscn")
 
 const DESIGN_CHIPS := ["Whey protein isolate", "Toned milk", "Peanut butter", "Banana",
 	"Rolled oats", "Jaggery", "Cinnamon", "Filtered water"]
@@ -46,6 +47,7 @@ func _ready() -> void:
 	col.add_theme_constant_override("separation", 32)
 	margin.add_child(col)
 
+	_add_keyboard_section(col)
 	_add_details_section(col)
 	_add_dispensing_section(col)
 
@@ -140,3 +142,17 @@ func _add_dispensing_section(col: VBoxContainer) -> void:
 		badge.diameter = 160
 		badge.mark = mark
 		row.add_child(badge)
+
+
+## The on-screen keyboard (settings SET-03) at the page's full width, with the field the
+## password page shows above it (masked text, as the page starts).
+func _add_keyboard_section(col: VBoxContainer) -> void:
+	var field := Label.new()
+	field.theme_type_variation = &"Heading"
+	col.add_child(field)
+	var keyboard: OnScreenKeyboard = KeyboardScene.instantiate()
+	keyboard.text_changed.connect(func(t: String) -> void: field.text = "•".repeat(t.length()))
+	col.add_child(keyboard)
+	keyboard.set_submit_label("Connect")
+	for c in "Gym2026":
+		keyboard._type(c)

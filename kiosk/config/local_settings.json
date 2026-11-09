@@ -134,7 +134,12 @@
     "settings_pin_not_set": "Settings not set up on this machine.",
     "settings_pin_delete": "DEL",
     "settings_title": "SETTINGS",
-    "settings_exit": "Exit"
+    "settings_exit": "Exit",
+    "keyboard_symbols": "?123",
+    "keyboard_letters": "ABC",
+    "keyboard_space": "space",
+    "keyboard_delete": "DEL",
+    "keyboard_submit": "OK"
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,

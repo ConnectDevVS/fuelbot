@@ -168,6 +168,11 @@ be reviewed in one place.
 | `settings_pin_locked` | `Too many tries. Try again in {minutes} min.` |
 | `settings_pin_not_set` | `Settings not set up on this machine.` |
 | `settings_pin_delete` | `DEL` |
+| `keyboard_symbols` | `?123` |
+| `keyboard_letters` | `ABC` |
+| `keyboard_space` | `space` |
+| `keyboard_delete` | `DEL` |
+| `keyboard_submit` | `OK` |
 | `settings_title` | `SETTINGS` |
 | `settings_exit` | `Exit` |
 | `settings_tile_network` | `Network` |
@@ -223,8 +228,8 @@ be reviewed in one place.
 - Back buttons reuse the existing `back` message ("Back") and `←`.
 - **Glyphs:** neither bundled font (Archivo, JetBrains Mono) has `⌫`, `✓`
   or `⇧` (`✕` and `•` are in JetBrains Mono only). The PIN pad's delete key
-  says DEL; SET-03 and SET-04 draw shift, the tick and the Wi-Fi icon in
-  code (like `StatusDot`).
+  says DEL; the keyboard's ⇧ uses JetBrains Mono; SET-04 draws the tick
+  and the Wi-Fi icon in code (like `StatusDot`).
 - IDLE-07 left out the design's signal cell for lack of data; SET-04 adds the
   network name and signal to the network cell.
 
