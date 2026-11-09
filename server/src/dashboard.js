@@ -9,6 +9,7 @@ import express from 'express';
 import helmet from 'helmet';
 
 const PLACEHOLDER = '__CSP_NONCE__';
+const ENV_PLACEHOLDER = '__ENV_LABEL__';   // <meta name="fb-env">: ENV_LABEL (settings.js allows no markup)
 const NOT_BUILT = '<!doctype html><meta charset="utf-8"><title>FuelBot dashboard</title>'
   + '<p>Dashboard not built. Run <code>npm ci &amp;&amp; npm run build</code> in <code>webdashboard/</code>.</p>\n';
 
@@ -79,7 +80,7 @@ export function dashboardRouter(settings) {
     res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
     cspWithNonce(req, res, (err) => {   // replaces the header set above
       if (err) return next(err);
-      res.type('html').send(html.replaceAll(PLACEHOLDER, res.locals.cspNonce));
+      res.type('html').send(html.replaceAll(PLACEHOLDER, res.locals.cspNonce).replaceAll(ENV_PLACEHOLDER, settings.envLabel));
     });
   }
 

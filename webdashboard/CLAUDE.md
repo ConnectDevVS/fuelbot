@@ -1,7 +1,7 @@
 # webdashboard/CLAUDE.md
 
 Rules for working on the web dashboard. The backend's rules are in
-[server/CLAUDE.md](../server/CLAUDE.md); the root [CLAUDE.md](../CLAUDE.md)
+[server/CLAUDE.md](../server/CLAUDE.md); the kiosk's [CLAUDE.md](../kiosk/CLAUDE.md)
 covers the Godot kiosk, which S7 never touches.
 
 - **Spec:** [devdocs/plans/dashboard-plan.md](devdocs/plans/dashboard-plan.md)

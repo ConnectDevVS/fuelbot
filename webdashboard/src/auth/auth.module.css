@@ -49,6 +49,22 @@
   text-align: center;
 }
 
+/* ENV_LABEL ("staging"): a small fixed tag, bottom left, so a non-production deployment is obvious. */
+.envTag {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  padding: 4px 10px;
+  border: 1px solid var(--fb-warn-border);
+  border-radius: var(--fb-radius);
+  background: var(--fb-warn-surface);
+  color: var(--fb-warn);
+  font: 700 12px/1.4 var(--fb-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 @media (max-width: 480px) {
   .card {
     padding: 24px 18px;

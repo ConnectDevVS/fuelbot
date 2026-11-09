@@ -11,6 +11,7 @@ import { landingPath, safeNext } from './redirect.js';
 import { messageFor } from '../api/errors.js';
 import { ApiError } from '../api/client.js';
 import { t } from '../strings.js';
+import { envLabel } from '../envLabel.js';
 
 export default function SignInPage() {
   const [form] = Form.useForm();
@@ -52,6 +53,7 @@ export default function SignInPage() {
         </Form>
         <div className={`overline ${styles.footer}`}>{t('brand.footer')}</div>
       </main>
+      {envLabel && <div className={styles.envTag} role="note" aria-label={t('signin.env', { label: envLabel })}>{envLabel}</div>}
     </div>
   );
 }

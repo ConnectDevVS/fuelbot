@@ -44,7 +44,7 @@ off.
     `/faults`, `/audit`, `/unregistered` or `…/maintenance`.
 - **Cross-tenant:** `boss@globex.test` sees none of powerfuel's machine
   ids, product names or order ids anywhere (responses and text).
-- **Real app run** (by hand, recorded in SIGNOFF; the root CLAUDE.md
+- **Real app run** (by hand, recorded in SIGNOFF; the kiosk/CLAUDE.md
   rules apply to the app, which isn't changed):
   1. `npm run db`, `npm run seed`, `npm start` (server with the built
      dashboard), `tools/dev_run.sh --backend=server`.

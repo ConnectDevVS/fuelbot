@@ -9,7 +9,7 @@ required by the server from the start.
   decision), §3.5, §3.7 (S4 app changes), §4.1 (`MachineKey`), §4.3, §4.4
   (machine keys), §6 S4, §7 contract test 4 and end-to-end step 7.
 - Conventions: [server/CLAUDE.md](../../../CLAUDE.md); for the app story, the
-  root [CLAUDE.md](../../../../CLAUDE.md).
+  kiosk's [CLAUDE.md](../../../../kiosk/CLAUDE.md).
 
 ## Execution order
 
