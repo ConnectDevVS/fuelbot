@@ -14,7 +14,7 @@ autoload/Wifi.gd                    # registered after FlavorImages, before DevC
 config/local_settings.json          # wifi.nmcli_path, wifi.interface, timing.wifi_*
 tools/fake_nmcli.py                 # stand-in nmcli (stdlib only) with a JSON state file
 tools/test_fake_nmcli.py
-tools/dev_setup.gd                  # dev: wifi.nmcli_path → the fake, state under user://
+tools/dev_setup.gd                  # --wifi=fake (default) | real: wifi.nmcli_path → the fake, state in user://fake_nmcli.json
 tests/unit/test_wifi.gd
 deploy/polkit/50-fuelbot-wifi.rules # installed by OTA-08's provision.sh
 docs/stories/ota/OTA-08-pi-image.md # provision.sh installs the polkit rule (one line)
@@ -61,13 +61,17 @@ func is_available() -> bool                     # nmcli runs, and there's a Wi-F
   | connect | settled by the spike below |
   | roll back | `nmcli connection up uuid <old>`, `nmcli connection delete uuid <new>` |
 
-- Each command runs **off the main thread** (a `Thread`, result handed back
-  with `call_deferred`), **one at a time** (a small queue; `connect_to`
-  while busy finishes at once with `busy`). The UI never freezes, even when
-  a rescan takes seconds on the Pi.
+- Each command runs **off the main thread**: `OS.execute_with_pipe`, with
+  a `Thread` reading both pipes to the end while the main thread awaits
+  frames. Commands run **one at a time** (a small queue of operations;
+  `connect_to` while a connect is queued or running finishes at once with
+  `busy`). The UI never freezes, even when a rescan takes seconds on the
+  Pi.
 - Timeouts: scan `timing.wifi_scan_timeout_sec` (15), connect
-  `timing.wifi_connect_timeout_sec` (30, passed to `nmcli -w`). A command
-  that outlives its timeout is killed (`OS.kill`) and reported as `timeout`.
+  `timing.wifi_connect_timeout_sec` (30, passed to `nmcli -w`; the app
+  waits `connect_grace_sec` = 5 s longer before killing it), 10 s for the
+  quick commands. A command that outlives its timeout is killed
+  (`OS.kill`, which also reaps it) and reported as `timeout`.
 - **No background polling.** The autoload runs nothing until a screen
   asks; the maintenance screen calls `refresh_status()` on open and every
   10 s (SET-04).
@@ -81,9 +85,10 @@ func is_available() -> bool                     # nmcli runs, and there's a Wi-F
 2. If a saved profile for this SSID exists, delete it (a re-typed password
    replaces the old one).
 3. Create the profile (`connection add type wifi ifname <if> con-name
-   <ssid> ssid <ssid>`, plus `wifi-sec.key-mgmt wpa-psk` when secured;
-   `autoconnect yes`) and bring it up with the password, **never on the
-   command line**.
+   <ssid> ssid <ssid> autoconnect yes`, plus `wifi-sec.key-mgmt wpa-psk`
+   when secured), read its UUID from nmcli's reply, and bring it up **by
+   UUID** with the password, **never on the command line**: built with
+   option A below (`passwd-file`), pending the spike.
 4. Success: report `wifi_connected` (`ssid`, `signal`) via
    `TelemetryReporter.report_event`, refresh the status, emit
    `connect_finished(true, "", ssid)`.
@@ -98,7 +103,10 @@ failed) and message (`Secrets were required`, `802-1X supplicant failed` →
 The raw message is logged (it never contains the password; the leak test
 proves it).
 
-### Pi spike (do first, record the result in this story's commit message and in SET-05)
+### Pi spike (open: no Pi yet; record the result in SET-05)
+
+Built and tested against the fake with option A. On a Pi, confirm A, or
+switch to B in `_connect_steps` (one place):
 
 On a Pi with Raspberry Pi OS Bookworm, as a non-root user with the polkit
 rule:
@@ -109,6 +117,10 @@ rule:
   **saved** (the network reconnects after a reboot).
 - **Option B:** `nmcli --ask -w 30 connection up id <ssid>` with the
   password written to stdin (`OS.execute_with_pipe`).
+- Also check that `connection add … wifi-sec.key-mgmt wpa-psk` **without**
+  a psk is accepted (the fake accepts it). If NetworkManager refuses it,
+  pass the password with the `up` instead (`nmcli device wifi connect`
+  with `--ask`, option B).
 - Pick the first that saves the password and never shows it in
   `ps -ef` or the journal. If neither saves it, report back before going
   further: the fallback (`connection modify … wifi-sec.psk`) puts the
@@ -135,12 +147,15 @@ change it here and in OTA-08 together.
 
 ### `tools/fake_nmcli.py`
 
-- Stdlib only, executable, the same arguments and `-t` output as the real
-  one for the commands above. State in a JSON file named by
-  `FUELBOT_FAKE_NMCLI_STATE`: networks in range (ssid, signal, security,
-  password), the active connection, saved profiles, and `delay_sec` /
-  `fail_next` knobs, so a test can make a scan slow, a connect time out or
-  `nmcli` exit badly.
+- Stdlib only, executable, the same arguments, `-t` output (with `\:`
+  escaping) and error messages as the real one for the commands above.
+  State in a JSON file named by `FUELBOT_FAKE_NMCLI_STATE` (the app sets
+  it from `wifi.fake_state_path`; created with sample networks if
+  missing): networks in range (ssid, signal, security, password), the
+  active connection, saved profiles, and two knobs: `delay` (`{sec, on,
+  times}`: the next `times` commands containing `on` are slow, e.g. a
+  connect timing out) and `fail_next` (the next command exits with that
+  code and message, once).
 - Records every call (arguments **with any password replaced by `***`**)
   in the state, so tests can assert the rollback happened.
 - `dev_setup.gd` points `wifi.nmcli_path` at it with a state file holding
@@ -154,6 +169,7 @@ with its own state file under `user://test_wifi/`; `tools/test_fake_nmcli.py`
 tests the fake itself.
 
 - [ ] The spike is done on a real Pi and the chosen option is recorded.
+      **Open** (no Pi yet); carried into SET-05's Pi table.
 - [ ] Status: wifi with ssid and signal; ethernet wins over wifi; none;
       `nmcli` missing → `available: false`, one warning.
 - [ ] Scan: one entry per SSID (the strongest), hidden left out, in-use

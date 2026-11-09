@@ -165,7 +165,9 @@
     "settings_pin_inactivity_sec": 30,
     "settings_pin_lockout_sec": 300,
     "settings_inactivity_sec": 60,
-    "settings_error_return_sec": 3
+    "settings_error_return_sec": 3,
+    "wifi_scan_timeout_sec": 15,
+    "wifi_connect_timeout_sec": 30
   },
   "settings": {
     "pin_path": "user://settings_pin.txt",
@@ -173,5 +175,9 @@
     "pin_length": 6,
     "pin_max_attempts": 5,
     "hold_zone_px": 200
+  },
+  "wifi": {
+    "nmcli_path": "nmcli",
+    "interface": "wlan0"
   }
 }

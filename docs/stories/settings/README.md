@@ -216,6 +216,7 @@ be reviewed in one place.
 | `settings.hold_zone_px` | 200 | SET-02 |
 | `wifi.nmcli_path` | `nmcli` | SET-01 |
 | `wifi.interface` | `wlan0` | SET-01 |
+| `wifi.fake_state_path` | (dev override only) `user://fake_nmcli.json` | SET-01 |
 
 ## Deviations from the plan
 
