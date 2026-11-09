@@ -675,6 +675,9 @@ app's error strings. It bumps `rev` and the tenant's `catalog_version`.
 | `POST /tenants/:tid/machines/:mid/keys` | tenant_admin+ | `{label}` → returns the **full key once** |
 | `DELETE /tenants/:tid/machines/:mid/keys/:kid` | tenant_admin+ | revoke |
 
+**Complaints:** §4.15 (S10): `/tenants/:tid/complaints` (raise, list, read,
+comment, status) and `GET /complaints` (staff, every tenant).
+
 **Reports:** §4.9. **Audit:** `GET /audit` (**platform_admin** only;
 filter by tenant, machine, user, action, date). Every write is audited,
 including tenant users' writes; tenants just can't read the log.

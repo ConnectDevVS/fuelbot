@@ -152,6 +152,11 @@ describe('RBAC table', () => {
     ['get', '/api/v1/telemetry', 200, 403, 403, 403],
     ['get', '/api/v1/faults', 200, 403, 403, 403],
     ['get', '/api/v1/orders/none', 404, 404, 404, 404],       // allowed for all; no such order
+    ['post', '/api/v1/tenants/powerfuel/complaints', 403, 400, 400, 400],   // staff don't raise; 400: empty body
+    ['get', '/api/v1/tenants/powerfuel/complaints', 200, 200, 200, 200],
+    ['get', '/api/v1/tenants/globex/complaints', 404, 404, 404, 404],
+    ['get', '/api/v1/tenants/powerfuel/complaints/1', 404, 404, 404, 404],  // allowed for all; none yet
+    ['get', '/api/v1/complaints', 200, 403, 403, 403],
   ];
 
   for (const [method, path, ...expected] of TABLE) {

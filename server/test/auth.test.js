@@ -193,7 +193,8 @@ describe('sessions (/api/v1/auth)', () => {
     assert.ok(limited.permissions.includes('menu:edit'));
 
     const { me: viewer } = await meAs({ email: 'v@powerfuel.example', role: 'viewer', tenant_id: 'powerfuel' });
-    assert.deepEqual(viewer.permissions, ['catalog:read', 'machines:read', 'sales:read', 'tenant:read']);
+    assert.deepEqual(viewer.permissions, ['catalog:read', 'complaints:comment', 'complaints:raise', 'complaints:reopen',
+      'machines:read', 'sales:read', 'tenant:read']);
     assert.equal(viewer.all_machines, true);
   });
 

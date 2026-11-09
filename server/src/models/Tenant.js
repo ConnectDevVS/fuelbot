@@ -13,6 +13,7 @@ const TenantSchema = new mongoose.Schema({
   name: { type: String, required: true },
   branding: { type: BrandingSchema, default: () => ({}) },
   catalog_version: { type: Number, default: 0 },
+  complaint_seq: { type: Number, default: 0 },   // the last complaint number (plan §4.15)
   disabled: { type: Boolean, default: false },
 }, { ...STRICT, timestamps: TIMESTAMPS, collection: 'tenants' });
 

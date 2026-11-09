@@ -9,3 +9,4 @@ export { AuditEntry } from './AuditEntry.js';
 export { MachineKey } from './MachineKey.js';
 export { RevokedSession } from './RevokedSession.js';
 export { StockEvent } from './StockEvent.js';
+export { Complaint, COMPLAINT_STATUSES } from './Complaint.js';

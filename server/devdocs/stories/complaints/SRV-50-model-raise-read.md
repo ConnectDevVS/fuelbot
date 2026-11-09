@@ -24,8 +24,10 @@ complaints, **so that** FuelBot knows about a problem and I can follow it.
    `server/test/audit.test.js`, the divergence test in
    `server/test/rbac.test.js`, the tenant sweep in
    `server/test/tenant-isolation.test.js`.
-7. `npm run seed`: two sample complaints on `powerfuel` (one open, one
-   closed with a staff comment), only when it has none.
+7. ~~`npm run seed`: two sample complaints~~ Dropped while building
+   (2026-11-09): the seed creates no users, so a sample complaint would have
+   no real author. Sample complaints come from the dashboard's e2e seed
+   (SRV-52) and from raising one in the dev dashboard.
 8. Docs: SP §4.4 gets a **Complaints** table pointing to §4.15;
    `server/README.md` lists the routes.
 
@@ -114,33 +116,32 @@ own test, rather than a second pager.
 
 ## Acceptance criteria
 
-- [ ] `complaints-api.test.js` › "a tenant user raises a complaint": owner,
+- [x] `complaints-api.test.js` › "a tenant user raises a complaint": owner,
       operator and viewer each get 201, `status: 'open'`, numbers 1, 2, 3
       in order; an audit entry `complaint.create` per create.
-- [ ] › "numbers are per tenant and never repeat under concurrency": 20
+- [x] › "numbers are per tenant and never repeat under concurrency": 20
       parallel creates on powerfuel → numbers 1–20, each once; globex
       starts at 1.
-- [ ] › "platform_admin can't raise": 403 `forbidden`.
-- [ ] › "validation": title of 2 or 121 characters, empty description,
+- [x] › "platform_admin can't raise": 403 `forbidden`.
+- [x] › "validation": title of 2 or 121 characters, empty description,
       4001-character description, an extra field → 400 `invalid_body` with
       the field; surrounding spaces are trimmed before counting.
-- [ ] › "operators and viewers see only their own": desk sees desk's, not
+- [x] › "operators and viewers see only their own": desk sees desk's, not
       ops'; desk's GET of ops' number → 404.
-- [ ] › "tenant_admin sees the whole tenant, staff see all": owner lists
+- [x] › "tenant_admin sees the whole tenant, staff see all": owner lists
       every powerfuel complaint; `GET /complaints` lists both tenants;
       `?tenant=globex` only globex.
-- [ ] › "status filter and newest activity first": `?status=closed` only
+- [x] › "status filter and newest activity first": `?status=closed` only
       closed; order follows `last_activity_at` desc; the cursor walks two
       pages without gaps or repeats.
-- [ ] › "tenant view hides staff email": a staff event in the tenant view
+- [x] › "tenant view hides staff email": a staff event in the tenant view
       has `author: {name, fuelbot: true}` and no `email` anywhere in the
       JSON; the platform view has it.
-- [ ] `rbac.test.js` › "platform holds every tenant_admin permission except
+- [x] `rbac.test.js` › "platform holds every tenant_admin permission except
       TENANT_ONLY" and › "TENANT_ONLY is exactly raise and reopen".
-- [ ] `audit.test.js` RBAC table rows (platform, tenant_admin, operator,
+- [x] `audit.test.js` RBAC table rows (platform, tenant_admin, operator,
       viewer): `POST /tenants/powerfuel/complaints` 403/400/400/400
       (empty body); `GET /tenants/powerfuel/complaints` 200 ×4;
       `GET /tenants/globex/complaints` 404 for tenant roles;
       `GET /complaints` 200/403/403/403.
-- [ ] `tenant-isolation.test.js` sweep includes the complaint routes.
-- [ ] `npm run seed` twice → still two sample complaints.
+- [x] `tenant-isolation.test.js` sweep includes the complaint routes.

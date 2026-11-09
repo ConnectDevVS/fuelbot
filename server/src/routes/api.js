@@ -16,6 +16,7 @@ import { fleetRouter } from './fleet.js';
 import { salesRouter } from './sales.js';
 import { faultsRouter, telemetryRouter } from './telemetry.js';
 import { ordersRouter } from './orders.js';
+import { allComplaintsRouter, complaintsRouter } from './complaints.js';
 
 export function apiRouter(settings) {
   const router = express.Router();
@@ -29,6 +30,7 @@ export function apiRouter(settings) {
   router.use('/tenants/:tid/machines/:mid/keys', keysRouter());
   router.use('/tenants/:tid/machines/:mid/stock', stockRouter());
   router.use('/tenants/:tid/machines', machinesRouter());
+  router.use('/tenants/:tid/complaints', complaintsRouter());
   router.use('/unregistered', unregisteredRouter());
   router.use('/fleet', fleetRouter());
   router.use('/stock', fleetStockRouter());
@@ -36,6 +38,7 @@ export function apiRouter(settings) {
   router.use('/telemetry', telemetryRouter());
   router.use('/faults', faultsRouter());
   router.use('/orders', ordersRouter());
+  router.use('/complaints', allComplaintsRouter());
   router.use('/tenants', tenantsRouter());
   return router;
 }
