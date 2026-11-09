@@ -13,11 +13,14 @@ with the dashboard.
    each tenant role's walk; no staff email, `user_id` or IP in any
    complaint response or page; globex sees no powerfuel complaint
    number, title or name.
+   Its time limit is 5 minutes (was 3): each tenant role's walk now also
+   opens every complaint it can see.
 2. `webdashboard/e2e/walkthrough.spec.js`: the complaint pages in every
    role's walk.
-3. A live run on the dev stack (`npm run seed`, server, dashboard):
-   look raises a complaint on a phone width; staff answer, set With
-   service, then Closed; look reopens it; owner sees the whole thread.
+3. ~~A live run on the dev stack~~ Not done: the product owner chose to
+   skip it (2026-11-09), since the dev database is Atlas and the run would
+   leave test users and complaints there. The browser tests cover the same
+   steps against the real server and the built dashboard (SIGNOFF.md).
 4. `SIGNOFF.md` in this folder (automated results, screenshots looked at,
    the live run table, anything left out).
 5. Docs: SP §0 status + §6 S10 row "done"; DP §5.20 "built";
@@ -26,10 +29,11 @@ with the dashboard.
 
 ## Acceptance criteria
 
-- [ ] `cd server && npm test` PASS; `cd webdashboard && npm run lint &&
+- [x] `cd server && npm test` PASS; `cd webdashboard && npm run lint &&
       npm test && npm run build && npm run e2e` PASS at 390 / 820 / 1440,
       twice in a row.
-- [ ] Leak scan PASS for owner, ops, desk, look, boss, including the
+- [x] Leak scan PASS for owner, ops, desk, look, boss, including the
       complaint pages.
-- [ ] Live run: every step PASS, recorded in SIGNOFF.md.
-- [ ] Kiosk untouched: `git diff main -- kiosk/ hardware/` is empty.
+- [ ] ~~Live run: every step PASS, recorded in SIGNOFF.md.~~ Skipped by
+      the product owner (deliverable 3).
+- [x] Kiosk untouched: `git diff main -- kiosk/ hardware/` is empty.

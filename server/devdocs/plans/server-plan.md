@@ -10,6 +10,12 @@ decision-log entry.
 
 ## 0. Status & decision log
 
+**Status (2026-11-09).** **S10, complaints, is done** ([complaints SIGNOFF](../stories/complaints/SIGNOFF.md)):
+SRV-50 to SRV-54. Tenant users raise complaints from the dashboard and
+follow them in a thread; staff answer, set With service or Closed (always
+with a comment), and the creator or a tenant_admin reopens them (§4.15).
+No kiosk change.
+
 **Status (2026-09-30).** **S7, the web dashboard, is done** ([dashboard SIGNOFF](../../../webdashboard/devdocs/stories/dashboard/SIGNOFF.md)):
 SRV-27 to SRV-49, every page for every role at phone, tablet and desktop
 widths, a leak scan proving no platform-only data reaches a tenant screen,
@@ -1129,7 +1135,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S7 | Dashboard (**done 2026-09-30**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../docs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
-| S10 | Complaints (**planned 2026-11-09**) | §4.15; stories SRV-50 to SRV-54 in [stories/complaints/](../stories/complaints/README.md): model, permissions and API (50–51), the dashboard's list, raise and complaint pages (52–53), end-to-end and SIGNOFF (54). No app change | tenant users reporting problems to FuelBot |
+| S10 | Complaints (**done 2026-11-09**) | §4.15; stories SRV-50 to SRV-54 in [stories/complaints/](../stories/complaints/README.md): model, permissions and API (50–51), the dashboard's list, raise and complaint pages (52–53), end-to-end and SIGNOFF (54). No app change | tenant users reporting problems to FuelBot |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done
