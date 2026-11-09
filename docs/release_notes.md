@@ -1,5 +1,28 @@
 # FuelBot release notes
 
+## Unreleased: settings and Wi-Fi (branch `plan/settings-wifi`)
+
+Kiosk only; no server or dashboard change.
+
+- **Connect a machine to the gym's Wi-Fi from its screen.** Hold the
+  top-left corner for 5 seconds (on the start screen or "Out of service"),
+  type the machine's 6-digit settings PIN, tap **Network**, pick the network
+  and type its password on the new on-screen keyboard. The machine shows
+  "Connected to …" and whether the FuelBot server is reachable. A wrong
+  password shows for 3 seconds and the machine stays on its old network.
+  Steps for technicians: `docs/technician-guide.md`.
+- **The settings PIN is part of the machine's identity**, set when the
+  machine is built (stored only as a hash). 5 wrong tries lock the PIN pad
+  for 5 minutes.
+- **"Out of service" names the network**: `ONLINE · GymStaff 72%`,
+  `ONLINE · CABLE` or `OFFLINE · NO NETWORK`.
+- Every settings opening, wrong PIN, lock and Wi-Fi change is recorded as a
+  machine event (never the PIN or a password).
+- **Not yet checked on a Raspberry Pi** (tested on a Mac with a stand-in for
+  the Pi's network tool); that check comes with the Pi image (Milestone 8).
+  Not supported: guest Wi-Fi with a login page, networks that need a
+  username, hidden networks.
+
 ## 0.1.0: first release (`develop`, 13 October 2026)
 
 The first complete FuelBot system: a rewritten kiosk app for the vending

@@ -267,6 +267,11 @@ event table):
 | `bridge_down` | app | `silent_sec` |
 | `bridge_up` | app | `down_sec` |
 | `image_download_failed` | app | `flavor_id`, `file_name`, `reason` |
+| `settings_opened` | app | (none) |
+| `settings_pin_failed` | app | `attempt` (1–5) |
+| `settings_locked` | app | (none) |
+| `wifi_connected` | app | `ssid`, `signal` (0–100) |
+| `wifi_connect_failed` | app | `ssid`, `reason` (`wrong_password`, `not_found`, `timeout`, `unsupported`, `failed`) |
 
 Common fields: `v` (1), `event_id` (ULID), `tenant_id`, `machine_id` (from
 S1), `timestamp` (UTC, `Z`), `source` (`bridge`/`app`).
@@ -278,6 +283,8 @@ S1), `timestamp` (UTC, `Z`), `source` (`bridge`/`app`).
 - **400** `invalid_event`: the body isn't an object, or it has no
   `event_id` or `event_type`. The app **drops** a record on a 4xx, so 400
   is only for bodies that can never become valid.
+- The settings/Wi-Fi events (kiosk settings set) never carry a PIN or a
+  password; they're stored like any other event, with no server change.
 - Unknown `event_type`s are stored. Unknown or wrong-typed fields go into
   the record's `extra` field and are never dropped or refused (§4.1). The
   kiosk plan's §3.9 roadmap adds types without a server change.

@@ -1,5 +1,10 @@
 # Settings and Wi-Fi — story set
 
+**Status (2026-11-09):** SET-01 to SET-05 built; the Mac end to end passed
+([SIGNOFF](SIGNOFF.md)). **Open:** the real-Pi checks (SET-01's spike, the
+polkit rule, reconnect after a reboot) and the product owner's look at the
+screens.
+
 A technician at a gym can connect the machine to the gym's Wi-Fi from the
 touchscreen, without a laptop, a keyboard or a USB stick. A hidden long press
 opens a PIN pad; the right PIN opens a settings screen with one tile,

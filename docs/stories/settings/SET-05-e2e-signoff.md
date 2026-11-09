@@ -15,7 +15,8 @@ docs/plans/greenfield-rewrite.md       # §0 decision log, §3.11, §4 layout
 docs/release_notes.md                  # "Settings and Wi-Fi"
 kiosk/CLAUDE.md                        # Wifi autoload, settings rules, the fake nmcli
 server/devdocs/plans/server-plan.md    # §3 event table: the five settings/Wi-Fi events
-docs/deployment_guide.md               # "Connecting a machine at a gym" (technician steps)
+docs/technician-guide.md               # "Connecting a machine to the gym's Wi-Fi" (deployment_guide.md is the server's)
+CLAUDE.md                              # the open Pi checks, carried forward
 ```
 
 ## Runs
@@ -56,9 +57,9 @@ CLAUDE.md (like hardware Levels 2/3).
 
 ## Acceptance criteria
 
-- [ ] All Mac flows pass and are recorded with evidence in SIGNOFF.md.
-- [ ] The Pi table is either passed or explicitly open.
+- [x] All Mac flows pass and are recorded with evidence in SIGNOFF.md.
+- [x] The Pi table is either passed or explicitly open (**open**).
 - [ ] The product owner has looked at the screenshots (decision 16).
-- [ ] The plan, CLAUDE.md, the server plan's event table, the deployment
+- [x] The plan, CLAUDE.md, the server plan's event table, the technician
       guide and the release notes are updated.
-- [ ] Temporary walker and capture folders deleted; nothing untracked left.
+- [x] Temporary walker and capture folders deleted; nothing untracked left.
