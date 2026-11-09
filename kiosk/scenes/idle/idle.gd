@@ -15,12 +15,16 @@ var _subline: Label
 var _entered_msec := 0
 var _leaving := false
 var _fit_attempts := 0
+var _hold: SettingsHold
 
 
 func _ready() -> void:
 	_entered_msec = Time.get_ticks_msec()
 	OrderState.reset()
 	_build()
+	_hold = SettingsHold.new()
+	_hold.triggered.connect(_open_settings)
+	add_child(_hold)
 	_update_subline()
 	ConfigManager.config_ready.connect(func(_c: Dictionary) -> void: _update_subline())
 	ConfigManager.maintenance_changed.connect(_on_maintenance_changed)
@@ -38,6 +42,8 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _hold.feed(event):
+		return   # the release that ends a settings hold is not a tap
 	var released: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
 		and not event.pressed) or (event is InputEventScreenTouch and not event.pressed)
 	if not released or _leaving:
@@ -52,6 +58,19 @@ func _start() -> void:
 	_leaving = true
 	_stop_video()
 	Nav.go(ScenePaths.FLAVOR_SELECT)
+
+
+## The hidden settings entry (settings set, SET-02): idle, so no order is in progress.
+func _open_settings() -> void:
+	if _leaving:
+		return
+	_leaving = true
+	_stop_video()
+	Nav.go(ScenePaths.SETTINGS_PIN)
+
+
+func get_settings_hold() -> SettingsHold:
+	return _hold
 
 
 func _on_maintenance_changed(enabled: bool, _message: String) -> void:

@@ -32,7 +32,7 @@ eventual target.
 
 ```
 autoload/      ConfigManager (first!), OrderState, Nav, OrderCounter, RazorpayManager, Bridge,
-               TelemetryReporter, SalesReporter, FlavorImages, DevCapture (always last)
+               TelemetryReporter, SalesReporter, FlavorImages, Wifi, DevCapture (always last)
 core/          report_queue.gd (ReportQueue: durable outbound POST queue; telemetry now, sales in M6)
 scenes/        one folder per screen (idle, flavor_select, flavor_detail, payment, dispensing,
                maintenance);
@@ -98,6 +98,7 @@ stories/<set>/, designs/, image-spec.md for the content team), `server/` and
 
 `tools/run_tests.sh` → `ALL TESTS PASSED`, `tools/check_boot.sh` → `BOOT OK`,
 `python3 -m unittest mockserver/test_server.py` → `OK` when the mock changed,
+`python3 -m unittest tools/test_fake_nmcli.py` → `OK` when the fake nmcli changed,
 the hardware checks ([hardware/CLAUDE.md](../hardware/CLAUDE.md)) when the
 bridge, firmware or fakes changed, and for UI changes a screenshot compared against the relevant PDF page.
 **Look at the screenshot**: the stuck-maintenance race and the six-card
@@ -209,6 +210,31 @@ overflow were both found this way. Story work is one commit per story
     `timing.image_retry_interval_sec`, and clean up only after a clean pass on
     a backend catalog. `image_download_failed` goes out once per file + reason
     per run, and never carries the URL (presigned signatures).
+- **Settings & Wi-Fi rules (`docs/stories/settings/README.md`):**
+  - The only way in is the 5 s hold in the top-left 200 px of idle or
+    maintenance (`SettingsHold`; the screen passes its `_input` to `feed()`
+    and ignores a release it claims), then the PIN pad. Never from an order.
+  - The PIN is part of the identity: `user://settings_pin.txt` =
+    `<salt>:<sha256(salt + pin)>`, written by `tools/set_settings_pin.sh`
+    (never overwrites). `PinStore` checks it and keeps the 5-try lockout in
+    `settings_pin_lock.json` (survives restarts). Never log the PIN or the
+    hash; `run_tests.sh` greps for it. No PIN file = settings can't open.
+  - **Only `Wifi` runs nmcli**, off the main thread, one command at a time,
+    killed on timeout, no polling (screens call `refresh_status()`/`scan()`).
+    The password goes in a mode-600 `passwd-file` in `user://`, deleted
+    straight after; never on a command line, in a log or in telemetry. A
+    failed connect brings the old network back and deletes the new profile.
+  - On the Mac, `dev_setup.gd --wifi=fake` (the default; `dev_run.sh
+    --wifi=fake|real` passes it on) points `Wifi` at
+    `tools/fake_nmcli.py` with sample networks in `user://fake_nmcli.json`.
+    Tests point a `Wifi` instance (or the autoload, restored afterwards) at the
+    fake with their own state file; the test runner points the autoload at a
+    missing nmcli. The fake's `delay: {sec, on, times}` and `fail_next` make
+    slow scans, timeouts and failures.
+  - **Standalone `--script` tools can't use autoloads** (nor a class that
+    does, like `PinStore`); `run_tests.sh` compile-checks each one.
+  - No bundled font has ✓, ⌫, a lock or a Wi-Fi fan (⇧ and ✕ only in JetBrains
+    Mono): `NetIcon` draws them.
 - **Tests never touch the dev environment.** The test process (and
   `check_boot.sh`, via `-- --sandbox`) boots **sandboxed**:
   `ConfigManager.is_sandbox_run()` is true when the main scene is
@@ -543,6 +569,15 @@ are in the root [CLAUDE.md](../CLAUDE.md); hardware ones in
   4b against the mock). The config API serves `image_url` (server S1);
   **pending:** the real S3 bucket and the server's upload endpoint (server
   S5, deferred). The content team follows `docs/image-spec.md`.
+- **Settings / Wi-Fi on a real Pi: open** (settings SIGNOFF): the SET-01
+  spike (does `passwd-file` save the password, or switch to `--ask`), the
+  polkit rule, reconnect after a reboot, touch feel. Setup and checks:
+  [deploy/README.md](../deploy/README.md).
+- **Walkers on this Mac pick up real input.** Their windows open in front of
+  the user, and real mouse movement or clicks reach the app (a movement out
+  of the corner cancels a settings hold; a click restarts inactivity timers).
+  Tag injected events with a `device` id and log the rest, and re-run before
+  calling a failure a bug.
 - `tools/screenshot.sh` is still a real (unsandboxed) boot, on purpose: it
   captures what the dev environment shows, so it uses the dev tenant, mock,
   caches and queues like any dev launch.

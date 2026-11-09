@@ -57,6 +57,12 @@ changing it; this file covers only what spans parts.
   message only).
 - **Hardware Levels 2/3** (Milestones 4 and 5) pending a board; details in
   hardware/CLAUDE.md.
+- **Settings & Wi-Fi** (kiosk, [docs/stories/settings/](docs/stories/settings/README.md),
+  2026-11-09): built and signed off on the Mac against a fake nmcli; the
+  **real-Pi checks are open** (how the password reaches NetworkManager, the
+  polkit rule, reconnect after a reboot): setup and checks in
+  [deploy/README.md](deploy/README.md), by hand on any Pi or with
+  Milestone 8. Technicians follow `docs/technician-guide.md`.
 - Next: Milestone 8 (Raspberry Pi: export, systemd, kiosk boot, udev rule),
   built together with Milestone 9, over-the-air updates (planned 2026-10-09:
   [docs/stories/ota/](docs/stories/ota/README.md); our own updater,

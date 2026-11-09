@@ -27,6 +27,7 @@ Bridge="*res://autoload/Bridge.gd"
 TelemetryReporter="*res://autoload/TelemetryReporter.gd"
 SalesReporter="*res://autoload/SalesReporter.gd"
 FlavorImages="*res://autoload/FlavorImages.gd"
+Wifi="*res://autoload/Wifi.gd"
 DevCapture="*res://autoload/DevCapture.gd"
 
 [display]

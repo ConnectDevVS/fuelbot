@@ -2,11 +2,13 @@
 # One-command dev launch: mock backend + dev provisioning + the kiosk app.
 # Usage: tools/dev_run.sh [--scenario=<name>] [--payments=mock|razorpay-test] [--editor] [--fullscreen]
 #                         [--no-mock] [--skip-port-check] [--bridge-check] [--backend=mock|server]
-#                         [-- <godot user args>]
+#                         [--wifi=fake|real] [-- <godot user args>]
 # --backend=server: the config/telemetry/sales API is the real backend (server/, on :8790; start it
 # first: cd server && npm run db, npm run seed, npm start). Razorpay stays on the mock.
 # --bridge-check turns on the dead-bridge watchdog (out of service after 30 s without a
 # bridge heartbeat); off by default so the app runs without a bridge.
+# --wifi=fake (default): the settings screens use tools/fake_nmcli.py (sample networks);
+# real: the system's nmcli (a Raspberry Pi; see deploy/README.md).
 # Refuses to start if another program (usually a second copy of the app, e.g. the
 # game running inside the Godot editor) already listens on the bridge result port
 # (4245): the bridge's DONE would go to that copy, and this one would show
@@ -17,7 +19,7 @@ GODOT="${GODOT:-godot}"
 MOCK_PORT=8787
 SERVER_PORT=8790
 
-scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock" port_check=1 bridge_check="off" backend="mock"
+scenario="" editor=0 fullscreen=0 no_mock=0 payments="mock" port_check=1 bridge_check="off" backend="mock" wifi="fake"
 passthrough=()
 while [[ $# -gt 0 ]]; do
 	arg="$1"
@@ -32,6 +34,7 @@ while [[ $# -gt 0 ]]; do
 		--skip-port-check) port_check=0 ;;
 		--bridge-check) bridge_check="on" ;;
 		--backend=*) backend="${arg#--backend=}" ;;
+		--wifi=*) wifi="${arg#--wifi=}" ;;
 		*) echo "unknown option: $arg" >&2; exit 2 ;;
 	esac
 done
@@ -117,7 +120,7 @@ if [[ $no_mock -eq 0 ]]; then
 	if [[ -n "$scenario" ]]; then
 		MOCK_PORT=$MOCK_PORT mockserver/scenario.sh "$scenario" >/dev/null
 	fi
-	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" --bridge-check="$bridge_check" ${api_args[@]+"${api_args[@]}"} >.dev_setup.log 2>&1; then
+	if ! "$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --payments="$payments" --bridge-check="$bridge_check" --wifi="$wifi" ${api_args[@]+"${api_args[@]}"} >.dev_setup.log 2>&1; then
 		cat .dev_setup.log >&2
 		exit 1
 	fi
@@ -139,6 +142,7 @@ cat <<BANNER
  Payments     : $([[ $no_mock -eq 1 ]] && echo "-" || echo "$payments")
  Bridge       : $bridge_note
  Bridge check : $bridge_check (dead bridge -> out of service after 30 s)
+ Wi-Fi        : $([[ "$wifi" == "real" ]] && echo "real nmcli" || echo "fake nmcli (user://fake_nmcli.json); settings: hold top-left 5 s, dev PIN 123456 unless one was set")
  Switch live  : mockserver/scenario.sh maintenance_on | reset
  User data    : $("$GODOT" --headless --path . --script res://tools/dev_setup.gd -- --print-dir 2>/dev/null | sed -n 's/^user data dir: //p' | head -1)
 ────────────────────────────────────────────────────────────
