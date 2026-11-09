@@ -49,12 +49,15 @@ describe('audit log', () => {
     assert.equal(create.user_email, 'owner@powerfuel.example');
     assert.equal(create.tenant_id, 'powerfuel');
     assert.equal(create.target, `user:${deskId}`);
-    assert.deepEqual(create.after, { email: 'desk@powerfuel.example', name: '', role: 'operator', machines: ['machine-042'] });
+    assert.deepEqual(create.after, { email: 'desk@powerfuel.example', name: '', role: 'operator', machines: ['machine-042'],
+      code_mail: 'sent' });
 
     const [update] = await entries('user.update');
     assert.deepEqual(update.before, { name: '', role: 'operator' });
     assert.deepEqual(update.after, { name: 'N', role: 'viewer' });
-    assert.equal((await entries('user.password_reset')).length, 1);
+    const resets = await entries('user.password_reset');
+    assert.equal(resets.length, 1);
+    assert.deepEqual(resets[0].after, { code_mail: 'sent' });
   });
 
   it('GET /audit is platform-only and filters', async () => {
@@ -83,14 +86,17 @@ describe('audit log', () => {
     try {
       const res = await owner.post('/api/v1/users', { email: 'desk@powerfuel.example', role: 'viewer', password: TEMP });
       const desk = await signIn(ctx.app, 'desk@powerfuel.example', TEMP);
-      await desk.post('/api/v1/auth/password', { current: TEMP, new: CHANGED });
+      const code = ctx.mail.lastCodeFor('desk@powerfuel.example');
+      await desk.post('/api/v1/auth/password', { current: TEMP, new: CHANGED, code });
       await owner.post(`/api/v1/users/${res.body.user.id}/password`, { password: 'reset pass 4567' });
       await request(ctx.app).post('/api/v1/auth/login').set(CSRF).send({ email: 'desk@powerfuel.example', password: 'guess guess guess' });
     } finally {
       Object.assign(console, originals);
     }
     const haystack = captured.join('\n') + JSON.stringify(await AuditEntry.find().lean());
-    for (const secret of [PASSWORD, TEMP, CHANGED, 'reset pass 4567', 'guess guess guess', '$2a$', '$2b$']) {
+    const codes = ctx.mail.sent.map((m) => /([A-Z0-9]{6})$/.exec(m.subject)[1]);
+    assert.ok(codes.length >= 2, 'codes were mailed');
+    for (const secret of [PASSWORD, TEMP, CHANGED, 'reset pass 4567', 'guess guess guess', '$2a$', '$2b$', ...codes]) {
       assert.ok(!haystack.includes(secret), `leaked: ${secret}`);
     }
   });
@@ -125,6 +131,7 @@ describe('RBAC table', () => {
     //  method, path,                 platform, tenant_admin, operator, viewer
     ['get', '/api/v1/auth/me', 200, 200, 200, 200],
     ['get', '/api/v1/users', 200, 200, 403, 403],
+    ['post', '/api/v1/users/000000000000000000000000/code', 404, 404, 403, 403],   // allowed; no such user
     ['get', '/api/v1/audit', 200, 403, 403, 403],
     ['get', '/api/v1/tenants', 200, 200, 200, 200],
     ['get', '/api/v1/tenants/powerfuel', 200, 200, 200, 200],

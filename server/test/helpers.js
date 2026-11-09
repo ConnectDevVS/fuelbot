@@ -42,6 +42,8 @@ export async function startServer(env = {}, { port = 0 } = {}) {
     uploads,
     mail: mailbox(app.locals.mailer),
     async reset() {
+      app.locals.mailer.sent.length = 0;
+      app.locals.mailer.fail = false;
       await Promise.all(Object.values(mongoose.models).map((model) => model.deleteMany({})));
     },
     async stop() {

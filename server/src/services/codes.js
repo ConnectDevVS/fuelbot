@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import { User } from '../models/index.js';
 import { HttpError } from '../errors.js';
+import { MailError, codeMail } from './mail.js';
 
 // No O, I, L (or 0, 1): read off a phone and typed without mixing them up.
 export const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -93,4 +94,43 @@ export async function checkCode(userId, input, settings, { now = new Date() } = 
 
 export async function clearCode(userId) {
   await User.updateOne({ _id: userId }, { $set: { email_code: null } });
+}
+
+/** expires_at as the API writes times (ISO UTC, no milliseconds). */
+export const isoSeconds = (date) => date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+/**
+ * Issues (or reuses) the user's code and mails it (purpose: welcome | reset_by_admin | forgot |
+ * requested). → {expiresAt}. A failed send throws MailError; the code stays issued, so a retry
+ * sends the same one.
+ */
+export async function sendCode(req, user, purpose) {
+  const { settings, mailer } = req.app.locals;
+  const { code, expiresAt } = await issueCode(user._id, settings);
+  await mailer.send({ to: user.email, ...codeMail({ code, expiresAt, purpose, settings }) });
+  return { expiresAt };
+}
+
+/** sendCode that reports instead of throwing on a mail failure: 'sent' | 'failed'. */
+export async function trySendCode(req, user, purpose) {
+  try {
+    await sendCode(req, user, purpose);
+    return 'sent';
+  } catch (err) {
+    if (!(err instanceof MailError)) throw err;
+    console.error(`[mail] ${purpose} code not sent (${err.code ?? 'unknown'})`);   // never the address
+    return 'failed';
+  }
+}
+
+/** sendCode for a route the user waits on: a mail failure is 502 mail_failed. → {ok, expires_at} */
+export async function sendCodeOr502(req, user, purpose) {
+  try {
+    const { expiresAt } = await sendCode(req, user, purpose);
+    return { ok: true, expires_at: isoSeconds(expiresAt) };
+  } catch (err) {
+    if (!(err instanceof MailError)) throw err;
+    console.error(`[mail] ${purpose} code not sent (${err.code ?? 'unknown'})`);
+    throw new HttpError(502, 'mail_failed');
+  }
 }

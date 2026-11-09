@@ -16,8 +16,9 @@ new user, **I want** to ask for a code again if mine expired.
 2. `server/src/routes/auth.js`: `POST /auth/code`; `code` on
    `POST /auth/password`.
 3. `server/src/auth/session.js`: `POST /auth/code` in `WHILE_CHANGING`.
-4. Tests in `server/test/users.test.js`, `server/test/auth.test.js`;
-   RBAC rows in `server/test/audit.test.js`.
+4. Tests in `server/test/codes-api.test.js` (new); the forced-change test
+   in `server/test/auth.test.js` and the audit/leak tests in
+   `server/test/audit.test.js` updated; RBAC row in `audit.test.js`.
 5. Docs: SP §4.4 routes and "Accounts get a temporary password"
    paragraph; `server/README.md`.
 
@@ -47,24 +48,31 @@ new user, **I want** to ask for a code again if mine expired.
 
 ## Acceptance criteria
 
-- [ ] `users.test.js` › "creating a user mails a welcome code": one
-      memory message to the new address; `code_mail: 'sent'`; the mail
-      has no temporary password.
-- [ ] › "create still succeeds when mail fails": failing transport →
+- [x] `codes-api.test.js` › "creating a user mails a welcome code": one
+      memory message to the new address; `code_mail: 'sent'` (response and
+      audit); the mail has no temporary password.
+- [x] › "create still succeeds when mail fails": failing transport →
       201, `code_mail: 'failed'`, the user exists.
-- [ ] › "admin reset mails a code and reuses a live one".
-- [ ] › "admin resend sends the same code until it expires, then a new
-      one" (clock moved 31 min).
-- [ ] › "admin resend: self 403, disabled 409, other tenant 404,
-      mail failure 502".
-- [ ] `auth.test.js` › "forced change needs the code": no code / wrong
-      code → 400 `invalid_code`, password unchanged; right code → 200,
-      `must_change_password` false, code cleared, other sessions end.
-- [ ] › "wrong current password doesn't use a code attempt".
-- [ ] › "five wrong codes void it; a new one is mailed on request".
-- [ ] › "voluntary change ignores code".
-- [ ] › "POST /auth/code works while forced, 409 after, 429 after 5".
-- [ ] `audit.test.js` RBAC row for `POST /users/:id/code` for every role
-      (platform_admin and tenant_admin 200 in scope, others 403,
-      out-of-scope 404). `/auth/code` is covered by the
-      `password_change_required` test's allowlist.
+- [x] › "admin reset mails a code and reuses a live one".
+- [x] › "admin resend sends the same code until it expires, then a new
+      one" (the code aged 31 min in the database); the code is never in a
+      response.
+- [x] › "admin resend: self 403, disabled 409, other tenant 404, mail
+      failure 502".
+- [x] › "forced change needs the code": no code / empty / wrong → 400
+      `invalid_code`, audited `auth.code_failed` without the code; the
+      right code in lower case → 200, `must_change_password` false, code
+      cleared, other sessions end.
+- [x] › "a wrong current password doesn't use a code attempt".
+- [x] › "five wrong codes void it; a new one is mailed on request".
+- [x] › "a voluntary change ignores the code".
+- [x] › "POST /auth/code works while forced, 409 after, 429 after 5" (and
+      502 when mail fails).
+- [x] `auth.test.js` › "a temporary password allows only /me, /password,
+      /code and /logout until changed" (now with the code).
+- [x] `audit.test.js` › "records user create, update … and password
+      reset" (`code_mail` on both); "no password ever reaches the logs or
+      the audit log" now also checks every mailed code.
+- [x] `audit.test.js` RBAC row `POST /users/<unknown id>/code`: 404 for
+      platform_admin and tenant_admin (allowed, no such user), 403 for
+      operator and viewer.

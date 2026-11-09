@@ -7,6 +7,7 @@ import { endSession, requirePasswordChanged, requireSession, setSessionCookie } 
 import { userView } from '../services/views.js';
 import { effectivePermissions, hasAllMachines, isPlatform } from '../auth/rbac.js';
 import { audit } from '../services/audit.js';
+import { checkCode, sendCodeOr502 } from '../services/codes.js';
 import { HttpError } from '../errors.js';
 
 const emailOf = (body) => (typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '');
@@ -28,6 +29,19 @@ async function meBody(user, exp, settings) {
   };
 }
 
+/** checkCode, auditing a wrong code (auth.code_failed; voided on the fifth). */
+export async function checkCodeAudited(req, user, code, settings) {
+  try {
+    await checkCode(user._id, code, settings);
+  } catch (err) {
+    if (err.message === 'invalid_code') {
+      await audit(req, { action: 'auth.code_failed', user, tenant_id: user.tenant_id, target: `user:${user._id}`,
+        after: { voided: err.voided } });
+    }
+    throw err;
+  }
+}
+
 export function authRouter(settings) {
   const router = express.Router();
 
@@ -39,6 +53,16 @@ export function authRouter(settings) {
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: (req) => `${ipKeyGenerator(req.ip ?? '')}|${emailOf(req.body)}`,
+    handler: (req, res) => res.status(429).json({ error: 'too_many_attempts' }),
+  });
+
+  // Code mails a signed-in user asks for, per IP + user (README decision 8).
+  const codeLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip ?? '')}|${req.user._id}`,
     handler: (req, res) => res.status(429).json({ error: 'too_many_attempts' }),
   });
 
@@ -71,14 +95,27 @@ export function authRouter(settings) {
 
   router.get('/me', async (req, res) => res.json(await meBody(req.user, req.session.exp, settings)));
 
-  // Keeps this session (a fresh cookie), ends all others (decision 5).
+  // Mails yourself a code while a temporary password is in use (plan §4.16).
+  router.post('/code', async (req, res, next) => {
+    if (!req.user.must_change_password) throw new HttpError(409, 'not_needed');
+    next();
+  }, codeLimit, async (req, res) => {
+    const body = await sendCodeOr502(req, req.user, 'requested');
+    await audit(req, { action: 'auth.code_sent', tenant_id: req.user.tenant_id, target: `user:${req.user._id}` });
+    res.json(body);
+  });
+
+  // Keeps this session (a fresh cookie), ends all others (decision 5). Replacing a temporary
+  // password also needs the emailed code (plan §4.16); a voluntary change doesn't.
   router.post('/password', async (req, res) => {
-    const { current, new: next } = req.body ?? {};
+    const { current, new: next, code } = req.body ?? {};
     const user = await User.findById(req.user._id).select('+password_hash');
     if (!(await verifyPassword(current, user.password_hash))) throw new HttpError(400, 'wrong_password');
+    if (user.must_change_password) await checkCodeAudited(req, user, code, settings);
     if (current === next) throw new HttpError(400, 'same_password');
     user.password_hash = await hashPassword(next, settings.bcryptCost);
     user.must_change_password = false;
+    user.email_code = null;
     user.token_version += 1;
     await user.save();
     const exp = setSessionCookie(res, user, settings);

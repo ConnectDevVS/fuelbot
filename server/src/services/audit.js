@@ -2,7 +2,7 @@
 // Best effort (a failed write is logged, never fails the request) and never holds a secret.
 import { AuditEntry } from '../models/index.js';
 
-const SECRET_KEYS = new Set(['password', 'password_hash', 'current', 'new', 'token', 'key', 'hash']);
+const SECRET_KEYS = new Set(['password', 'password_hash', 'current', 'new', 'token', 'key', 'hash', 'code']);
 
 function scrub(value) {
   if (Array.isArray(value)) return value.map(scrub);

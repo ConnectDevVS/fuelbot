@@ -599,10 +599,12 @@ tenant check happens once per request.
 | `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns `{user}` (the dashboard calls `/auth/me` next). Rate-limited |
 | `POST /auth/logout` | signed in | clears the cookie |
 | `GET /auth/me` | signed in (also while a password change is required) | `{user, permissions, all_machines, tenant, display_tz, session_expires_at}` (SRV-28): `permissions` is the effective set from `auth/rbac.js` `effectivePermissions()` (the role's set, minus `products:edit` for a user limited to some machines), sorted; `tenant` is `{id, name, logo_text}`, null for platform; `session_expires_at` is ISO UTC without milliseconds |
-| `POST /auth/password` | signed in | `{current, new}`; bumps `token_version` (other sessions end); answers like `/auth/me`, with the new session's expiry |
-| `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant |
+| `POST /auth/password` | signed in | `{current, new, code}`; `code` (the emailed one, §4.16) is **required while `must_change_password`** (400 `invalid_code`; checked after `current`) and ignored otherwise; bumps `token_version` (other sessions end), clears the code; answers like `/auth/me`, with the new session's expiry |
+| `POST /auth/code` | signed in, **only while `must_change_password`** (else 409 `not_needed`) | mails yourself your code (the live one, or a new one) → `{ok, expires_at}`; 502 `mail_failed`; 5 per 15 min per IP + user (429) |
+| `GET /users` · `POST /users` | platform_admin (any tenant), tenant_admin (own tenant) | list / create (`{email, name, role, tenant_id, machines, password}`). A tenant_admin can't create a `platform_admin` or users of another tenant. Create mails a welcome code (§4.16); the response adds `code_mail: 'sent' \| 'failed'` (the user is created either way) |
 | `PATCH /users/:id` | same | role, machines, name, `disabled` (disabling ends sessions). **No deletion**: a disabled user can be re-enabled |
-| `POST /users/:id/password` | same | set a new temporary password (ends sessions) |
+| `POST /users/:id/password` | same | set a new temporary password (ends sessions); mails the user their code; the response adds `code_mail: 'sent' \| 'failed'` |
+| `POST /users/:id/code` | same | mails the user their code again (the live one, or a new one) → `{ok, expires_at}`; yourself 403 `forbidden_self`; a disabled user 409 `user_disabled`; 502 `mail_failed` |
 
 **User rules** (enforced on every create/update):
 - A `tenant_admin` manages the users of **their own tenant**, including other
@@ -623,7 +625,9 @@ system. It sets `must_change_password`; until the user changes it
 (`POST /auth/password`), every other `/api/v1` call returns **403**
 `password_change_required`, and the dashboard shows only the change-password
 form. An admin's `POST /users/:id/password` works the same way (a reset).
-There's no email in v1 (§8).
+Since S11 both also **mail the user a code** (§4.16), which
+`POST /auth/password` needs along with the temporary password; the mail
+never contains the temporary password.
 
 The first `platform_admin` comes from `npm run create-admin` (asks for the
 email and password on the terminal). There's no self sign-up.
