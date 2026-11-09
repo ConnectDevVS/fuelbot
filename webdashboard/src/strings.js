@@ -897,6 +897,27 @@ const STRINGS = {
   'complaints.raise.descriptionHelp': 'What happened, where and when. Plain text.',
   'complaints.raise.descriptionRule': 'Describe the problem (up to 4,000 characters)',
   'complaints.raised': 'Complaint #{n} raised',
+
+  // One complaint (DP §5.20; SRV-53)
+  'complaint.back': 'All complaints',
+  'complaint.thread': 'Thread',
+  'complaint.fuelbot': 'FuelBot support',
+  'complaint.raisedBy': 'Raised by {name} · {when}',
+  'complaint.changed': 'Status changed',
+  'complaint.to': 'to',
+  'complaint.comment': 'Comment',
+  'complaint.placeholder': 'Add a comment',
+  'complaint.why': 'Say why: the tenant sees this',
+  'complaint.staffNote': 'Tenant users see everything you write here.',
+  'complaint.commentRequired': 'Add a comment to change the status',
+  'complaint.post': 'Post comment',
+  'complaint.postSet': 'Post and set to {status}',
+  'complaint.postReopen': 'Post and reopen',
+  'complaint.reopen': 'Reopen',
+  'complaint.changeStatus': 'Change status',
+  'complaint.keepStatus': 'Keep status',
+  'complaint.setTo': 'Set to {status}',
+  'complaint.reload': 'Reload',
 };
 
 export function t(key, params = {}) {

@@ -154,3 +154,167 @@ test('closing with text typed asks before discarding', async ({ page, signInAs }
   await page.getByRole('dialog').filter({ hasText: 'Discard this complaint?' }).getByRole('button', { name: 'Discard' }).click();
   await expect(sheet(page)).toHaveCount(0);
 });
+
+// --- SRV-53: the complaint page -----------------------------------------------------------------
+
+const entries = (page) => page.locator('main [data-entry]');
+const box = (page) => page.getByRole('textbox', { name: 'Comment' });
+
+async function openComplaint(page, n, tid = 'powerfuel') {
+  await page.goto(`t/${tid}/complaints/${n}`);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
+}
+
+async function pickStatus(page, label) {
+  await page.getByRole('combobox', { name: 'Change status' }).click();
+  await page.locator('.ant-select-dropdown:visible').getByTitle(label, { exact: true }).click();
+  await expect(page.locator('.ant-select-dropdown:visible')).toHaveCount(0);
+}
+
+test('creator comments on their complaint', async ({ page, request, signInAs, shot }) => {
+  await signInAs('desk');
+  try {
+    await openComplaint(page, 1);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Bay 02 screen froze after paying/i);
+    await expect(entries(page)).toHaveCount(3);   // the description, a staff status change, desk's comment
+    await expect(entries(page).nth(1)).toContainText('FuelBot support');
+    await expect(page.locator('main')).not.toContainText('staff@fuelbot.test');
+    await expect(page.getByRole('combobox', { name: 'Change status' })).toHaveCount(0);
+    await expect(page.getByText('Tenant users see everything you write here.')).toHaveCount(0);
+    await page.mouse.move(1, 1);
+    await shot('complaint-tenant');
+    await box(page).fill('It froze again at 6 pm.\nSame screen.');
+    await page.getByRole('button', { name: 'Post comment' }).click();
+    await expect(entries(page)).toHaveCount(4);
+    await expect(entries(page).last()).toContainText('It froze again at 6 pm.');
+    await expect(box(page)).toHaveValue('');
+    await expect(page.locator('main').getByText('With service').first()).toBeVisible();   // unchanged
+  } finally {
+    await resetData(request);
+  }
+});
+
+test('staff move a complaint to With service with a comment; the tenant sees FuelBot support', async ({ page, request, browser, signInAs, shot }) => {
+  await signInAs('staff');
+  try {
+    await openComplaint(page, 2);
+    await expect(page.getByText('Tenant users see everything you write here.')).toBeVisible();
+    await expect(page.locator('main')).toContainText('ops@powerfuel.test');   // staff see emails
+    await pickStatus(page, 'Set to With service');
+    const post = page.getByRole('button', { name: 'Post and set to With service' });
+    await expect(post).toBeDisabled();
+    await expect(box(page)).toHaveAttribute('placeholder', /Say why/);
+    await box(page).fill('Checking the hopper mapping on Bay 3.');
+    await expect(post).toBeEnabled();
+    await page.mouse.move(1, 1);
+    await expect(post).toHaveCSS('background-color', 'rgb(200, 255, 62)');   // antd's fade from disabled has ended
+    await shot('complaint-staff');
+    const [req] = await Promise.all([
+      page.waitForRequest((r) => r.method() === 'POST' && r.url().endsWith('/complaints/2/status')),
+      post.click(),
+    ]);
+    expect(req.postDataJSON()).toEqual({ from: 'open', to: 'with_service', text: 'Checking the hopper mapping on Bay 3.' });
+    await expect(entries(page)).toHaveCount(2);
+    await expect(entries(page).last()).toContainText('Status changed');
+    // Back to "Keep status": the button is a plain comment again, and the old status isn't offered.
+    await expect(page.getByRole('button', { name: 'Post comment' })).toBeVisible();
+    await expect(page.locator('main .ant-select').filter({ has: page.getByRole('combobox', { name: 'Change status' }) }))
+      .toContainText('Keep status');
+
+    // The tenant admin's view of the same thread.
+    const other = await browser.newContext({ baseURL: page.url().replace(/t\/powerfuel.*$/, ''), viewport: page.viewportSize() });
+    const owner = await other.newPage();
+    const res = await owner.request.post('/api/v1/auth/login', { headers: { 'X-Requested-With': 'fuelbot-dashboard' },
+      data: { email: 'owner@powerfuel.test', password: 'e2e password 123' } });
+    expect(res.status()).toBe(200);
+    await openComplaint(owner, 2);
+    await expect(entries(owner).last()).toContainText('FuelBot support');
+    await expect(entries(owner).last()).toContainText('Staff');
+    await expect(owner.locator('main')).not.toContainText('staff@fuelbot.test');
+    await other.close();
+  } finally {
+    await resetData(request);
+  }
+});
+
+test('staff can\'t change status without a comment', async ({ page, signInAs }) => {
+  await signInAs('staff');
+  await openComplaint(page, 4);
+  let posted = false;
+  page.on('request', (r) => { if (r.method() === 'POST') posted = true; });
+  await pickStatus(page, 'Set to Closed');
+  await expect(page.getByRole('button', { name: 'Post and set to Closed' })).toBeDisabled();
+  await box(page).fill('   ');
+  await expect(page.getByRole('button', { name: 'Post and set to Closed' })).toBeDisabled();
+  expect(posted).toBe(false);
+});
+
+test('tenant admin reopens a colleague\'s closed complaint', async ({ page, request, signInAs }) => {
+  await signInAs('owner');
+  try {
+    await openComplaint(page, 3);
+    await page.getByRole('button', { name: 'Reopen' }).click();
+    const post = page.getByRole('button', { name: 'Post and reopen' });
+    await expect(post).toBeDisabled();
+    await box(page).fill('Two more customers could not scan today.');
+    await post.click();
+    await expect(page.locator('main').getByText('Open', { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reopen' })).toHaveCount(0);
+    await expect(entries(page).last()).toContainText('Two more customers could not scan today.');
+  } finally {
+    await resetData(request);
+  }
+});
+
+test('operator can\'t open a colleague\'s complaint', async ({ page, signInAs }) => {
+  await signInAs('desk');
+  await page.goto('t/powerfuel/complaints/2');
+  await expect(page.getByText("Not found, or you don't have access")).toBeVisible();
+  await expect(page.locator('main')).not.toContainText('Wrong flavour');
+});
+
+test('viewer has no status control, only Reopen when closed', async ({ page, signInAs, shot }) => {
+  await signInAs('look');
+  await openComplaint(page, 3);
+  await expect(page.getByRole('combobox', { name: 'Change status' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Reopen' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Post comment' })).toBeVisible();   // comments stay open
+  await page.mouse.move(1, 1);
+  await shot('complaint-closed');
+});
+
+test('a stale status shows the conflict alert and keeps the text', async ({ page, request, signInAs }) => {
+  await signInAs('staff');
+  try {
+    await openComplaint(page, 4);
+    // Someone else closes it after this page loaded.
+    const res = await page.request.post('/api/v1/tenants/powerfuel/complaints/4/status', {
+      headers: { 'X-Requested-With': 'fuelbot-dashboard' }, data: { from: 'open', to: 'closed', text: 'Delivered cups.' } });
+    expect(res.status()).toBe(201);
+    await pickStatus(page, 'Set to With service');
+    await box(page).fill('Ordering more cups.');
+    await page.getByRole('button', { name: 'Post and set to With service' }).click();
+    const alert = page.getByRole('alert').filter({ hasText: 'This complaint was updated by someone else' });
+    await expect(alert).toBeVisible();
+    await expect(box(page)).toHaveValue('Ordering more cups.');
+    await alert.getByRole('button', { name: 'Reload' }).click();
+    await expect(entries(page)).toHaveCount(2);
+    await expect(box(page)).toHaveValue('Ordering more cups.');
+  } finally {
+    await resetData(request);
+  }
+});
+
+test('text renders as text', async ({ page, request, signInAs }) => {
+  await signInAs('owner');
+  try {
+    await openComplaint(page, 4);
+    await box(page).fill('<b>not bold</b> & <i>not italic</i>');
+    await page.getByRole('button', { name: 'Post comment' }).click();
+    await expect(entries(page).last()).toContainText('<b>not bold</b> & <i>not italic</i>');
+    await expect(entries(page).last().locator('b', { hasText: 'not bold' })).toHaveCount(0);
+  } finally {
+    await resetData(request);
+  }
+});

@@ -180,7 +180,7 @@ export async function seed(now = Date.now()) {
   const event = (key, at, fields) => ({ at: new Date(at), ...by(key), fuelbot: key === 'staff', ...fields });
   const complaint = (tenant, number, key, title, description, created, fields = {}) => Complaint.create({
     tenant_id: tenant, number, title, description, created_by: by(key), status: 'open',
-    last_activity_at: new Date(created), ...fields,
+    created_at: new Date(created), last_activity_at: new Date(created), ...fields,
   });
   await complaint('powerfuel', 1, 'desk', 'Bay 02 screen froze after paying',
     'The screen stopped on "Payment received" at about 7 pm. The customer got no shake.', now - 3 * DAY, {

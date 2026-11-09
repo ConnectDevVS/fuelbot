@@ -42,6 +42,7 @@ export const COMPONENTS = {
   'sales-all': SalesPage,
   complaints: ComplaintsPage,
   'complaints-all': ComplaintsPage,
+  complaint: lazy(() => import('../pages/complaints/ComplaintPage.jsx')),
 };
 
 function pageElement(page) {

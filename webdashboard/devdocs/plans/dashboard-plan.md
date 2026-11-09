@@ -1402,7 +1402,7 @@ roles get no tab, no page, no request and no keys (the leak scan proves it).
   text. A release paused by a rollback says which machine and why.
 - **Fleet** (staff): a version column (desktop only) and a "Behind" chip.
 
-### 5.20 Complaints (S10; planned 2026-11-09, list and Raise built in SRV-52)
+### 5.20 Complaints (S10; planned 2026-11-09, list and Raise built in SRV-52, the complaint page in SRV-53)
 
 Tenant users raise complaints and follow them in a thread; staff answer
 and set the status. Server: SP §4.15. Stories and the full spec:
