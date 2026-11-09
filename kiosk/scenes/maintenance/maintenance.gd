@@ -34,6 +34,15 @@ func _ready() -> void:
 	_hold = SettingsHold.new()
 	_hold.triggered.connect(Nav.go.bind(ScenePaths.SETTINGS_PIN))
 	add_child(_hold)
+	# The network's name and signal in diag_network (settings SET-04): asked on open and every
+	# 10 s (Wifi never polls by itself).
+	Wifi.status_changed.connect(_on_wifi_status)
+	var wifi_timer := Timer.new()
+	wifi_timer.wait_time = 10.0
+	wifi_timer.autostart = true
+	wifi_timer.timeout.connect(Wifi.refresh_status)
+	add_child(wifi_timer)
+	Wifi.refresh_status()
 	ConfigManager.maintenance_changed.connect(_on_maintenance_changed)
 	ConfigManager.connectivity_changed.connect(func(_o: bool) -> void: _render_live())
 	var timer := Timer.new()
@@ -50,6 +59,23 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	_hold.feed(event)
+
+
+## " · GymStaff 72%", " · CABLE" or " · NO NETWORK"; "" when Wifi can't tell (no nmcli).
+func _network_detail() -> String:
+	var st := Wifi.get_status()
+	if not st.available:
+		return ""
+	match String(st.kind):
+		"wifi":
+			return " · %s %d%%" % [st.ssid, st.signal] if st.signal >= 0 else " · " + String(st.ssid)
+		"ethernet":
+			return " · " + ConfigManager.get_message("maintenance_network_cable")
+	return " · " + ConfigManager.get_message("maintenance_network_none")
+
+
+func _on_wifi_status(_status: Dictionary) -> void:
+	_render_live()
 
 
 func get_settings_hold() -> SettingsHold:
@@ -131,7 +157,8 @@ func _render_live() -> void:
 		"%s · %s" % [Fmt.time_short(flagged), Fmt.ago(now - flagged)]
 	var online := ConfigManager.is_online
 	var net: Label = _values.diag_network
-	net.text = ConfigManager.get_message("maintenance_network_online" if online else "maintenance_network_offline")
+	net.text = ConfigManager.get_message("maintenance_network_online" if online else "maintenance_network_offline") \
+		+ _network_detail()
 	net.add_theme_color_override("font_color", Palette.SUCCESS if online else Palette.WARNING)
 	var beat := ConfigManager.last_successful_fetch_unix
 	_values.diag_last_heartbeat.text = ConfigManager.get_message("diag_never") if beat == 0.0 else Fmt.ago(now - beat)

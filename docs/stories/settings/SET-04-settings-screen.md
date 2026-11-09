@@ -12,24 +12,25 @@ Depends on: SET-01, SET-02, SET-03.
 
 ```
 scenes/settings/Settings.tscn
-scenes/settings/settings.gd              # the page stack and the inactivity return
-scenes/settings/settings_home.gd         # the grid
-scenes/settings/wifi_list.gd             # the Wi-Fi list
-scenes/settings/wifi_password.gd         # the password page
-scenes/settings/notice.gd                # the success / error / "Connecting…" overlay
+scenes/settings/settings.gd              # the three pages, the notice, the inactivity return
+ui/components/net_icon.gd                # class_name NetIcon: Wi-Fi fan, signal bars, lock, tick, cross, spinner
 scenes/maintenance/maintenance.gd        # network name and signal in diag_network
-config/local_settings.json               # messages settings_*, wifi_*; timing.settings_*
+config/local_settings.json               # messages wifi_*, settings_tile_network, maintenance_network_cable/none;
+                                         # timing.settings_success_return_sec
+tests/test_runner.gd                     # the Wifi autoload never runs the system's nmcli in tests
 tests/unit/test_settings_screen.gd
 tests/unit/test_maintenance_screen.gd    # the network cell
 ```
 
 ## Spec
 
-One scene, `Settings.tscn`, with three pages swapped in place (no `Nav`
-between them, so going back is instant and the inactivity timer is one
-timer). Unbranded, in the maintenance screen's style: `BG`, a 28 px
-hazard-free header row, `Display` titles, `Mono` labels, `BORDER`
-hairlines. Every touch target is at least 120 px tall.
+One scene, `Settings.tscn` (one script, replacing SET-02's placeholder),
+with three pages swapped in place (no `Nav` between them, so going back is
+instant and the inactivity timer is one timer). Unbranded, in the
+maintenance screen's style: `BG`, `DisplayM` titles, `Mono` labels,
+`GhostButton` rows and tiles, `BackPill` header buttons. Every touch target
+is at least 96 px tall (rows 140). Icons are drawn by `NetIcon` (no bundled
+font has them; README).
 
 ### Page 1: the grid
 
@@ -69,13 +70,15 @@ hairlines. Every touch target is at least 120 px tall.
 ```
 
 - On opening: show the status at once from `Wifi.get_status()`, then
-  `Wifi.scan()`. While scanning, `wifi_searching` under the connected row
-  (the list stays usable if it's already filled). Refresh scans again.
+  `Wifi.refresh_status()` and `Wifi.scan()`. While scanning,
+  `wifi_searching` under the rows (the list stays usable if it's already
+  filled). Refresh scans again.
 - Scrolls if the list is long (a `ScrollContainer`, touch drag).
-- The connected row isn't tappable. It shows `wifi_connected` and one line
-  for the server: `wifi_server_ok` when `ConfigManager.is_online`, else
-  `wifi_server_down` (so "connected to Wi-Fi but the gym blocks us" is
-  visible). On a cable: the top row says `wifi_ethernet`, and the Wi-Fi
+- The connected row isn't tappable (a panel, not a button: accent border
+  and name, a tick). Its second line is `wifi_connected · wifi_server_ok`
+  when `ConfigManager.is_online`, else `… · wifi_server_down` (so
+  "connected to Wi-Fi but the gym blocks us" is visible). It follows
+  `connectivity_changed`. On a cable: the top row says `wifi_ethernet`, and the Wi-Fi
   networks are listed below as usual.
 - No networks → `wifi_none_found`. `Wifi.is_available() == false` →
   `wifi_error_unavailable` and no list.
@@ -120,7 +123,8 @@ A full-screen overlay on top of the current page:
   with the new network on top.
 - **Error:** the reason's `wifi_error_*` message in `WARNING`, with a large
   ✕, for `timing.settings_error_return_sec` (**3 s**); it hides itself and
-  shows page 2. A tap doesn't need to dismiss it.
+  shows page 2, scanned again. A tap doesn't need to dismiss it. Reasons
+  without their own message (`busy`, `failed`) show `wifi_error_generic`.
 
 ### Inactivity
 
@@ -130,8 +134,9 @@ A full-screen overlay on top of the current page:
 ### Maintenance screen: the network cell
 
 `diag_network` keeps its online/offline word and colour, followed by the
-network: `ONLINE · GymStaff 72%`, `ONLINE · CABLE`, or `OFFLINE · NO
-NETWORK`. The screen calls `Wifi.refresh_status()` on open and every 10 s,
+network: `ONLINE · GymStaff 72%`, `ONLINE · CABLE`
+(`maintenance_network_cable`), or `OFFLINE · NO NETWORK`
+(`maintenance_network_none`). The screen calls `Wifi.refresh_status()` on open and every 10 s,
 and re-renders on `Wifi.status_changed`. With `Wifi` unavailable (a Mac
 without the fake), the cell is as before.
 

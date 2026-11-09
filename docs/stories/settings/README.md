@@ -196,6 +196,8 @@ be reviewed in one place.
 | `wifi_error_unsupported` | `This network type isn't supported.` |
 | `wifi_error_generic` | `Couldn't connect. Try again.` |
 | `wifi_error_unavailable` | `Wi-Fi isn't available on this machine.` |
+| `maintenance_network_cable` | `CABLE` |
+| `maintenance_network_none` | `NO NETWORK` |
 
 ## Timing and settings (`config/local_settings.json`)
 
@@ -224,13 +226,15 @@ be reviewed in one place.
   (decision 9).
 - Plan §4: new `autoload/Wifi.gd` (after `FlavorImages`, before
   `DevCapture`), `core/pin_store.gd`, `scenes/settings_pin/`, `scenes/settings/`,
+  `ui/components/net_icon.gd`,
   `ui/components/keyboard/`, `ui/components/settings_hold.gd`,
   `tools/fake_nmcli.py`, `deploy/polkit/`.
 - Back buttons reuse the existing `back` message ("Back") and `←`.
 - **Glyphs:** neither bundled font (Archivo, JetBrains Mono) has `⌫`, `✓`
   or `⇧` (`✕` and `•` are in JetBrains Mono only). The PIN pad's delete key
-  says DEL; the keyboard's ⇧ uses JetBrains Mono; SET-04 draws the tick
-  and the Wi-Fi icon in code (like `StatusDot`).
+  says DEL; the keyboard's ⇧ uses JetBrains Mono; SET-04 draws the tick,
+  cross, lock, signal bars and the Wi-Fi icon in code (`NetIcon`, like
+  `StatusDot`).
 - IDLE-07 left out the design's signal cell for lack of data; SET-04 adds the
   network name and signal to the network cell.
 
