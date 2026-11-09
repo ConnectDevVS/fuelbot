@@ -2,8 +2,8 @@
 #include <avr/wdt.h>
 
 // FuelBot dispenser, Arduino Mega. Ported from fuelbotsource_og/VM_code.ino;
-// Milestone 4 changes are marked "// M4:" (devdocs/stories/dispensing/DSP-03),
-// Milestone 5 changes "// M5:" (devdocs/stories/telemetry/TEL-02).
+// Milestone 4 changes are marked "// M4:" (docs/stories/dispensing/DSP-03),
+// Milestone 5 changes "// M5:" (docs/stories/telemetry/TEL-02).
 //
 // Serial protocol (9600 baud), used by hardware/bridge/udprxtx.py:
 //   in:  "<hopper><base>\n"   two digits, e.g. "12" = hopper 1, base 2 (water)

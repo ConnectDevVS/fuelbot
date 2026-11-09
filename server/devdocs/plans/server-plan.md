@@ -3,7 +3,7 @@
 The backend for the FuelBot fleet: the API the kiosks call, an admin API,
 and a web dashboard. This document is the **single source of truth** for
 `server/`, and it **owns the kiosk ↔ backend API contract** (Section 3).
-The kiosk plan ([greenfield-rewrite.md](../../../devdocs/plans/greenfield-rewrite.md))
+The kiosk plan ([greenfield-rewrite.md](../../../docs/plans/greenfield-rewrite.md))
 describes how the app was built against that contract. Where the two
 disagree about the wire format, this document wins and the other gets a
 decision-log entry.
@@ -77,11 +77,11 @@ the index.
 | 2026-09-28 | **Tenant users see who recorded a refill** (`last_refill.by`, an email), FuelBot staff emails included (product owner) | Refills are tenant operations; knowing who filled a hopper helps the owner, and it isn't platform-only data | §4.13; dashboard SRV-41 |
 | 2026-09-29 | **Dashboard: desktop first from SRV-42** (product owner): SRV-42–48 were built and checked at 1440 px first; their phone and tablet layouts came in one pass before sign-off (SRV-49, 2026-09-30) | Settle the functionality before the small-screen layouts | dashboard plan §0.1 row 3 |
 | 2026-09-29 | **Disabled machines stay in Refill soon** (product owner): no `disabled` filter on `/stock` or in the dashboard | A disabled machine with a menu still has hoppers to look after | §4.13; dashboard plan §0.1 row 13, §5.10 |
-| 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../devdocs/stories/ota/README.md) |
+| 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../docs/stories/ota/README.md) |
 
 ## 1. Context
 
-The kiosk (Godot 4.7, repo root) is built through Milestone 7 against a mock
+The kiosk (Godot 4.7, `kiosk/`) is built through Milestone 7 against a mock
 backend. It already makes three backend calls, with an `X-Tenant-Id`
 header:
 
@@ -144,7 +144,8 @@ for each company. The kiosk plan's open items that land here:
    as the flavor `id` (sales and telemetry `flavor_id`).
 7. **The mock stays.** The app's automated tests keep using `mockserver/`.
    The server's own tests pin it to the same contract (§7).
-8. **`server/.gdignore`**: Godot must never scan `node_modules/`.
+8. ~~**`server/.gdignore`**: Godot must never scan `node_modules/`.~~ Dropped
+   2026-10-15: the Godot project moved into `kiosk/`, so it never sees `server/`.
 9. **Dependencies are few and mainstream:** `express`, `mongoose`,
    `bcryptjs`, `jsonwebtoken`, `cookie-parser`, `multer`, `image-size`,
    `@aws-sdk/client-s3`, `express-rate-limit`, `helmet`. For tests:
@@ -1001,7 +1002,7 @@ same record and API.
 
 ### 4.14 Releases and rollouts (S9)
 
-Built in [OTA-05](../../../devdocs/stories/ota/OTA-05-server.md), which has
+Built in [OTA-05](../../../docs/stories/ota/OTA-05-server.md), which has
 the full rules. In short:
 
 - **Models:** `Release` (version, manifest, files, notes, status `draft |
@@ -1036,7 +1037,7 @@ the full rules. In short:
 server/
 ├── CLAUDE.md                 server-only rules, commands, gotchas
 ├── README.md                 how to run it
-├── .env.example  .gitignore  .gdignore  package.json
+├── .env.example  .gitignore  package.json
 ├── devdocs/
 │   ├── plans/server-plan.md  this document
 │   └── stories/<set>/        SRV story sets: README (decisions) + SIGNOFF
@@ -1083,7 +1084,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S6b | Estimated stock | §4.13: `portion_g`, `low_portions`, `StockEvent`, refills / adjustments, the estimate, stock APIs | knowing when to refill, before the dashboard shows it |
 | S7 | Dashboard (**done 2026-09-30**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
-| S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../devdocs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
+| S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../docs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done

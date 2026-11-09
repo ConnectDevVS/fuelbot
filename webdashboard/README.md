@@ -79,16 +79,16 @@ overflow (`e2e/fixtures.js`; checked on every screenshot too).
 
 ## Fonts
 
-`src/styles/fonts/` holds the kiosk's OFL fonts (`../assets/fonts/`),
+`src/styles/fonts/` holds the kiosk's OFL fonts (`../kiosk/assets/fonts/`),
 subset once to WOFF2 with fonttools (in a throwaway venv:
 `python3 -m venv v && v/bin/pip install fonttools brotli`):
 
 ```sh
 U="U+0020-007E,U+00A0-00FF,U+2009,U+2013-2014,U+2018-201F,U+2022,U+2026,U+2032-2033,U+20B9,U+2190-2193,U+2212"
-v/bin/pyftsubset assets/fonts/Archivo-Variable.ttf --unicodes="$U" \
+v/bin/pyftsubset kiosk/assets/fonts/Archivo-Variable.ttf --unicodes="$U" \
   --layout-features='kern,liga,calt,tnum,lnum,case,ccmp,locl,mark,mkmk' \
   --flavor=woff2 --output-file=webdashboard/src/styles/fonts/archivo.woff2
-v/bin/pyftsubset assets/fonts/JetBrainsMono-Variable.ttf --unicodes="$U" \
+v/bin/pyftsubset kiosk/assets/fonts/JetBrainsMono-Variable.ttf --unicodes="$U" \
   --layout-features='kern,calt,zero,ccmp,locl,mark,mkmk' \
   --flavor=woff2 --output-file=webdashboard/src/styles/fonts/jetbrains-mono.woff2
 ```

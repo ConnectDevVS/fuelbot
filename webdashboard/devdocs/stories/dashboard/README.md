@@ -18,7 +18,7 @@ widths in a light theme, plus the small server additions it needs.
 - **Conventions:**
   - [server/CLAUDE.md](../../../../server/CLAUDE.md) for server stories;
   - `webdashboard/CLAUDE.md` (written in SRV-30) for dashboard stories;
-  - the root [CLAUDE.md](../../../../CLAUDE.md) only for the "no Godot
+  - the kiosk's [CLAUDE.md](../../../../kiosk/CLAUDE.md) only for the "no Godot
     changes" rule. The kiosk app is **not touched** in S7.
 - **Visual direction:** [design/](../../design/): mock-ups of Home
   (desktop, tablet, phone), the provisioning card, the Menu editor, the

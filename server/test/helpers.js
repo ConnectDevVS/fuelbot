@@ -55,7 +55,7 @@ export async function startServer(env = {}, { port = 0 } = {}) {
 const isIdList = (v) => Array.isArray(v) && v.length > 0
   && v.every((x) => x !== null && typeof x === 'object' && 'id' in x);
 
-/** mockserver/server.py deep_merge: objects recurse, arrays of {id} merge by id, else replace. */
+/** kiosk/mockserver/server.py deep_merge: objects recurse, arrays of {id} merge by id, else replace. */
 function deepMerge(base, patch) {
   const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
   if (isObj(base) && isObj(patch)) {
@@ -83,7 +83,7 @@ export const MOCK_ORIGIN = 'https://cdn.example.com';
  */
 export function mockConfig(name = 'default') {
   const load = (n) => {
-    const file = new URL(`../../mockserver/responses/config/${n}.json`, import.meta.url);
+    const file = new URL(`../../kiosk/mockserver/responses/config/${n}.json`, import.meta.url);
     const env = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (!env.extends) return env.body;
     return deepMerge(load(env.extends), env.body_patch ?? {});

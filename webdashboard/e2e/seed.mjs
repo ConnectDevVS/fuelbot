@@ -33,7 +33,7 @@ const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 const IST = 5.5 * HOUR;   // Asia/Kolkata has no DST
-const CONFIG = new URL('../../mockserver/responses/config/default.json', import.meta.url).pathname;
+const CONFIG = new URL('../../kiosk/mockserver/responses/config/default.json', import.meta.url).pathname;
 const REASONS = [['timeout', 'deadline'], ['rejected', 'machine_fault'], ['no_response', '']];
 
 /** mulberry32: the same data every run. */
