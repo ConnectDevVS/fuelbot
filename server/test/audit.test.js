@@ -2,7 +2,7 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
 import { CSRF, PASSWORD, makeUser, signIn, startServer } from './helpers.js';
-import { AuditEntry, Machine, Tenant, User } from '../src/models/index.js';
+import { AuditEntry, Complaint, Machine, Tenant, User } from '../src/models/index.js';
 import { createMachine } from '../src/services/machines.js';
 
 const TEMP = 'temporary pass 123';
@@ -111,8 +111,12 @@ describe('RBAC table', () => {
       viewer: { email: 'v@x.io', role: 'viewer', tenant_id: 'powerfuel' },
     };
     for (const [role, fields] of Object.entries(users)) {
-      await makeUser(fields);
+      const user = await makeUser(fields);
       agents[role] = await signIn(ctx.app, fields.email);
+      if (role === 'operator') {   // complaint #1, raised by the operator: the viewer can't see it
+        await Complaint.create({ tenant_id: 'powerfuel', number: 1, title: 'One', description: 'x',
+          created_by: { user_id: user._id, email: fields.email }, last_activity_at: new Date() });
+      }
     }
   });
   after(async () => { await ctx.stop(); });
@@ -152,6 +156,14 @@ describe('RBAC table', () => {
     ['get', '/api/v1/telemetry', 200, 403, 403, 403],
     ['get', '/api/v1/faults', 200, 403, 403, 403],
     ['get', '/api/v1/orders/none', 404, 404, 404, 404],       // allowed for all; no such order
+    ['post', '/api/v1/tenants/powerfuel/complaints', 403, 400, 400, 400],   // staff don't raise; 400: empty body
+    ['get', '/api/v1/tenants/powerfuel/complaints', 200, 200, 200, 200],
+    ['get', '/api/v1/tenants/globex/complaints', 404, 404, 404, 404],
+    ['get', '/api/v1/tenants/powerfuel/complaints/1', 200, 200, 200, 404],  // the viewer didn't raise it
+    ['get', '/api/v1/tenants/powerfuel/complaints/2', 404, 404, 404, 404],
+    ['post', '/api/v1/tenants/powerfuel/complaints/1/comments', 400, 400, 400, 404],   // 400: empty body
+    ['post', '/api/v1/tenants/powerfuel/complaints/1/status', 400, 400, 400, 404],
+    ['get', '/api/v1/complaints', 200, 403, 403, 403],
   ];
 
   for (const [method, path, ...expected] of TABLE) {

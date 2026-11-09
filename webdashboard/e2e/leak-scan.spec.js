@@ -3,12 +3,17 @@
 // scanned, at all three widths (a phone shows other components: cards, sheets).
 import { expect, navPaths, test } from './fixtures.js';
 
-test.setTimeout(180_000);
+// Each tenant role also opens every complaint it can see (SRV-54): the owner's walk is the longest.
+test.setTimeout(300_000);
 
 const FORBIDDEN_KEYS = ['maintenance', 'faults', 'status', 'last_seen_ip', 'health', 'dispensing_result', 'dispensing_reason',
   'machine_known', 'received_at', 'extra', 'body_tenant_id', 'body_machine_id', 'telemetry'];
 const FORBIDDEN_TEXT = [/HOMING_TIMEOUT/, /BRIDGE_DOWN/, /deadline/, /machine_fault/, /no_response/, /maintenance/i,
   /\b\d{1,3}(\.\d{1,3}){3}\b/, /\bTenants\b/, /\bFaults\b/, /\bTelemetry\b/, /\bAudit\b/, /\bUnregistered\b/, /\bAll users\b/, /\bAll sales\b/];
+// A complaint's status (open / with service / closed) is tenant data by design (plan §4.15); a
+// machine's `status` stays platform-only everywhere else.
+const TENANT_KEYS_BY_ROUTE = [[/^\/api\/v1\/tenants\/[^/]+\/complaints(\/|$)/, ['status']]];
+const allowed = (url, key) => TENANT_KEYS_BY_ROUTE.some(([re, keys]) => re.test(new URL(url).pathname) && keys.includes(key));
 const PLATFORM_ROUTES = /\/api\/v1\/(telemetry|faults|audit|unregistered)|\/api\/v1\/.*\/maintenance$/;
 
 /** Every key path in a JSON value. */
@@ -65,17 +70,29 @@ async function walk(page) {
     await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
     texts.push({ where: 'product drawer', text: await page.locator('body').innerText() });
   }
+  // The complaint pages (SRV-54): every complaint this role can open.
+  const complaints = await page.request.get(`/api/v1/tenants/${tid}/complaints?limit=50`).then((r) => r.json());
+  for (const c of complaints.items ?? []) await visit(`t/${tid}/complaints/${c.number}`);
   await page.waitForLoadState('networkidle');
-  return { bodies, texts, requests };
+  return { bodies, texts, requests, complaints: (complaints.items ?? []).length };
 }
 
 for (const who of ['owner', 'ops', 'desk', 'look', 'boss']) {
   test(`${who}: no platform-only keys, text or requests`, async ({ page, signInAs }) => {
     await signInAs(who);
-    const { bodies, texts, requests } = await walk(page);
+    const { bodies, texts, requests, complaints } = await walk(page);
     expect(bodies.length, 'responses were scanned').toBeGreaterThan(10);
+    expect(complaints, 'complaint pages were walked').toBeGreaterThan(0);
 
-    const keyHits = bodies.flatMap(({ url, json }) => keysOf(json).filter(({ key }) => FORBIDDEN_KEYS.includes(key))
+    // Complaints: no staff email or user id anywhere a tenant role looks (the thread carries
+    // FuelBot authors by name only).
+    const complaintJson = JSON.stringify(bodies.filter((b) => /\/complaints/.test(new URL(b.url).pathname)).map((b) => b.json));
+    expect(complaintJson.includes('@fuelbot.test'), 'a staff email in a complaint response').toBe(false);
+    expect(/"user_id"|"_id"/.test(complaintJson), 'a user id in a complaint response').toBe(false);
+    const pageText = texts.map((x) => x.text).join('\n');
+    expect(pageText.includes('@fuelbot.test'), 'a staff email on a tenant page').toBe(false);
+
+    const keyHits = bodies.flatMap(({ url, json }) => keysOf(json).filter(({ key }) => FORBIDDEN_KEYS.includes(key) && !allowed(url, key))
       .map(({ path }) => `${new URL(url).pathname}${path}`));
     expect(keyHits, 'no platform-only keys in tenant responses').toEqual([]);
 
@@ -87,7 +104,8 @@ for (const who of ['owner', 'ops', 'desk', 'look', 'boss']) {
     if (who === 'boss') {
       // globex sees nothing of powerfuel: its machines, its orders, its name.
       const all = JSON.stringify(bodies.map((b) => b.json)) + texts.map((x) => x.text).join('\n');
-      for (const needle of ['DEV00001', 'E2E00002', 'E2E00003', 'E2E00004', 'E2E-PF-', 'PowerFuel', 'powerfuel', 'ZZTYPO01']) {
+      for (const needle of ['DEV00001', 'E2E00002', 'E2E00003', 'E2E00004', 'E2E-PF-', 'PowerFuel', 'powerfuel', 'ZZTYPO01',
+        'Bay 02 screen froze', 'Wrong flavour', 'Receipt QR', 'More cups']) {
         expect(all.includes(needle), `globex sees "${needle}"`).toBe(false);
       }
     }

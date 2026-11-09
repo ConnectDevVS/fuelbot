@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import express from 'express';
 import { makeSale, makeUser, mockConfig, signIn, startServer } from './helpers.js';
-import { Machine, Product, StockEvent } from '../src/models/index.js';
+import { Complaint, Machine, Product, StockEvent, Tenant } from '../src/models/index.js';
 import { importConfig } from '../src/services/catalog.js';
 import { issueKey } from '../src/services/keys.js';
 
@@ -90,6 +90,9 @@ describe('tenant isolation', () => {
       ids[`user_${key}`] = String(user._id);
       as[key] = await signIn(ctx.app, fields.email);
     }
+    await Tenant.updateOne({ _id: 'globex' }, { complaint_seq: 1 });
+    await Complaint.create({ tenant_id: 'globex', number: 1, title: 'Globex one', description: 'x',
+      created_by: { user_id: ids.user_boss, name: 'Boss', email: 'boss@globex.example' }, last_activity_at: new Date() });
   });
   after(async () => { await ctx.stop(); });
 
@@ -99,7 +102,8 @@ describe('tenant isolation', () => {
 
   /**
    * How to call each /tenants/:tid route: a valid body, and an If-Match read at call time.
-   * t = tenant, m = machine, src = a second machine of that tenant, pid = product, kid = key.
+   * t = tenant, m = machine, src = a second machine of that tenant, pid = product, kid = key,
+   * number = a complaint. validAs: who proves the call valid when staff may not make it.
    */
   const CALLS = {
     'GET /tenants/:tid': {},
@@ -133,6 +137,11 @@ describe('tenant isolation', () => {
     'GET /tenants/:tid/machines/:mid/stock/history': {},
     'POST /tenants/:tid/machines/:mid/stock/refills': { body: () => ({ hopper: 1, level_g: 1500 }) },
     'POST /tenants/:tid/machines/:mid/stock/adjustments': { body: () => ({ hopper: 1, level_g: 1400 }) },
+    'GET /tenants/:tid/complaints': {},
+    'POST /tenants/:tid/complaints': { body: () => ({ title: 'Sneaky', description: 'x' }), validAs: 'boss' },
+    'GET /tenants/:tid/complaints/:number': {},
+    'POST /tenants/:tid/complaints/:number/comments': { body: () => ({ text: 'Sneaky' }) },
+    'POST /tenants/:tid/complaints/:number/status': { body: () => ({ from: 'open', to: 'with_service', text: 'Sneaky' }) },
   };
 
   const tenantRoutes = () => routes.filter((r) => r.split(' ')[1].startsWith('/tenants/:tid'));
@@ -158,7 +167,7 @@ describe('tenant isolation', () => {
     }
   });
 
-  const GLOBEX = () => ({ tid: 'globex', mid: 'GLOBEX01', src: 'GLOBEX02', pid: 'guava', kid: ids.key });
+  const GLOBEX = () => ({ tid: 'globex', mid: 'GLOBEX01', src: 'GLOBEX02', pid: 'guava', kid: ids.key, number: 1 });
 
   it('every tenant route is 404 for another tenant\'s users, for every method', async () => {
     const found = tenantRoutes();
@@ -177,11 +186,13 @@ describe('tenant isolation', () => {
     }
     assert.deepEqual(await snapshot(), before, 'a globex (or any) document changed');
 
-    // The same calls are valid: staff may make them (writes last, in order, with fresh versions).
+    // The same calls are valid: staff may make them, or validAs when staff may not (writes last, in
+    // order, with fresh versions).
     const ordered = [...found].sort((a, b) => (a.startsWith('DELETE') ? 1 : 0) - (b.startsWith('DELETE') ? 1 : 0));
     for (const route of ordered) {
-      const res = await call(as.ops, route, GLOBEX());
-      assert.ok(res.status >= 200 && res.status < 300, `platform ${route}: ${res.status} ${JSON.stringify(res.body)}`);
+      const who = CALLS[route].validAs ?? 'ops';
+      const res = await call(as[who], route, GLOBEX());
+      assert.ok(res.status >= 200 && res.status < 300, `${who} ${route}: ${res.status} ${JSON.stringify(res.body)}`);
     }
   });
 

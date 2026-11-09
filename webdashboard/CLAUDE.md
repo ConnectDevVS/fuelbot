@@ -5,8 +5,9 @@ Rules for working on the web dashboard. The backend's rules are in
 covers the Godot kiosk, which S7 never touches.
 
 - **Spec:** [devdocs/plans/dashboard-plan.md](devdocs/plans/dashboard-plan.md)
-  ("DP"). Stories: [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md),
-  one commit per story, `SRV-NN: <title>`. If the code shows the plan is
+  ("DP"). Stories: [devdocs/stories/dashboard/](devdocs/stories/dashboard/README.md)
+  (S7) and [server/devdocs/stories/complaints/](../server/devdocs/stories/complaints/README.md)
+  (S10), one commit per story, `SRV-NN: <title>`. If the code shows the plan is
   wrong, fix the plan in the same commit.
 - The API is the server's (`/api/v1`, [server plan §4](../server/devdocs/plans/server-plan.md)).
   Check shapes against the real server, not prose.

@@ -3,7 +3,8 @@
 import { App } from 'antd';
 import { t } from '../strings.js';
 
-export const CONFIRMS = ['revokeKey', 'disableUser', 'disableMachine', 'disableTenant', 'maintenanceOn', 'archiveProduct'];
+export const CONFIRMS = ['revokeKey', 'disableUser', 'disableMachine', 'disableTenant', 'maintenanceOn', 'archiveProduct',
+  'discardComplaint'];
 
 export function useConfirm() {
   const { modal } = App.useApp();

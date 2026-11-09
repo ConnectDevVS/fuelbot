@@ -93,6 +93,24 @@ development with hot reload, use `npm run dev` in `webdashboard/` (Vite on
 It's an estimate (dosing is timed): weigh ten portions to calibrate
 `portion_g`, and correct with `…/stock/adjustments` after weighing a hopper.
 
+## Complaints
+
+Tenant users raise complaints, FuelBot staff answer them (plan §4.15). All under
+`/api/v1`:
+
+- `POST /tenants/<t>/complaints {"title": "…", "description": "…"}` (tenant
+  users; staff can't raise) → the next number for that tenant, status `open`.
+- `GET /tenants/<t>/complaints[?status=open,with_service]`: newest activity
+  first. Operators and viewers see the ones they raised, a tenant_admin all of
+  the tenant's.
+- `GET /tenants/<t>/complaints/<number>`: the complaint and its thread.
+- `POST …/complaints/<number>/comments {"text": "…"}`: anyone who can see it,
+  in any status.
+- `POST …/complaints/<number>/status {"from": "open", "to": "with_service", "text": "…"}`:
+  staff, any status to any other; the creator or a tenant_admin, `closed` →
+  `open` only. The comment is required. A stale `from` is 409 `status_changed`.
+- `GET /complaints[?status=&tenant=]`: every tenant's (staff only).
+
 ## Reports
 
 All under `/api/v1`, scoped to the signed-in user: `GET /fleet` (machines,

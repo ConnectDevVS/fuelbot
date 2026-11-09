@@ -228,7 +228,13 @@
   white-space: nowrap;
 }
 
-/* Phone More sheet */
+/* Phone More sheet: as tall as its items, at most 92 % of the screen (like every sheet); the list
+   scrolls inside it, so the title and Close stay on screen. */
+.sheetRoot :global(.ant-drawer-content-wrapper),
+.sheetRoot :global(.ant-drawer-section) {
+  max-height: 92dvh;   /* the section too: its body (flex: 1, overflow: auto) then scrolls */
+}
+
 .sheetList {
   display: grid;
 }
