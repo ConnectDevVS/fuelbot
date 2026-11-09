@@ -179,6 +179,29 @@ func test_searching_message_while_scanning() -> void:
 	assert_eq(_scene.get_list_message(), "", "gone after the scan")
 
 
+func test_failed_scan_is_not_none_found() -> void:
+	_write_state({"fail_next": {"code": 4, "stderr": "Error: Not authorized to control networking.", "on": "yes"}})
+	await _open_list()
+	assert_eq(_scene.get_list_message(), ConfigManager.get_message("wifi_error_permission"), "permission")
+	assert_eq(_ssids(), ["GymStaff"], "the connected row still shows")
+	_write_state({"fail_next": {"code": 8, "stderr": "Error: NetworkManager is not running.", "on": "yes"}})
+	_scene.press_refresh()
+	await _wifi_idle()
+	assert_eq(_scene.get_list_message(), ConfigManager.get_message("wifi_error_scan"), "other failures")
+	_scene.press_refresh()
+	await _wifi_idle()
+	assert_eq(_scene.get_list_message(), "", "cleared by a good scan")
+	assert_eq(_ssids().size(), 4, "the list")
+
+
+func test_connect_not_authorized_message() -> void:
+	await _open_list()
+	_write_state({"fail_next": {"code": 4, "stderr": "Error: Insufficient privileges.", "on": "add"}})
+	_scene.tap_row("GymGuest")
+	assert_true(await _wait_for(func() -> bool: return _scene.get_notice().get("kind", "") == "error"), "error")
+	assert_eq(_scene.get_notice().text, ConfigManager.get_message("wifi_error_permission"), "permission")
+
+
 func test_unavailable() -> void:
 	Wifi.nmcli_path = "/nonexistent/nmcli"
 	await _open_list()

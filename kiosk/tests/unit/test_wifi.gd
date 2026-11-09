@@ -86,6 +86,8 @@ func test_security_and_failure_reasons() -> void:
 	assert_eq(_wifi.failure_reason("Error: No network with SSID 'x' found."), "not_found", "no SSID")
 	assert_eq(_wifi.failure_reason("Error: Connection activation failed: The Wi-Fi network could not be found."), "not_found", "could not be found")
 	assert_eq(_wifi.failure_reason("Error: something else"), "failed", "other")
+	assert_eq(_wifi.failure_reason("Error: Not authorized to control networking."), "not_authorized", "polkit refused")
+	assert_eq(_wifi.failure_reason("Error: Insufficient privileges."), "not_authorized", "privileges")
 
 
 # --- Status and scan ---------------------------------------------------------
@@ -153,6 +155,17 @@ func test_scan_timeout_kills_nmcli() -> void:
 	assert_true(Time.get_ticks_msec() - start < 2500, "killed, not waited out")
 
 
+func test_scan_errors_say_why() -> void:
+	_write_state({"fail_next": {"code": 4, "stderr": "Error: Not authorized to control networking.", "on": "yes"}})
+	assert_eq(await _scan(), [], "no networks")
+	assert_eq(_wifi.last_error, "not_authorized", "permission, not 'none found'")
+	_write_state({"fail_next": {"code": 8, "stderr": "Error: NetworkManager is not running.", "on": "yes"}})
+	assert_eq(await _scan(), [], "no networks")
+	assert_eq(_wifi.last_error, "failed", "other failures")
+	assert_eq((await _scan()).size(), 4, "a good scan again")
+	assert_eq(_wifi.last_error, "", "cleared")
+
+
 # --- Connect -----------------------------------------------------------------
 
 func test_connect_success() -> void:
@@ -217,6 +230,14 @@ func test_connect_timeout() -> void:
 	assert_true(Time.get_ticks_msec() - start < 4000, "killed, not waited out")
 	assert_false(FileAccess.file_exists(_wifi.secret_path), "passwd-file deleted after a timeout too")
 	assert_eq(_state().active, OLD_UUID, "rolled back")
+
+
+func test_connect_not_authorized() -> void:
+	await _scan()
+	_write_state({"fail_next": {"code": 4, "stderr": "Error: Failed to add 'Office-5G' connection: Insufficient privileges.", "on": "add"}})
+	var res := await _connect("Office-5G", "SENTINEL3pw")
+	assert_eq(res.args, [false, "not_authorized", "Office-5G"], "permission")
+	assert_eq(_state().active, OLD_UUID, "still on the old network")
 
 
 func test_enterprise_is_unsupported() -> void:

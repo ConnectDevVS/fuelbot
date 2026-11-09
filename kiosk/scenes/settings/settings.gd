@@ -11,7 +11,7 @@ const MIN_PASSWORD := 8
 const ERROR_KEYS := {
 	"wrong_password": "wifi_error_password", "not_found": "wifi_error_not_found",
 	"timeout": "wifi_error_timeout", "unsupported": "wifi_error_unsupported",
-	"unavailable": "wifi_error_unavailable",
+	"unavailable": "wifi_error_unavailable", "not_authorized": "wifi_error_permission",
 }
 
 var _page := ""
@@ -21,6 +21,7 @@ var _notice_timer: Timer
 var _done := false
 var _connecting := false
 var _scanning := false
+var _scan_error := ""            # Wifi.last_error of a failed scan, shown instead of "none found"
 var _networks: Array = []
 var _target := ""                # the SSID on the password page
 
@@ -168,6 +169,7 @@ func _start_scan() -> void:
 		_render_list()
 		return
 	_scanning = true
+	_scan_error = ""
 	_render_list()
 	Wifi.scan()
 
@@ -253,6 +255,7 @@ func _on_connectivity(_online: bool) -> void:
 
 func _on_scan(networks: Array) -> void:
 	_scanning = false
+	_scan_error = Wifi.last_error if networks.is_empty() else ""
 	_networks = networks
 	if _page == "list":
 		_render_list()
@@ -292,7 +295,10 @@ func _render_list() -> void:
 	if _scanning:
 		_show_list_message(ConfigManager.get_message("wifi_searching"))
 	var others := _networks.filter(func(n: Dictionary) -> bool: return n.ssid != connected)
-	if others.is_empty() and not _scanning and connected == "":
+	if _scan_error != "" and not _scanning:   # a failed scan is never "no networks"
+		_show_list_message(ConfigManager.get_message(
+			"wifi_error_permission" if _scan_error == "not_authorized" else "wifi_error_scan"))
+	elif others.is_empty() and not _scanning and connected == "":
 		_show_list_message(ConfigManager.get_message("wifi_none_found"))
 	for net in others:
 		_rows.add_child(_network_row(net))

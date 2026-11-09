@@ -46,7 +46,12 @@ func is_available() -> bool                     # nmcli runs, and there's a Wi-F
   `in_use` first, then by signal.
 - **Reasons** for `connect_finished(false, …)`: `wrong_password`,
   `not_found`, `timeout`, `unsupported` (enterprise), `unavailable`,
-  `busy`, `failed`. The screen maps each to a `wifi_error_*` message.
+  `not_authorized` (nmcli says "Not authorized" or "Insufficient
+  privileges": the polkit rule is missing or names another user), `busy`,
+  `failed`. The screen maps each to a `wifi_error_*` message.
+- A failed scan emits `scan_finished([])` and sets `last_error`
+  (`not_authorized`, `timeout`, `failed` or `unavailable`), so the screen
+  never mistakes it for "no networks in range".
 
 ### Running `nmcli`
 
@@ -154,7 +159,8 @@ change it here and in OTA-08 together.
   missing): networks in range (ssid, signal, security, password), the
   active connection, saved profiles, and two knobs: `delay` (`{sec, on,
   times}`: the next `times` commands containing `on` are slow, e.g. a
-  connect timing out) and `fail_next` (the next command exits with that
+  connect timing out) and `fail_next` (`{code, stderr, on}`: the next
+  command containing `on`, or the next command at all, exits with that
   code and message, once).
 - Records every call (arguments **with any password replaced by `***`**)
   in the state, so tests can assert the rollback happened.

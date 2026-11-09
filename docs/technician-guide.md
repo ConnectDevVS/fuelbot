@@ -47,6 +47,8 @@ network it had**:
 | Network not found. Move closer or refresh. | Tap Refresh; check the gym's router is on |
 | Couldn't connect in time. Try again. | Try again; if it keeps happening, the signal is too weak inside the cabinet |
 | This network type isn't supported. | It needs a username: use another network, a cable or 4G |
+| Couldn't search for networks. Tap Refresh. | Tap Refresh; if it repeats, restart the machine |
+| This machine isn't allowed to change Wi-Fi. Call FuelBot support. | The machine was built without its Wi-Fi permission: call FuelBot support |
 | Wi-Fi isn't available on this machine. | Call FuelBot support |
 
 ### Checking the connection later

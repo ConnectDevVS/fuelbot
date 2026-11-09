@@ -8,11 +8,13 @@ state file named by FUELBOT_FAKE_NMCLI_STATE (created with sample networks if mi
    "networks": [{"ssid", "signal", "security": "WPA2" | "" | "WPA2 802.1X", "password"}],
    "connections": [{"name", "uuid", "ssid", "psk"}], "active": <uuid or null>,
    "delay": null | {"sec", "on": <word in the args, e.g. "up">, "times"},
-   "fail_next": null | {"code", "stderr"}, "calls": [[args...], ...]}
+   "fail_next": null | {"code", "stderr", "on": <optional word in the args>},
+   "calls": [[args...], ...]}
 
 Every call is recorded in "calls" with secrets replaced by ***; a passwd-file's content is never
 recorded or printed. "delay" makes the next `times` commands containing `on` slow (a scan
-or connect timing out); fail_next makes the next command exit with that code and message, once.
+or connect timing out); fail_next makes the next command (containing `on`, if given) exit with
+that code and message, once.
 """
 import json
 import os
@@ -175,7 +177,7 @@ def main(argv):
         time.sleep(delay["sec"])
         state = load(path)
     failure = state.get("fail_next")
-    if failure:
+    if failure and (not failure.get("on") or failure["on"] in argv):
         state["fail_next"] = None
         save(path, state)
         return fail(failure.get("code", 1), failure.get("stderr", "failed."))

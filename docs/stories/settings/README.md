@@ -201,6 +201,8 @@ be reviewed in one place.
 | `wifi_error_unsupported` | `This network type isn't supported.` |
 | `wifi_error_generic` | `Couldn't connect. Try again.` |
 | `wifi_error_unavailable` | `Wi-Fi isn't available on this machine.` |
+| `wifi_error_scan` | `Couldn't search for networks. Tap Refresh.` |
+| `wifi_error_permission` | `This machine isn't allowed to change Wi-Fi. Call FuelBot support.` |
 | `maintenance_network_cable` | `CABLE` |
 | `maintenance_network_none` | `NO NETWORK` |
 

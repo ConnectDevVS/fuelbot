@@ -140,8 +140,11 @@ static func parse_networks(output: String) -> Array:
 	return list
 
 
-## nmcli's error text → a connect_finished reason.
+## nmcli's error text → a connect_finished reason. "not_authorized": the kiosk user isn't
+## allowed to manage Wi-Fi (the polkit rule is missing or names another user).
 static func failure_reason(stderr: String) -> String:
+	if stderr.containsn("not authorized") or stderr.contains("Insufficient privileges"):
+		return "not_authorized"
 	if stderr.contains("Secrets were required") or stderr.contains("802-1X supplicant") \
 			or stderr.contains("psk: property is invalid"):
 		return "wrong_password"
@@ -200,7 +203,8 @@ func _do_scan() -> void:
 		scan_finished.emit([])
 		return
 	if res.timeout or res.code != 0:
-		last_error = "timeout" if res.timeout else "failed"
+		var why := failure_reason(String(res.err))
+		last_error = "timeout" if res.timeout else ("not_authorized" if why == "not_authorized" else "failed")
 		print("[Wifi] scan failed: %s %s" % [last_error, String(res.err).strip_edges()])
 		scan_finished.emit([])
 		return
@@ -256,7 +260,7 @@ func _connect_steps(ssid: String, password: String, kind: String) -> String:
 	var m := RegEx.create_from_string("\\(([0-9a-fA-F-]{36})\\)").search(String(added.out))
 	if added.code != 0 or m == null:
 		print("[Wifi] adding the profile failed: %s" % String(added.err).strip_edges())
-		return "failed"
+		return "not_authorized" if failure_reason(String(added.err)) == "not_authorized" else "failed"
 	var new_uuid := m.get_string(1)
 
 	var up: Array = ["-w", str(int(connect_timeout_sec)), "connection", "up", "uuid", new_uuid]

@@ -81,7 +81,11 @@ font has them; README).
   `connectivity_changed`. On a cable: the top row says `wifi_ethernet`, and the Wi-Fi
   networks are listed below as usual.
 - No networks → `wifi_none_found`. `Wifi.is_available() == false` →
-  `wifi_error_unavailable` and no list.
+  `wifi_error_unavailable` and no list. **A failed scan is never "none
+  found"**: `Wifi.last_error == "not_authorized"` → `wifi_error_permission`,
+  any other failure → `wifi_error_scan` (the connected row still shows;
+  Refresh tries again). A connect refused for permission shows
+  `wifi_error_permission` too.
 - Tap a secured (`psk`) network → page 3. Tap an `open` network → connect
   straight away (the "Connecting…" notice, then success or error as below).
   Tap an `enterprise` network → `wifi_error_unsupported` for 3 s.

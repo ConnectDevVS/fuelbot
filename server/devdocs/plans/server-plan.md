@@ -271,7 +271,7 @@ event table):
 | `settings_pin_failed` | app | `attempt` (1–5) |
 | `settings_locked` | app | (none) |
 | `wifi_connected` | app | `ssid`, `signal` (0–100) |
-| `wifi_connect_failed` | app | `ssid`, `reason` (`wrong_password`, `not_found`, `timeout`, `unsupported`, `failed`) |
+| `wifi_connect_failed` | app | `ssid`, `reason` (`wrong_password`, `not_found`, `timeout`, `unsupported`, `not_authorized`, `failed`) |
 
 Common fields: `v` (1), `event_id` (ULID), `tenant_id`, `machine_id` (from
 S1), `timestamp` (UTC, `Z`), `source` (`bridge`/`app`).

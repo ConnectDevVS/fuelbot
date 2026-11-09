@@ -86,6 +86,14 @@ class FakeNmcliTest(unittest.TestCase):
         self.nmcli("device", "wifi", "connect", "x", "password", "SENTINEL9")
         self.assertNotIn("SENTINEL9", json.dumps(self.read()["calls"]))
 
+    def test_fail_next_on_a_word(self):
+        self.write({"fail_next": {"code": 4, "stderr": "Not authorized to control networking.", "on": "yes"}})
+        self.assertEqual(self.nmcli("device", "status").returncode, 0, "other commands untouched")
+        res = self.nmcli("device", "wifi", "list", "--rescan", "yes")
+        self.assertEqual(res.returncode, 4)
+        self.assertIn("Not authorized", res.stderr)
+        self.assertEqual(self.nmcli("device", "wifi", "list", "--rescan", "yes").returncode, 0, "only once")
+
     def test_fail_next_once_and_targeted_delay(self):
         self.write({"fail_next": {"code": 8, "stderr": "NetworkManager is not running."},
                     "delay": {"sec": 0.5, "on": "list", "times": 1}})
