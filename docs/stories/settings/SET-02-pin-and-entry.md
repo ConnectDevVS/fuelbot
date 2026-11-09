@@ -16,15 +16,17 @@ scenes/idle/idle.gd                     # adds a SettingsHold; swallows the hold
 scenes/maintenance/maintenance.gd       # adds a SettingsHold (its only input)
 scenes/settings_pin/SettingsPin.tscn
 scenes/settings_pin/settings_pin.gd
-scenes/scene_paths.gd                   # SETTINGS_PIN (and SETTINGS, used by SET-04)
-core/settings_pin.gd                    # class_name SettingsPin: check, lockout, file format
+scenes/scene_paths.gd                   # SETTINGS_PIN and SETTINGS
+scenes/settings/                        # placeholder (title + Exit, inactivity); SET-04 fills it
+core/pin_store.gd                       # class_name PinStore: check, lockout, file format
 config/local_settings.json              # messages settings_pin_*, timing.settings_*, settings.*
 tools/set_settings_pin.sh               # writes the PIN's identity file (used by provision.sh)
 tools/dev_setup.gd                      # dev PIN 123456, only in the dev user:// folder
 .gitignore                              # settings_pin.txt, settings_pin_lock.json beside tenant_id.txt, machine_key.txt …
-tests/unit/test_settings_pin.gd
-tests/unit/test_settings_hold.gd
-docs/stories/ota/OTA-04-updater.md            # the identity the updater reads: the PIN file is part of it, never sent
+tests/unit/test_pin_store.gd             # includes set_settings_pin.sh
+tests/unit/test_settings_hold.gd         # SettingsHold, idle, maintenance
+tests/unit/test_settings_pin_screen.gd   # the pad, the lock, the placeholder's exits
+tools/run_tests.sh                       # PIN log grep; the test PIN must not reach the log
 docs/stories/ota/OTA-07-system-steps-usb.md   # identity.txt: tenant=, machine=, key=, pin=
 docs/stories/ota/OTA-08-pi-image.md           # provision.sh: the identity step asks for the PIN
 ```
@@ -45,7 +47,7 @@ docs/stories/ota/OTA-08-pi-image.md           # provision.sh: the identity step 
 - Idle and maintenance: on `triggered`, `Nav.go(ScenePaths.SETTINGS_PIN)`.
   Idle stops its video first, as `_start()` does.
 
-### The PIN, part of the identity (`SettingsPin`)
+### The PIN, part of the identity (`PinStore`)
 
 The PIN is the fourth identity field (README decision 5). The identity is
 one small file per field in `user://`, and the PIN follows the same pattern:
@@ -101,11 +103,14 @@ one small file per field in `user://`, and the PIN follows the same pattern:
 │     └─────┘ └─────┘ └─────┘   │
 │        4       5       6      │
 │        7       8       9      │
-│               0       ⌫       │
+│               0      DEL      │
 └──────────────────────────────┘
 ```
 
-- The 6th digit submits at once (no OK key).
+- The 6th digit submits at once (no OK key). The delete key says **DEL**
+  (`settings_pin_delete`): neither bundled font has `⌫`.
+- Disabled keys (not set up, locked) are drawn at 35 % opacity: the
+  theme's disabled style looks the same as enabled.
 - `ok` → `TelemetryReporter.report_event({"event_type": "settings_opened"})`,
   then `Nav.go(ScenePaths.SETTINGS)`.
 - `wrong` → `settings_pin_wrong` for `timing.settings_error_return_sec`
@@ -133,13 +138,13 @@ one small file per field in `user://`, and the PIN follows the same pattern:
 - [ ] Right PIN → settings; `settings_opened` queued.
 - [ ] Wrong PIN → message for 3 s, dots cleared, `settings_pin_failed`.
 - [ ] 5 wrong → locked for 300 s (a test-length override), still locked
-      after a fresh `SettingsPin` instance (the restart case), unlocked
+      after a fresh `PinStore` instance (the restart case), unlocked
       after; `settings_locked` posted once.
 - [ ] No `settings_pin.txt`, or a malformed one → `not_set` on entry, keys
       disabled (a malformed file logs one warning, never its content).
 - [ ] Back and the 30 s timeout → idle.
 - [ ] `set_settings_pin.sh` rejects 5 or 7 digits and letters, refuses to
-      overwrite an existing file, and writes a file `SettingsPin` accepts
+      overwrite an existing file, and writes a file `PinStore` accepts
       (both the prompt and `--stdin`).
 - [ ] `git check-ignore` matches `settings_pin.txt` and
       `settings_pin_lock.json` (identity files are never committed).

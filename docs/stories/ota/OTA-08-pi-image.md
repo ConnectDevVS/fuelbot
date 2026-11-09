@@ -44,16 +44,19 @@ docs/plans/greenfield-rewrite.md   # Milestone 8 updated to match
 - **Per-machine uniqueness:** the image is generalised before copying (SSH
   host keys and `/etc/machine-id` regenerated on first boot).
 - **Secrets:** none in the image except the release *public* key; the
-  identity (tenant, machine, key) is written per machine by `provision.sh`
+  identity (tenant, machine, key, settings PIN) is written per machine by `provision.sh`
   or the USB stick.
 
 ### `provision.sh`
 
 1. Installs the units, the updater, `release_pub.pem`, the udev rules
-   (`/dev/arduino`, the USB stick).
+   (`/dev/arduino`, the USB stick) and the polkit rule
+   (`deploy/polkit/50-fuelbot-wifi.rules`, settings set SET-01).
 2. Installs the first release from a bundle file (the same code path as
    the updater: verify, unpack, `current`).
-3. Writes the machine's identity (prompting; the key is never echoed).
+3. Writes the machine's identity (prompting; the key is never echoed),
+   including the settings PIN via `kiosk/tools/set_settings_pin.sh`
+   (asked twice, stored hashed; settings set SET-02).
 4. Starts everything and waits for the health check; prints the versions.
 
 ## Acceptance criteria

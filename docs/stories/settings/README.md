@@ -167,9 +167,9 @@ be reviewed in one place.
 | `settings_pin_wrong` | `Wrong PIN` |
 | `settings_pin_locked` | `Too many tries. Try again in {minutes} min.` |
 | `settings_pin_not_set` | `Settings not set up on this machine.` |
+| `settings_pin_delete` | `DEL` |
 | `settings_title` | `SETTINGS` |
 | `settings_exit` | `Exit` |
-| `settings_back` | `Back` |
 | `settings_tile_network` | `Network` |
 | `wifi_title` | `WI-FI` |
 | `wifi_searching` | `Searching for networks…` |
@@ -201,10 +201,11 @@ be reviewed in one place.
 | `timing.settings_pin_lockout_sec` | 300 | SET-02 |
 | `timing.settings_inactivity_sec` | 60 | SET-04 |
 | `timing.settings_success_return_sec` | 2 | SET-04 |
-| `timing.settings_error_return_sec` | 3 | SET-04 |
+| `timing.settings_error_return_sec` | 3 | SET-02 ("Wrong PIN"), SET-04 |
 | `timing.wifi_scan_timeout_sec` | 15 | SET-01 |
 | `timing.wifi_connect_timeout_sec` | 30 | SET-01 |
 | `settings.pin_path` | `user://settings_pin.txt` | SET-02 |
+| `settings.pin_lock_path` | `user://settings_pin_lock.json` | SET-02 |
 | `settings.pin_length` | 6 | SET-02 |
 | `settings.pin_max_attempts` | 5 | SET-02 |
 | `settings.hold_zone_px` | 200 | SET-02 |
@@ -216,9 +217,14 @@ be reviewed in one place.
 - Plan §3.11: the maintenance screen gets one input, the hidden hold
   (decision 9).
 - Plan §4: new `autoload/Wifi.gd` (after `FlavorImages`, before
-  `DevCapture`), `scenes/settings_pin/`, `scenes/settings/`,
+  `DevCapture`), `core/pin_store.gd`, `scenes/settings_pin/`, `scenes/settings/`,
   `ui/components/keyboard/`, `ui/components/settings_hold.gd`,
   `tools/fake_nmcli.py`, `deploy/polkit/`.
+- Back buttons reuse the existing `back` message ("Back") and `←`.
+- **Glyphs:** neither bundled font (Archivo, JetBrains Mono) has `⌫`, `✓`
+  or `⇧` (`✕` and `•` are in JetBrains Mono only). The PIN pad's delete key
+  says DEL; SET-03 and SET-04 draw shift, the tick and the Wi-Fi icon in
+  code (like `StatusDot`).
 - IDLE-07 left out the design's signal cell for lack of data; SET-04 adds the
   network name and signal to the network cell.
 

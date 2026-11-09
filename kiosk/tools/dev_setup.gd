@@ -11,6 +11,8 @@ extends SceneTree
 ##   Keys are NEVER taken as arguments; write that file by hand (format printed on error).
 ## --bridge-check=off (default): no dead-bridge watchdog, so the app runs without a bridge.
 ##   on: out of service after 30 s without a bridge heartbeat (run a real or fake bridge).
+## The settings PIN (part of the identity, settings set SET-02) is DEV_SETTINGS_PIN, written
+## only when missing. Real machines get theirs from tools/set_settings_pin.sh.
 
 const TENANT_PATH := "user://tenant_id.txt"
 const MACHINE_PATH := "user://machine_id.txt"
@@ -23,6 +25,9 @@ const CREDS_PATH := "user://razorpay_credentials.cfg"
 const MOCK_CREDS_PATH := "user://razorpay_credentials.mock.cfg"
 const QR_PATH := "user://qr_current.png"
 const IMAGE_CACHE_DIR := "user://image_cache"
+const SETTINGS_PIN_PATH := "user://settings_pin.txt"
+const SETTINGS_PIN_LOCK_PATH := "user://settings_pin_lock.json"
+const DEV_SETTINGS_PIN := "123456"
 
 
 func _initialize() -> void:
@@ -62,7 +67,8 @@ func _initialize() -> void:
 			return
 	print("user data dir: ", OS.get_user_data_dir())
 	if clear:
-		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH]:
+		for path in [TENANT_PATH, MACHINE_PATH, MACHINE_KEY_PATH, OVERRIDE_PATH, CACHE_PATH, CREDS_PATH, MOCK_CREDS_PATH, QR_PATH,
+				SETTINGS_PIN_PATH, SETTINGS_PIN_LOCK_PATH]:
 			if FileAccess.file_exists(path):
 				DirAccess.remove_absolute(path)
 				print("removed ", path)
@@ -106,6 +112,8 @@ func _initialize() -> void:
 	_write(MACHINE_PATH, machine)
 	_write(MACHINE_KEY_PATH, machine_key)
 	_write(OVERRIDE_PATH, JSON.stringify(override, "  "))
+	if not FileAccess.file_exists(SETTINGS_PIN_PATH):
+		_write(SETTINGS_PIN_PATH, PinStore.make_record(DEV_SETTINGS_PIN))
 	print("tenant=%s machine=%s api=%s poll=%ss payments=%s bridge-check=%s" % [
 		tenant, machine, api, poll, payments, bridge_check])
 	quit(0)

@@ -127,7 +127,14 @@
     "dispensing_ready_label": "READY",
     "dispensing_collect": "Collect from the hatch below",
     "dispensing_footer": "Earned it. Now drink it.",
-    "dispensing_returning": "RETURNING TO MENU IN {seconds}S"
+    "dispensing_returning": "RETURNING TO MENU IN {seconds}S",
+    "settings_pin_title": "ENTER PIN",
+    "settings_pin_wrong": "Wrong PIN",
+    "settings_pin_locked": "Too many tries. Try again in {minutes} min.",
+    "settings_pin_not_set": "Settings not set up on this machine.",
+    "settings_pin_delete": "DEL",
+    "settings_title": "SETTINGS",
+    "settings_exit": "Exit"
   },
   "timing": {
     "flavor_screen_inactivity_sec": 60,
@@ -148,6 +155,18 @@
     "telemetry_retry_interval_sec": 60,
     "bridge_heartbeat_timeout_sec": 30,
     "bridge_startup_grace_sec": 60,
-    "image_retry_interval_sec": 600
+    "image_retry_interval_sec": 600,
+    "settings_hold_sec": 5,
+    "settings_pin_inactivity_sec": 30,
+    "settings_pin_lockout_sec": 300,
+    "settings_inactivity_sec": 60,
+    "settings_error_return_sec": 3
+  },
+  "settings": {
+    "pin_path": "user://settings_pin.txt",
+    "pin_lock_path": "user://settings_pin_lock.json",
+    "pin_length": 6,
+    "pin_max_attempts": 5,
+    "hold_zone_px": 200
   }
 }

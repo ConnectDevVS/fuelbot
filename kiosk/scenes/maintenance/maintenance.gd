@@ -1,6 +1,6 @@
 extends Control
-## Out-of-service screen with technician diagnostics (PDF page 6). No interaction.
-## Returns to idle when ConfigManager reports maintenance has cleared.
+## Out-of-service screen with technician diagnostics (PDF page 6). Its only input is the
+## hidden settings hold (settings set, SET-02). Returns to idle when maintenance clears.
 
 const CELLS := ["diag_machine_id", "diag_site", "diag_flagged_by", "diag_flagged_at",
 	"diag_software", "diag_network", "diag_last_heartbeat", "diag_payments",
@@ -26,10 +26,14 @@ var _footer_margin: MarginContainer
 var _gaps := {}          # name -> spacer Control
 var _pads: Array[MarginContainer] = []   # the diagnostics title and cells
 var _compact := false
+var _hold: SettingsHold
 
 
 func _ready() -> void:
 	_build()
+	_hold = SettingsHold.new()
+	_hold.triggered.connect(Nav.go.bind(ScenePaths.SETTINGS_PIN))
+	add_child(_hold)
 	ConfigManager.maintenance_changed.connect(_on_maintenance_changed)
 	ConfigManager.connectivity_changed.connect(func(_o: bool) -> void: _render_live())
 	var timer := Timer.new()
@@ -42,6 +46,14 @@ func _ready() -> void:
 	# maintenance_changed (e.g. a fast boot fetch overriding a cached flag).
 	if not ConfigManager.is_in_maintenance():
 		Nav.go_idle.call_deferred()
+
+
+func _input(event: InputEvent) -> void:
+	_hold.feed(event)
+
+
+func get_settings_hold() -> SettingsHold:
+	return _hold
 
 
 func _on_maintenance_changed(enabled: bool, _message_text: String) -> void:

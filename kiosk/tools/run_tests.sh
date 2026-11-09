@@ -17,6 +17,13 @@ if grep -rnE '(print|push_warning|push_error|printerr).*machine_key([^_a-zA-Z0-9
 	exit 1
 fi
 
+# The settings PIN (settings set, SET-02): never the PIN, the typed digits or the hash.
+if grep -nE '(print|push_warning|push_error|printerr).*[^_a-zA-Z0-9.](pin|_typed|digit|record)([^_a-zA-Z0-9]|$)' \
+		core/pin_store.gd scenes/settings_pin/settings_pin.gd ui/components/settings_hold.gd; then
+	echo "run_tests: the settings PIN may be logged (see above)" >&2
+	exit 1
+fi
+
 # --- mock server (IDLE-04) ---
 MOCK_PORT=8788
 if curl -sf "http://127.0.0.1:$MOCK_PORT/__mock/state" >/dev/null 2>&1; then
@@ -45,6 +52,11 @@ set -e
 # A script error aborts a test coroutine before its asserts run, so treat any as a failure.
 if grep -Eq "SCRIPT ERROR|Parse Error" "$LOG"; then
 	echo "run_tests: FAILED (script errors in log, see above)" >&2
+	exit 1
+fi
+# test_settings_pin_screen types this PIN; it must never reach the log.
+if grep -q "918273" "$LOG"; then
+	echo "run_tests: FAILED (the test settings PIN appears in the log)" >&2
 	exit 1
 fi
 if [[ $code -ne 0 ]] || ! grep -q "ALL TESTS PASSED" "$LOG"; then
