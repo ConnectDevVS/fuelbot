@@ -47,6 +47,6 @@ sign the set off.
       console line or browser storage.
 - [x] The server's log from the full e2e run holds no code or address
       (SIGNOFF.md).
-- [ ] SIGNOFF.md has the Gmail check filled in (waiting for the product
-      owner's app password).
+- [x] SIGNOFF.md has the Gmail check filled in (first sign-in and forgot
+      password, both delivered to the inbox at once, 2026-11-09).
 - [x] Every earlier story's acceptance box is ticked with its test name.

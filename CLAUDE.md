@@ -77,8 +77,8 @@ changing it; this file covers only what spans parts.
 - **Email codes (S11, 2026-11-09):** first sign-in and forgot password
   need a code mailed through Gmail
   ([server/devdocs/stories/email-codes/](server/devdocs/stories/email-codes/README.md)).
-  Built; sign-off waits on one real send through the product owner's
-  Gmail account (app password in `server/.env`).
+  Done (its SIGNOFF, 2026-11-09; a real send reached the inbox). Moving
+  to a transactional mail service waits on hosting.
 - **Flavor images:** the real S3 bucket and the server's upload endpoint
   (server S5, deferred) are pending. The content team follows
   `docs/image-spec.md`.

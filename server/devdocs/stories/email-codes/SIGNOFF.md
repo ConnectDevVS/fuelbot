@@ -1,8 +1,8 @@
 # Email codes: sign-off (Milestone S11)
 
-**Status: automated part PASS (2026-11-09); not signed off yet.** One
-full gate run after every story was written passed at every width.
-Waiting for: the one real Gmail send (below).
+**Status: PASS, signed off 2026-11-09.** One full gate run after every
+story was written passed at every width, and a real Gmail send worked for
+first sign-in and forgot password (below).
 
 **Date:** 2026-11-09. **Branch:** `s11-email-codes` (from `develop`; local,
 not pushed). **Stories:** SRV-55 (`93f0e6f`), SRV-56 (`983e724`), SRV-57
@@ -55,10 +55,16 @@ What the suites cover:
 
 ## Real Gmail check
 
-_Pending: needs the product owner's Gmail app password in `server/.env`
-(`MAIL_TRANSPORT=smtp`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`)._ Record:
-delivered to inbox or spam, the subject, minutes to arrive, the code
-worked, the reset succeeded.
+**PASS (2026-11-09, product owner).** The server ran with
+`MAIL_TRANSPORT=smtp` through the product owner's Gmail account (app
+password in `server/.env`, gitignored; `MAIL_FROM` is that Gmail address).
+
+| Flow | Delivered | Subject | Arrived | Result |
+|---|---|---|---|---|
+| First sign-in (temporary password + code) | inbox | `Your FuelBot code: <code>` | at once | code accepted, new password set |
+| Forgot password | inbox | `Your FuelBot code: <code>` | at once | code accepted, password reset |
+
+No screenshot of the code; the code itself isn't recorded here.
 
 ## Left out on purpose
 
