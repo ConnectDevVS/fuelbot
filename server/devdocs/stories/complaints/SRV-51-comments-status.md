@@ -41,35 +41,40 @@ knows why.
     `complaint.status`, `before: {status: from}`, `after: {status: to}`.
 - **One atomic update** per write:
   `findOneAndUpdate({...scope, number, status: from, 'events.299': {$exists: false}}, {$push, $set})`.
-  When it matches nothing, re-read to tell 404 / 409 `status_changed` /
-  409 `complaint_full` apart. No read-modify-write races.
+  When it matches nothing, re-read to tell 409 `status_changed` /
+  409 `complaint_full` apart (404 was already checked). No read-modify-write
+  races.
+- **Order of checks** (as built): out of scope 404 → body 400 → `to` =
+  `from` 400 `status_unchanged` → permission 403 → stale `from` 409. So a
+  tenant user's `open → open` is 400 `status_unchanged`, and a reopen of a
+  complaint that isn't closed any more is 409 `status_changed`.
 - **300 entries max** (`events.299` exists) → 409 `complaint_full` for
   comments and status changes alike.
 
 ## Acceptance criteria
 
-- [ ] `complaints-api.test.js` › "creator and tenant_admin comment; staff
+- [x] `complaints-api.test.js` › "creator and tenant_admin comment; staff
       comment": desk on own, owner on desk's, staff on any → 201, entries
       in order, `fuelbot` true only for staff; `last_activity_at` moves.
-- [ ] › "out of scope can't comment": ops on desk's → 404; boss (globex)
+- [x] › "out of scope can't comment": ops on desk's → 404; boss (globex)
       on powerfuel's → 404.
-- [ ] › "comments on a closed complaint keep it closed".
-- [ ] › "staff change status in any direction with a comment": open →
+- [x] › "comments on a closed complaint keep it closed".
+- [x] › "staff change status in any direction with a comment": open →
       with_service → closed → open → closed, each 201 with one `status`
       entry carrying `from`, `to`, `text`; audit entries match.
-- [ ] › "a status change without a comment is refused": no `text`, `""`,
+- [x] › "a status change without a comment is refused": no `text`, `""`,
       `"   "` → 400 `invalid_body` field `text`; status unchanged.
-- [ ] › "stale from is 409": two staff both send `from: 'open'`; one 201,
+- [x] › "stale from is 409": two staff both send `from: 'open'`; one 201,
       the other 409 `status_changed` with `status: 'with_service'`.
-- [ ] › "same status is 400 status_unchanged".
-- [ ] › "creator and tenant_admin reopen a closed complaint": desk on own
+- [x] › "same status is 400 status_unchanged".
+- [x] › "creator and tenant_admin reopen a closed complaint": desk on own
       and owner on desk's: `closed → open` 201; ops on desk's → 404.
-- [ ] › "tenant users can't set other statuses": desk `to: 'closed'` or
+- [x] › "tenant users can't set other statuses": desk `to: 'closed'` or
       `with_service` → 403; reopen of an open complaint (`from: 'open'`) →
       400 `status_unchanged`.
-- [ ] › "a full thread is 409 complaint_full": 300 entries, then a comment
+- [x] › "a full thread is 409 complaint_full": 300 entries, then a comment
       and a status change → 409; nothing appended.
-- [ ] `audit.test.js` RBAC rows (on complaint #1, raised by the RBAC
+- [x] `audit.test.js` RBAC rows (on complaint #1, raised by the RBAC
       operator): `…/1/comments` and `…/1/status` with an empty body →
       400 for every role that can see #1 (all hold `complaints:comment`
       and `status` or `reopen`); the viewer, who can't see #1 → 404.

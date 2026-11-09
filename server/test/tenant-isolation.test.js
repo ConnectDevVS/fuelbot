@@ -140,6 +140,8 @@ describe('tenant isolation', () => {
     'GET /tenants/:tid/complaints': {},
     'POST /tenants/:tid/complaints': { body: () => ({ title: 'Sneaky', description: 'x' }), validAs: 'boss' },
     'GET /tenants/:tid/complaints/:number': {},
+    'POST /tenants/:tid/complaints/:number/comments': { body: () => ({ text: 'Sneaky' }) },
+    'POST /tenants/:tid/complaints/:number/status': { body: () => ({ from: 'open', to: 'with_service', text: 'Sneaky' }) },
   };
 
   const tenantRoutes = () => routes.filter((r) => r.split(' ')[1].startsWith('/tenants/:tid'));

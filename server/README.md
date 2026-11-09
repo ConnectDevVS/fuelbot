@@ -104,6 +104,11 @@ Tenant users raise complaints, FuelBot staff answer them (plan §4.15). All unde
   first. Operators and viewers see the ones they raised, a tenant_admin all of
   the tenant's.
 - `GET /tenants/<t>/complaints/<number>`: the complaint and its thread.
+- `POST …/complaints/<number>/comments {"text": "…"}`: anyone who can see it,
+  in any status.
+- `POST …/complaints/<number>/status {"from": "open", "to": "with_service", "text": "…"}`:
+  staff, any status to any other; the creator or a tenant_admin, `closed` →
+  `open` only. The comment is required. A stale `from` is 409 `status_changed`.
 - `GET /complaints[?status=&tenant=]`: every tenant's (staff only).
 
 ## Reports
