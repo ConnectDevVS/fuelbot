@@ -490,6 +490,7 @@ a tenant_admin replacing `powerfuel` with another tenant's name?)
 | Products | ✓ | ✓ | ✓ (edit text only with all machines) | ✓ (read) |
 | Users | ✓ (all, or one tenant's) | ✓ (own tenant) | – | – |
 | Company (branding) | ✓ | ✓ | – | – |
+| Complaints (S10, §5.20) | ✓ (all tenants, in the Platform group; and in a tenant) | ✓ (whole tenant; raise) | ✓ (own; raise) | ✓ (own; raise) |
 | **Platform:** Tenants, Faults, Telemetry, Audit, Unregistered | ✓ | – | – | – |
 | Account menu: Change password, Sign out | ✓ | ✓ | ✓ | ✓ |
 
@@ -520,6 +521,8 @@ After sign-in (or `/dashboard/`):
 | `/t/:tid/products` (`?p=<id>`, `?new=1`) | §5.11 Products + drawer | `catalog:read` |
 | `/t/:tid/users` | §5.12 Users | `users:manage` |
 | `/t/:tid/company` | §5.13 Company | `tenant:read` (edit `tenant:edit`) |
+| `/complaints` | §5.20 Complaints, all tenants | `complaints:status` (platform) |
+| `/t/:tid/complaints`, `/t/:tid/complaints/:number` | §5.20 Complaints list, complaint page | `complaints:comment` (raise `complaints:raise`) |
 | anything else | Not found | – |
 
 ## 4. Shared UI patterns
@@ -1399,6 +1402,36 @@ roles get no tab, no page, no request and no keys (the leak scan proves it).
   text. A release paused by a rollback says which machine and why.
 - **Fleet** (staff): a version column (desktop only) and a "Behind" chip.
 
+### 5.20 Complaints (S10; planned 2026-11-09)
+
+Tenant users raise complaints and follow them in a thread; staff answer
+and set the status. Server: SP §4.15. Stories and the full spec:
+[SRV-52](../../../server/devdocs/stories/complaints/SRV-52-dashboard-list-raise.md)
+(list, raise) and
+[SRV-53](../../../server/devdocs/stories/complaints/SRV-53-dashboard-detail.md)
+(complaint page).
+
+- **List** (`/t/:tid/complaints`; staff also `/complaints` with a Tenant
+  column and filter): `#`, title, status chip (Open / With service /
+  Closed), raised by (tenant_admin and staff), last activity, comments.
+  Default filter *Open & with service*; newest activity first; cards on
+  phone.
+- **Raise** (tenant roles): title + description in a dialog (a sheet on
+  phone), then the new complaint's page.
+- **Complaint page:** the description, then the timeline (comments and
+  status changes, oldest first; FuelBot authors tagged "FuelBot support"),
+  a comment box. Staff: a status select that turns Post into "Post and set
+  to <status>" and makes the comment required. Tenant creator or
+  tenant_admin on a closed complaint: **Reopen**, comment required.
+- Text is plain (no Markdown or links); nothing is edited or deleted.
+
+```
+COMPLAINTS                    [Open & with service | Closed | All]      [+ Raise complaint]
+#   TITLE                              STATUS          RAISED BY   LAST ACTIVITY   💬
+12  Bay 02 screen frozen after pay     With service    Desk        2 h ago          3
+11  Wrong flavour dispensed            Open            Look        yesterday        0
+```
+
 ## 6. Permission → UI map
 
 `can()` checks these permission names (from `/auth/me`). "Platform" means
@@ -1417,6 +1450,10 @@ UI checks the specific one, never the role name.
 | Edit product text and image path, Archive | `products:edit` (already excludes limited operators, §2.5) |
 | Users nav and page | `users:manage` |
 | Company edit | `tenant:edit` |
+| Complaints nav, list, complaint page, comment box | `complaints:comment` |
+| Raise complaint | `complaints:raise` |
+| Status control on a complaint; Complaints in the Platform group | `complaints:status` |
+| Reopen (closed complaints) | `complaints:reopen` |
 | Tenants page, New tenant | `tenants:create`; Disable tenant `tenants:disable` |
 | Maintenance tab / actions | `maintenance:read` / `maintenance:write` |
 | Telemetry tab + page, Faults tab + page, Audit, Unregistered | `telemetry:read`, `faults:read`, `audit:read`, `unregistered:read` |
@@ -1445,6 +1482,10 @@ UI checks the specific one, never the role name.
 | `product_in_use` (409) | archive | Remove it from these machines' menus first |
 | `product_exists` / `tenant_exists` (409) | create | That id is taken |
 | `source_not_configured` (400) | copy menu | That machine has no menu to copy |
+| `status_changed` (409) | complaint status | This complaint was updated by someone else (reload; the typed text is kept) |
+| `status_unchanged` (400) | complaint status | It already has this status |
+| `complaint_full` (409) | complaint comment / status | This thread is full. Raise a new complaint and mention #N |
+| `invalid_status` (400) | complaints list | generic error (a bug) |
 | `not_found` (404) | any | Not found, or you don't have access |
 | network error | any | You're offline, or the server isn't reachable |
 

@@ -78,6 +78,7 @@ the index.
 | 2026-09-29 | **Dashboard: desktop first from SRV-42** (product owner): SRV-42–48 were built and checked at 1440 px first; their phone and tablet layouts came in one pass before sign-off (SRV-49, 2026-09-30) | Settle the functionality before the small-screen layouts | dashboard plan §0.1 row 3 |
 | 2026-09-29 | **Disabled machines stay in Refill soon** (product owner): no `disabled` filter on `/stock` or in the dashboard | A disabled machine with a menu still has hoppers to look after | §4.13; dashboard plan §0.1 row 13, §5.10 |
 | 2026-10-09 | **Over-the-air updates (S9)** (product owner): the server holds signed release bundles (on its own storage; S3 left out), decides each machine's target version (pin, staged rollout: a test machine, then 10 %, then all; pause, withdraw, retry), answers the updater's `GET /fuelbot/update`, serves the release files and records its reports; a rollback or failure pauses the release; staff can force an update. Versions and updates are platform-only | Update the fleet safely without visits | §3.8–3.10, §4.14, §6; kiosk plan Milestone 9; [ota stories](../../../docs/stories/ota/README.md) |
+| 2026-11-09 | **Complaints (S10)** (product owner): `tenant_admin`, `operator` and `viewer` raise complaints (title + description, no machine) from the dashboard; operators and viewers see their own, a `tenant_admin` the whole tenant's, staff everyone's; all of them comment. Statuses `open` (default), `with_service`, `closed`: staff change them in any direction, the creator or a `tenant_admin` reopens a closed one, and **every status change needs a comment**. `platform_admin` doesn't raise complaints, so `complaints:raise` and `complaints:reopen` are the first tenant-only permissions (§4.7) | A support channel in the dashboard, with every answer on record | §4.7, §4.15, §6; [complaints stories](../stories/complaints/README.md) |
 
 ## 1. Context
 
@@ -748,7 +749,11 @@ There are no alerts in v1 (§8), but lists sort by status.
   tenant** (product owner, 2026-09-27): users, branding, machines, keys,
   products, menus, prices, stock refills and adjustments, sales, plus the
   platform-only data below. In code the platform set is built from the
-  tenant_admin set, and a test fails if they ever diverge.
+  tenant_admin set, and a test fails if they ever diverge. **The one
+  exception is `TENANT_ONLY`** (S10, 2026-11-09): `complaints:raise` and
+  `complaints:reopen`, since staff answer complaints rather than raise
+  them, and change their status with `complaints:status` (platform-only).
+  Complaints: §4.15.
 - **Platform-only data** (product owner): **telemetry** (every event),
   **maintenance** (the flag, message and faults, and switching it),
   **errors** (`dispensing_result` and `dispensing_reason` values, image
@@ -1031,6 +1036,42 @@ the full rules. In short:
 - **Settings:** `RELEASES_DIR`, `RELEASE_PUBLIC_KEY`, `RELEASE_MAX_MB`
   (200), `UPDATE_WINDOW`, `UPDATE_MAX_WAIT_DAYS`.
 
+### 4.15 Complaints (S10)
+
+Tenant users raise complaints from the dashboard; FuelBot staff answer
+them in a thread and move them through `open` → `with_service` →
+`closed` (product owner, 2026-11-09). Stories SRV-50 to SRV-54 in
+[stories/complaints/](../stories/complaints/README.md), whose decisions
+are the detail behind this section.
+
+- **Who:** `tenant_admin`, `operator` and `viewer` raise them;
+  `platform_admin` doesn't. Operators and viewers see the complaints they
+  raised; a `tenant_admin` sees all of their tenant's; staff see all.
+  Whoever can see one can comment on it. Machine scope doesn't apply: a
+  complaint has no machine.
+- **Status:** `open` on creation. Staff change it in any direction; the
+  creator or a `tenant_admin` can reopen a closed one (→ `open`). **Every
+  status change carries a comment.** Comments are allowed in every status
+  and don't change it.
+- **Append-only:** nothing is edited or deleted. A complaint is one
+  document (`complaints`) with its timeline in `events` (comments and
+  status changes, ≤ 300), a per-tenant `number` from
+  `Tenant.complaint_seq`, and `last_activity_at` for sorting.
+- **Tenant views** show a FuelBot author as "FuelBot support · <name>",
+  without the staff email; no `user_id`, IPs or audit fields in any view.
+
+| Method & path | Who | What |
+|---|---|---|
+| `GET /tenants/:tid/complaints` | members (scoped as above) | `?status=` (comma list), cursor; newest activity first |
+| `POST /tenants/:tid/complaints` | tenant roles (`complaints:raise`) | `{title, description}` → 201, `open`, next number |
+| `GET /tenants/:tid/complaints/:number` | in scope | the complaint and its timeline |
+| `POST /tenants/:tid/complaints/:number/comments` | in scope | `{text}` |
+| `POST /tenants/:tid/complaints/:number/status` | platform (`complaints:status`); tenant roles in scope, `closed → open` only (`complaints:reopen`) | `{from, to, text}`, all required; stale `from` → 409 `status_changed`; same status → 400 `status_unchanged` |
+| `GET /complaints` | **platform_admin** | every tenant's, `?status=&tenant=` |
+
+Out of scope: attachments, categories, priority, assignment, SLAs,
+notifications (no email in v1, §8), and links to a machine or order.
+
 ## 5. Target folder structure
 
 ```
@@ -1085,6 +1126,7 @@ story (`SRV-NN: <title>`). Each milestone is usable at its end.
 | S7 | Dashboard (**done 2026-09-30**) | §4.10 → the [dashboard plan](../../../webdashboard/devdocs/plans/dashboard-plan.md). Stories SRV-27 to SRV-49 in `webdashboard/devdocs/stories/dashboard/`: server additions first (`group=week\|month`, CSV `local_time`, `tenant=` on `/fleet` and `/stock`, `/auth/me` permissions, serving `/dashboard` with its CSP, the test harness), then the shell, pages by value, staff pages, end-to-end and SIGNOFF | FuelBot staff and tenants |
 | S8 | End-to-end & sign-off | the real app against the real server (§7), SIGNOFF, docs, kiosk plan decision-log entries | — |
 | S9 | Over-the-air updates (**planned 2026-10-09**) | §3.8–3.10, §4.14; stories OTA-01 to OTA-09 in [devdocs/stories/ota/](../../../docs/stories/ota/README.md) (the server's are OTA-05, the dashboard's OTA-06). **App:** the version headers, the updater (kiosk plan Milestone 9) | updating deployed machines (once the server is deployed) |
+| S10 | Complaints (**planned 2026-11-09**) | §4.15; stories SRV-50 to SRV-54 in [stories/complaints/](../stories/complaints/README.md): model, permissions and API (50–51), the dashboard's list, raise and complaint pages (52–53), end-to-end and SIGNOFF (54). No app change | tenant users reporting problems to FuelBot |
 | later | Deploy | hosting, TLS, backups, monitoring (once decided) | production |
 
 The app parts of S1 and S4 follow the kiosk's own Definition of Done
