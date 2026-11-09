@@ -1,13 +1,14 @@
-// /api/v1/auth: sign in, sign out, who am I, change my password (plan §4.4, §4.6).
+// /api/v1/auth: sign in, sign out, who am I, change my password, forgot password (plan §4.4,
+// §4.6, §4.16).
 import express from 'express';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { Tenant, User } from '../models/index.js';
-import { hashPassword, verifyPassword } from '../auth/passwords.js';
+import { checkPassword, hashPassword, verifyPassword } from '../auth/passwords.js';
 import { endSession, requirePasswordChanged, requireSession, setSessionCookie } from '../auth/session.js';
 import { userView } from '../services/views.js';
 import { effectivePermissions, hasAllMachines, isPlatform } from '../auth/rbac.js';
 import { audit } from '../services/audit.js';
-import { checkCode, sendCodeOr502 } from '../services/codes.js';
+import { checkCode, sendCode, sendCodeOr502 } from '../services/codes.js';
 import { HttpError } from '../errors.js';
 
 const emailOf = (body) => (typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '');
@@ -27,6 +28,25 @@ async function meBody(user, exp, settings) {
     display_tz: settings.displayTz,
     session_expires_at: new Date(exp * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z'),
   };
+}
+
+/** The user behind a forgot/reset email, or null: unknown, disabled, or their tenant disabled. */
+async function activeUser(email) {
+  const user = email ? await User.findOne({ email }) : null;
+  if (!user || user.disabled) return null;
+  if (user.tenant_id) {
+    const tenant = await Tenant.findById(user.tenant_id, { disabled: 1 }).lean();
+    if (!tenant || tenant.disabled) return null;
+  }
+  return user;
+}
+
+/** Runs fn after the response, so its time can't tell whether the email exists. Never throws. */
+function afterResponse(req, label, fn) {
+  const work = fn().catch((err) => console.error(`[auth] ${label} failed (${err.code ?? err.name})`));
+  const { background } = req.app.locals;
+  background.add(work);
+  work.finally(() => background.delete(work));
 }
 
 /** checkCode, auditing a wrong code (auth.code_failed; voided on the fifth). */
@@ -56,6 +76,18 @@ export function authRouter(settings) {
     handler: (req, res) => res.status(429).json({ error: 'too_many_attempts' }),
   });
 
+  // Forgot password, per IP + email (README decision 8): every request counts.
+  const limitPerEmail = (limit) => rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip ?? '')}|${emailOf(req.body)}`,
+    handler: (req, res) => res.status(429).json({ error: 'too_many_attempts' }),
+  });
+  const forgotLimit = limitPerEmail(5);
+  const resetLimit = limitPerEmail(10);
+
   // Code mails a signed-in user asks for, per IP + user (README decision 8).
   const codeLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -83,6 +115,39 @@ export function authRouter(settings) {
     setSessionCookie(res, user, settings);
     await audit(req, { action: 'auth.login', user, tenant_id: user.tenant_id });
     res.json({ user: userView(user) });
+  });
+
+  // Forgot password (plan §4.16): mails a code to an active user. The answer is the same for any
+  // email, and comes before the lookup and the send.
+  router.post('/forgot', forgotLimit, async (req, res) => {
+    const email = emailOf(req.body);
+    res.json({ ok: true });
+    afterResponse(req, 'forgot', async () => {
+      const user = await activeUser(email);
+      if (!user) return;
+      await sendCode(req, user, 'forgot');
+      await audit(req, { action: 'auth.code_sent', user, tenant_id: user.tenant_id, target: `user:${user._id}` });
+    });
+  });
+
+  // Sets a new password with the emailed code. Doesn't sign in; every session ends.
+  router.post('/reset', resetLimit, async (req, res) => {
+    const { code, new: next } = req.body ?? {};
+    const email = emailOf(req.body);
+    const missing = Object.entries({ email, code, new: next })
+      .filter(([, v]) => typeof v !== 'string' || !v).map(([field]) => ({ field, error: 'required' }));
+    if (missing.length) throw new HttpError(400, 'invalid_body', missing);
+    checkPassword(next);   // first, so a password typo doesn't cost a code attempt
+    const user = await activeUser(email);
+    if (!user) throw new HttpError(400, 'invalid_code');
+    await checkCodeAudited(req, user, code, settings);
+    user.password_hash = await hashPassword(next, settings.bcryptCost);
+    user.must_change_password = false;
+    user.email_code = null;
+    user.token_version += 1;
+    await user.save();
+    await audit(req, { action: 'auth.password_reset', user, tenant_id: user.tenant_id, target: `user:${user._id}` });
+    res.json({ ok: true });
   });
 
   router.use(requireSession, requirePasswordChanged);

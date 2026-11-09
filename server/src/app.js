@@ -16,6 +16,7 @@ export function createApp({ settings, mailer = createMailer(settings.mail) }) {
   app.set('trust proxy', 'loopback');
   app.locals.settings = settings;
   app.locals.mailer = mailer;
+  app.locals.background = new Set();   // work finished after the response (forgot password); tests await it
 
   if (settings.logRequests) {
     // Method, path (no query: presigned or filter values), status, time. Never headers or bodies.

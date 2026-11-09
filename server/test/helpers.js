@@ -41,6 +41,10 @@ export async function startServer(env = {}, { port = 0 } = {}) {
     settings,
     uploads,
     mail: mailbox(app.locals.mailer),
+    /** Waits for work the app finishes after responding (forgot password's mail). */
+    async idle() {
+      while (app.locals.background.size) await Promise.allSettled([...app.locals.background]);
+    },
     async reset() {
       app.locals.mailer.sent.length = 0;
       app.locals.mailer.fail = false;

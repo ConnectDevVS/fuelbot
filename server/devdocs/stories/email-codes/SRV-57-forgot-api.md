@@ -12,7 +12,8 @@ admin.
 
 1. `server/src/routes/auth.js`: `POST /auth/forgot`, `POST /auth/reset`
    (before `router.use(requireSession…)`), each with its limiter.
-2. Tests in `server/test/forgot.test.js`.
+2. Tests in `server/test/forgot.test.js`; `app.locals.background` (work
+   after the response) and `ctx.idle()` in `test/helpers.js` to await it.
 3. Docs: SP §4.4 routes, §4.6 (rate limits); `server/README.md`.
 
 ## Spec
@@ -27,7 +28,7 @@ admin.
   before sending (send after `res.json`, errors caught), so known and
   unknown emails take about the same time.
 - **`POST /auth/reset {email, code, new}`**: missing fields → 400
-  `invalid_body`; `new` shorter than 10 → 400 `weak_password` (checked
+  `invalid_body` (details name each field, `required`); `new` shorter than 10 → 400 `weak_password` (checked
   first, so a typo in the password doesn't burn a code attempt); unknown
   email, disabled user, disabled tenant or a bad code → **400
   `invalid_code`** (a wrong code counts an attempt and is audited
@@ -39,20 +40,22 @@ admin.
 
 ## Acceptance criteria
 
-- [ ] `forgot.test.js` › "forgot mails a code to an active user".
-- [ ] › "forgot answers the same for unknown, disabled user and disabled
-      tenant, and mails nothing".
-- [ ] › "forgot resends the same code within 30 min, a new one after".
-- [ ] › "forgot answers 200 when mail fails".
-- [ ] › "reset with the right code sets the password and ends sessions":
+- [x] `forgot.test.js` › "forgot mails a code to an active user" (email
+      upper-cased with spaces still matches).
+- [x] › "forgot answers the same for unknown, disabled user and disabled
+      tenant, and mails nothing" (and an empty email).
+- [x] › "forgot resends the same code within 30 min, a new one after".
+- [x] › "forgot answers 200 when mail fails, and logs no address".
+- [x] › "reset with the right code sets the password and ends sessions":
       old session → 401; sign-in with the new password works; code
-      cleared (the same code again → `invalid_code`).
-- [ ] › "reset clears must_change_password" (a user still on a temporary
-      password).
-- [ ] › "reset with a wrong, expired or unknown-email code is
-      invalid_code"; "five wrong codes void it".
-- [ ] › "weak password is checked before the code".
-- [ ] › "reset doesn't sign in" (no `Set-Cookie`).
-- [ ] › "forgot and reset are rate-limited" (own emails, see the
-      limiter gotcha).
-- [ ] › "audit has no code": scan the audit collection after the run.
+      cleared (the same code again → `invalid_code`); audited.
+- [x] › "reset clears must_change_password".
+- [x] › "reset with a wrong, expired or unknown-email code is
+      invalid_code" (and a disabled user's); › "five wrong codes void it"
+      (every try audited, `voided` on the fifth).
+- [x] › "weak password and missing fields are checked before the code".
+- [x] › "reset doesn't sign in" (no `Set-Cookie`).
+- [x] › "forgot and reset are rate-limited per IP + email" (a new address
+      per test: the limiters live as long as the file's app).
+- [x] › "works without a session but needs the dashboard header".
+- [x] › "the audit log never holds a code".

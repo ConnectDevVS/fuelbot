@@ -597,6 +597,8 @@ tenant check happens once per request.
 | Method & path | Who | What |
 |---|---|---|
 | `POST /auth/login` | anyone | `{email, password}` → sets the session cookie, returns `{user}` (the dashboard calls `/auth/me` next). Rate-limited |
+| `POST /auth/forgot` | anyone | `{email}` → **always** 200 `{ok: true}`, answered before the lookup; mails a code (§4.16) to an active user of an active tenant. 5 per 15 min per IP + email (429) |
+| `POST /auth/reset` | anyone | `{email, code, new}` → 200 `{ok: true}`, **no cookie** (sign in next); missing fields 400 `invalid_body`, then `weak_password`, then 400 `invalid_code` (also for an unknown, disabled or disabled-tenant email). Clears `must_change_password` and the code, ends every session. 10 per 15 min per IP + email (429) |
 | `POST /auth/logout` | signed in | clears the cookie |
 | `GET /auth/me` | signed in (also while a password change is required) | `{user, permissions, all_machines, tenant, display_tz, session_expires_at}` (SRV-28): `permissions` is the effective set from `auth/rbac.js` `effectivePermissions()` (the role's set, minus `products:edit` for a user limited to some machines), sorted; `tenant` is `{id, name, logo_text}`, null for platform; `session_expires_at` is ISO UTC without milliseconds |
 | `POST /auth/password` | signed in | `{current, new, code}`; `code` (the emailed one, §4.16) is **required while `must_change_password`** (400 `invalid_code`; checked after `current`) and ignored otherwise; bumps `token_version` (other sessions end), clears the code; answers like `/auth/me`, with the new session's expiry |
@@ -740,6 +742,10 @@ There are no alerts in v1 (§8), but lists sort by status.
   it).
 - **Login rate limit:** `LOGIN_RATE_LIMIT` (10) attempts per 15 minutes per
   IP + email. The error doesn't say whether the email exists.
+- **Code limits** (§4.16, 15 minutes): forgot password 5 per IP + email;
+  reset 10 per IP + email; "email me a code" 5 per IP + user. Each code
+  also allows only 5 wrong tries. Forgot password answers the same,
+  before any lookup, whether the email exists or not.
 - `JWT_SECRET` is **required** when `NODE_ENV=production`. In dev a random
   one is made per process, and sessions end on restart.
 - `helmet` headers. The API keeps helmet's default CSP. `/dashboard` has
